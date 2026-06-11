@@ -1,5 +1,19 @@
 export const ensureRuntimeSchema = async (pool) => {
     await pool.query(`
+        CREATE TABLE IF NOT EXISTS fournisseurs (
+            id_fournisseur VARCHAR(50) PRIMARY KEY,
+            entreprise_id VARCHAR(50) NOT NULL,
+            nom VARCHAR(160) NOT NULL,
+            telephone VARCHAR(30),
+            email VARCHAR(160),
+            adresse VARCHAR(255),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_fournisseur_entreprise_nom (entreprise_id, nom),
+            FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE
+        )
+    `);
+
+    await pool.query(`
         CREATE TABLE IF NOT EXISTS categorie_produit (
             id_categorie VARCHAR(50) PRIMARY KEY,
             entreprise_id VARCHAR(50) NOT NULL,
@@ -15,7 +29,7 @@ export const ensureRuntimeSchema = async (pool) => {
     await pool.query(`
         CREATE TABLE IF NOT EXISTS notifications (
             id_notification INT AUTO_INCREMENT PRIMARY KEY,
-            recipient_type ENUM('user','super_admin','enterprise_admin') NOT NULL DEFAULT 'user',
+            recipient_type ENUM('user','enterprise_admin') NOT NULL DEFAULT 'user',
             recipient_user_id VARCHAR(50),
             entreprise_id VARCHAR(50),
             titre VARCHAR(160) NOT NULL,
@@ -76,7 +90,7 @@ export const ensureRuntimeSchema = async (pool) => {
         }
     };
 
-    await addColumnIfMissing('notifications', 'recipient_type', "ENUM('user','super_admin','enterprise_admin') NOT NULL DEFAULT 'user'");
+    await addColumnIfMissing('notifications', 'recipient_type', "ENUM('user','enterprise_admin') NOT NULL DEFAULT 'user'");
     await addColumnIfMissing('notifications', 'recipient_user_id', 'VARCHAR(50) NULL');
     await addColumnIfMissing('notifications', 'entreprise_id', 'VARCHAR(50) NULL');
     await addColumnIfMissing('notifications', 'titre', "VARCHAR(160) NOT NULL DEFAULT 'Notification'");
@@ -92,6 +106,8 @@ export const ensureRuntimeSchema = async (pool) => {
     await addColumnIfMissing('mail_messages', 'message', 'TEXT NULL');
     await addColumnIfMissing('mail_messages', 'status', 'VARCHAR(40) NOT NULL DEFAULT "envoye"');
     await addColumnIfMissing('mail_messages', 'created_at', 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
+
+    await addColumnIfMissing('utilisateur', 'telephone', 'VARCHAR(30) NULL');
 
     await addColumnIfMissing('user_activity_logs', 'entreprise_id', 'VARCHAR(50) NOT NULL');
     await addColumnIfMissing('user_activity_logs', 'user_id', 'VARCHAR(50) NOT NULL');
@@ -117,6 +133,12 @@ export const ensureRuntimeSchema = async (pool) => {
     }
 
     await addColumnIfMissing('produits', 'photo_url', 'TEXT NULL');
+    await addColumnIfMissing('produits', 'prix_achat', 'DECIMAL(10,2) NOT NULL DEFAULT 0');
+    await addColumnIfMissing('mouvements_stock', 'fournisseur_id', 'VARCHAR(50) NULL');
+    await addColumnIfMissing('mouvements_stock', 'prix_achat_unitaire', 'DECIMAL(10,2) NULL');
+    await addColumnIfMissing('mouvements_stock', 'prix_achat_total', 'DECIMAL(12,2) NULL');
+    await addColumnIfMissing('mouvements_stock', 'note', 'VARCHAR(255) NULL');
+    await addColumnIfMissing('lignes_ventes', 'prix_achat_unitaire', 'DECIMAL(10,2) NOT NULL DEFAULT 0');
     await addColumnIfMissing('categorie_produit', 'reference_categorie', 'VARCHAR(50) NULL');
     await addColumnIfMissing('categorie_produit', 'photo_url', 'TEXT NULL');
 

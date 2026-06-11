@@ -58,6 +58,8 @@ export const getVenteById = async (req, res) => {
         const [lignes] = await pool.query(
             `SELECT lv.*, p.nom AS produit_nom,
                     (lv.quantite * lv.prix_unitaire_ht) AS total_ht,
+                    (lv.quantite * IFNULL(lv.prix_achat_unitaire, 0)) AS cout_total,
+                    (lv.quantite * (lv.prix_unitaire_ht - IFNULL(lv.prix_achat_unitaire, 0))) AS resultat_ligne_ht,
                     (lv.quantite * lv.prix_unitaire_ht * 1.16) AS total_ttc
              FROM lignes_ventes lv
              JOIN produits p ON lv.produit_id = p.id_produit
@@ -116,7 +118,7 @@ export const createVente = async (req, res) => {
             }
 
             const [produits] = await connection.query(
-                `SELECT id_produit, prix_ht, quantite_stock
+                `SELECT id_produit, prix_ht, prix_achat, quantite_stock
                  FROM produits
                  WHERE id_produit = ? AND entreprise_id = ?
                  FOR UPDATE`,
@@ -136,7 +138,7 @@ export const createVente = async (req, res) => {
                 throw new Error('Le prix unitaire doit etre positif.');
             }
 
-            lignes.push({ produit_id, quantite, prix });
+            lignes.push({ produit_id, quantite, prix, prix_achat: toNumber(produits[0].prix_achat || 0) });
         }
 
         await connection.query(
@@ -154,9 +156,9 @@ export const createVente = async (req, res) => {
             const id_ligne = await nextId(connection, 'lignes_ventes', 'LVT', 6);
             await connection.query(
                 `INSERT INTO lignes_ventes
-                 (id_lignes_ventes, vente_id, produit_id, quantite, prix_unitaire_ht)
-                 VALUES (?, ?, ?, ?, ?)`,
-                [id_ligne, facture_id, ligne.produit_id, ligne.quantite, ligne.prix]
+                 (id_lignes_ventes, vente_id, produit_id, quantite, prix_unitaire_ht, prix_achat_unitaire)
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [id_ligne, facture_id, ligne.produit_id, ligne.quantite, ligne.prix, ligne.prix_achat]
             );
         }
 
@@ -248,7 +250,7 @@ export const updateVente = async (req, res) => {
             }
 
             const [produits] = await connection.query(
-                `SELECT id_produit, prix_ht, quantite_stock
+                `SELECT id_produit, prix_ht, prix_achat, quantite_stock
                  FROM produits
                  WHERE id_produit = ? AND entreprise_id = ?
                  FOR UPDATE`,
@@ -269,9 +271,9 @@ export const updateVente = async (req, res) => {
             const id_ligne = await nextId(connection, 'lignes_ventes', 'LVT', 6);
             await connection.query(
                 `INSERT INTO lignes_ventes
-                 (id_lignes_ventes, vente_id, produit_id, quantite, prix_unitaire_ht)
-                 VALUES (?, ?, ?, ?, ?)`,
-                [id_ligne, id, produit_id, quantite, prix]
+                 (id_lignes_ventes, vente_id, produit_id, quantite, prix_unitaire_ht, prix_achat_unitaire)
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [id_ligne, id, produit_id, quantite, prix, toNumber(produits[0].prix_achat || 0)]
             );
         }
 

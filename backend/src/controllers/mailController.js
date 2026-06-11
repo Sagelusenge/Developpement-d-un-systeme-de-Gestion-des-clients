@@ -16,10 +16,8 @@ export const getMailMessages = async (req, res) => {
         const params = [];
         let where = '';
 
-        if (req.user?.type !== 'super_admin') {
-            where = 'WHERE entreprise_id = ?';
-            params.push(req.user.entreprise_id);
-        }
+        where = 'WHERE entreprise_id = ?';
+        params.push(req.user.entreprise_id);
 
         const [rows] = await pool.query(
             `SELECT id_mail, sender_email, to_email, subject, message, status, created_at
@@ -53,7 +51,7 @@ export const sendCustomMail = async (req, res) => {
             text: message,
             html: `<div style="font-family:Arial,sans-serif;line-height:1.6">${String(message).replace(/\n/g, '<br>')}</div>`,
             replyTo: req.user?.email,
-            fromName: req.user?.nom || 'CRM PME'
+            fromName: req.user?.nom || 'Quincaillerie Centrale'
         });
 
         if (result.skipped) {

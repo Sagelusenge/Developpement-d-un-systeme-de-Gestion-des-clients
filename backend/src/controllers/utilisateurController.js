@@ -173,6 +173,15 @@ export const toggleUtilisateur = async (req, res) => {
     const entreprise_id = req.user.entreprise_id;
 
     try {
+        const [users] = await pool.query(
+            `SELECT actif FROM utilisateur WHERE id_utilisateur = ? AND entreprise_id = ?`,
+            [id, entreprise_id]
+        );
+
+        if (users.length === 0) {
+            return res.status(404).json({ success: false, message: 'Utilisateur introuvable' });
+        }
+
         const [result] = await pool.query(
             `UPDATE utilisateur
              SET actif = NOT actif
@@ -180,11 +189,11 @@ export const toggleUtilisateur = async (req, res) => {
             [id, entreprise_id]
         );
 
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: 'Utilisateur introuvable' });
-        }
-
-        res.json({ success: true, message: 'Statut utilisateur modifie' });
+        const wasActive = Boolean(users[0].actif);
+        res.json({
+            success: true,
+            message: wasActive ? 'Utilisateur suspendu. Il ne peut plus se connecter.' : 'Utilisateur reactive. Il peut se connecter.'
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

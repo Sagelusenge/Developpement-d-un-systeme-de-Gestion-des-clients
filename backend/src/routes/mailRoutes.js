@@ -21,10 +21,10 @@ const protectAny = (req, res, next) => {
 };
 
 const authorizeMailSender = (req, res, next) => {
-    if (req.user.type === 'super_admin' || req.user.role === 'manager') return next();
+    if (req.user.role === 'manager') return next();
     return res.status(403).json({
         success: false,
-        message: 'Seul le manager de l entreprise ou le super administrateur peut envoyer des emails.'
+        message: 'Seul le manager peut envoyer des emails.'
     });
 };
 

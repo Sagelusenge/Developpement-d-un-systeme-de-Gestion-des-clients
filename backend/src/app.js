@@ -8,15 +8,14 @@ import authRoutes from './routes/authRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import clientRoutes from './routes/clientRoutes.js';
 import produitRoutes from './routes/produitRoutes.js';
-import devisRoutes from './routes/devisRoutes.js';
 import venteRoutes from './routes/venteRoutes.js';
 import paiementRoutes from './routes/paiementRoutes.js';
 import rapportRoutes from './routes/rapportRoutes.js';
-import superAdminRoutes from './routes/superAdminRoutes.js';
 import utilisateurRoutes from './routes/utilisateurRoutes.js';
 import mailRoutes from './routes/mailRoutes.js';
 import categorieRoutes from './routes/categorieRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import fournisseurRoutes from './routes/fournisseurRoutes.js';
 
 dotenv.config();
 
@@ -43,16 +42,15 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/produits', produitRoutes);
 app.use('/api/categories', categorieRoutes);
-app.use('/api/devis', devisRoutes);
+app.use('/api/fournisseurs', fournisseurRoutes);
 app.use('/api/ventes', venteRoutes);
 app.use('/api/paiements', paiementRoutes);
 app.use('/api/rapports', rapportRoutes);
-app.use('/api/super-admin', superAdminRoutes);
 app.use('/api/mail', mailRoutes);
 app.use('/api/notifications', notificationRoutes);
 
 app.get('/api/health', (req, res) => {
-    res.json({ success: true, message: 'CRM PME API operationnelle' });
+    res.json({ success: true, message: 'Quincaillerie Centrale API operationnelle' });
 });
 
 app.use(errorHandler);

@@ -28,12 +28,15 @@ export const getMouvementsStock = async (req, res) => {
     try {
         const [rows] = await pool.query(
             `SELECT m.id_mouvement, m.type_mouvement, m.quantite, m.date_mouvement,
-                    p.nom AS produit_nom, p.reference_produit
+                    m.prix_achat_unitaire, m.prix_achat_total, m.note,
+                    p.nom AS produit_nom, p.reference_produit,
+                    f.nom AS fournisseur_nom
              FROM mouvements_stock m
              JOIN produits p ON p.id_produit = m.produit_id
+             LEFT JOIN fournisseurs f ON f.id_fournisseur = m.fournisseur_id
              WHERE p.entreprise_id = ?
              ORDER BY m.date_mouvement DESC
-             LIMIT 8`,
+             LIMIT 20`,
             [entreprise_id]
         );
         res.json({ success: true, data: rows });
@@ -108,12 +111,21 @@ export const updateProduit = async (req, res) => {
 // POST /api/produits/:id/approvisionner
 export const approvisionner = async (req, res) => {
     const { id } = req.params;
-    const { quantite } = req.body;
+    const { quantite, fournisseur_id, prix_achat, note } = req.body;
     const entreprise_id = req.user.entreprise_id;
     const quantiteNumber = Number(quantite);
+    const prixAchatNumber = Number(prix_achat);
 
     if (!Number.isFinite(quantiteNumber) || quantiteNumber <= 0) {
         return res.status(400).json({ success: false, message: 'Quantite positive requise' });
+    }
+
+    if (!fournisseur_id) {
+        return res.status(400).json({ success: false, message: 'Fournisseur requis pour approvisionner' });
+    }
+
+    if (!Number.isFinite(prixAchatNumber) || prixAchatNumber < 0) {
+        return res.status(400).json({ success: false, message: 'Prix d achat valide requis' });
     }
 
     try {
@@ -126,8 +138,70 @@ export const approvisionner = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Produit introuvable dans votre entreprise' });
         }
 
-        await pool.query('CALL sp_ApprovisionnerProduit(?, ?)', [id, quantiteNumber]);
-        res.json({ success: true, message: `Stock mis a jour (+${quantiteNumber} unites)` });
+        const [fournisseurs] = await pool.query(
+            `SELECT id_fournisseur FROM fournisseurs WHERE id_fournisseur = ? AND entreprise_id = ?`,
+            [fournisseur_id, entreprise_id]
+        );
+
+        if (fournisseurs.length === 0) {
+            return res.status(404).json({ success: false, message: 'Fournisseur introuvable' });
+        }
+
+        const connection = await pool.getConnection();
+        try {
+            await connection.beginTransaction();
+            const [[produitStock]] = await connection.query(
+                `SELECT quantite_stock, prix_achat
+                 FROM produits
+                 WHERE id_produit = ? AND entreprise_id = ?
+                 FOR UPDATE`,
+                [id, entreprise_id]
+            );
+            const stockActuel = Number(produitStock?.quantite_stock || 0);
+            const coutActuel = Number(produitStock?.prix_achat || 0);
+            const coutTotalActuel = Math.max(0, stockActuel) * coutActuel;
+            const coutNouvelAchat = quantiteNumber * prixAchatNumber;
+            const stockApresAchat = stockActuel + quantiteNumber;
+            const coutMoyenPondere = stockApresAchat > 0
+                ? Number(((coutTotalActuel + coutNouvelAchat) / stockApresAchat).toFixed(2))
+                : prixAchatNumber;
+
+            await connection.query(
+                `UPDATE produits
+                 SET quantite_stock = quantite_stock + ?, prix_achat = ?
+                 WHERE id_produit = ? AND entreprise_id = ?`,
+                [quantiteNumber, coutMoyenPondere, id, entreprise_id]
+            );
+            await connection.query(
+                `UPDATE sequences SET derniere_valeur = derniere_valeur + 1 WHERE nom_table = 'mouvements_stock'`
+            );
+            const [[seq]] = await connection.query(
+                `SELECT derniere_valeur FROM sequences WHERE nom_table = 'mouvements_stock'`
+            );
+            const idMouvement = `MVT-${String(seq.derniere_valeur).padStart(6, '0')}`;
+            await connection.query(
+                `INSERT INTO mouvements_stock
+                    (id_mouvement, produit_id, type_mouvement, quantite, fournisseur_id, prix_achat_unitaire, prix_achat_total, note)
+                 VALUES (?, ?, 'entree', ?, ?, ?, ?, ?)`,
+                [idMouvement, id, quantiteNumber, fournisseur_id, prixAchatNumber, prixAchatNumber * quantiteNumber, note || null]
+            );
+            await connection.commit();
+            res.json({
+                success: true,
+                message: `Stock mis a jour (+${quantiteNumber} unites)`,
+                data: {
+                    prix_achat_unitaire: prixAchatNumber,
+                    prix_achat_total: coutNouvelAchat,
+                    cout_moyen_pondere: coutMoyenPondere,
+                    stock_apres_achat: stockApresAchat
+                }
+            });
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

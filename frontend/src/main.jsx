@@ -16,6 +16,7 @@ import {
   Eye,
   FileText,
   Grid2X2,
+  HelpCircle,
   LockKeyhole,
   LogOut,
   LogIn,
@@ -40,8 +41,18 @@ import {
 import '../styles.css';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
+const APP_NAME = 'Quincaillerie Centrale';
+const APP_TAGLINE = 'Gestion commerciale interne';
 
 const money = (value) => `${Number(value || 0).toFixed(2)} USD`;
+
+const moneySmart = (value) => {
+  const amount = Number(value || 0);
+  return `${amount.toLocaleString('en-US', {
+    minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2
+  })} USD`;
+};
 
 const getInitials = (value = '') => {
   const base = String(value || '').includes('@') ? String(value).split('@')[0] : String(value || '');
@@ -55,17 +66,12 @@ const searchPlaceholders = {
   clients: 'Rechercher un client, telephone ou statut...',
   produits: 'Rechercher un produit, reference ou categorie...',
   categories: 'Rechercher une categorie...',
-  devis: 'Rechercher un devis, client ou statut...',
+  fournisseurs: 'Rechercher un fournisseur...',
   ventes: 'Rechercher une facture, client ou montant...',
   paiements: 'Rechercher un paiement, facture ou mode...',
   utilisateurs: 'Rechercher un utilisateur, email ou role...',
   rapports: 'Rechercher dans les rapports...',
   mails: 'Rechercher un email ou destinataire...',
-  superadmin: 'Rechercher une entreprise...',
-  'admin-entreprises': 'Rechercher une entreprise cliente...',
-  'admin-abonnements': 'Rechercher un abonnement...',
-  'admin-rapports': 'Rechercher un etat de sortie...',
-  'admin-parametres': 'Rechercher un parametre...'
 };
 
 const imageForIndex = (index) => [
@@ -82,13 +88,12 @@ const translations = {
     clients: 'Clients',
     produits: 'Produits',
     categories: 'Categories',
-    devis: 'Devis',
+    fournisseurs: 'Fournisseurs',
     ventes: 'Ventes',
     paiements: 'Paiements',
     utilisateurs: 'Utilisateurs',
     rapports: 'Rapports',
     mails: 'Emails',
-    superadmin: 'Super Admin',
     logout: 'Deconnexion',
     search: 'Rechercher',
     login: 'Connexion',
@@ -101,13 +106,12 @@ const translations = {
     clients: 'Clients',
     produits: 'Products',
     categories: 'Categories',
-    devis: 'Quotes',
+    fournisseurs: 'Suppliers',
     ventes: 'Sales',
     paiements: 'Payments',
     utilisateurs: 'Users',
     rapports: 'Reports',
     mails: 'Emails',
-    superadmin: 'Super Admin',
     logout: 'Logout',
     search: 'Search',
     login: 'Login',
@@ -162,17 +166,12 @@ const iconMap = {
   clients: Users,
   produits: Box,
   categories: Tags,
-  devis: FileText,
+  fournisseurs: Briefcase,
   ventes: ShoppingCart,
   paiements: CreditCard,
   rapports: BarChart3,
   utilisateurs: UserCog,
   mails: Mail,
-  superadmin: Grid2X2,
-  'admin-entreprises': Building2,
-  'admin-abonnements': WalletCards,
-  'admin-rapports': BarChart3,
-  'admin-parametres': Settings
 };
 
 function IconButton({ title, children, className = '' }) {
@@ -233,12 +232,12 @@ function getPrintIdentity() {
     const user = JSON.parse(localStorage.getItem('crm_user') || 'null');
     const userLabel = user?.nom || user?.email || 'utilisateur';
     return {
-      company: user?.entreprise_nom || user?.raison_sociale || 'CRM PME',
+      company: user?.entreprise_nom || user?.raison_sociale || APP_NAME,
       userLabel,
       contact: user?.email || ''
     };
   } catch {
-    return { company: 'CRM PME', userLabel: 'utilisateur', contact: '' };
+    return { company: APP_NAME, userLabel: 'utilisateur', contact: '' };
   }
 }
 
@@ -342,7 +341,7 @@ function printLayout({ title, badge, sections = [], table, note, paper = 'ticket
           <header class="print-head">
             <div>
               <div class="brand"><div class="print-logo">C</div><h1>${escapePrint(identity.company)}</h1></div>
-              <div class="company">${escapePrint(line)}<br>${escapePrint(identity.contact || 'CRM PME')}</div>
+              <div class="company">${escapePrint(line)}<br>${escapePrint(identity.contact || APP_NAME)}</div>
             </div>
             <div>
               <div class="doc-title">${escapePrint(title)}</div>
@@ -357,7 +356,7 @@ function printLayout({ title, badge, sections = [], table, note, paper = 'ticket
               <div class="signature"><strong>Pour le demandeur</strong><span>Nom : ........................................</span><span>Date : .... / .... / 2026</span></div>
             </div>
           ` : ''}
-          <footer>${escapePrint(identity.company)} - Etat imprime depuis CRM PME</footer>
+          <footer>${escapePrint(identity.company)} - Etat imprime depuis ${escapePrint(APP_NAME)}</footer>
         </main>
       </body>
     </html>
@@ -373,8 +372,7 @@ function printDocument(title, rows, options = {}) {
   const lowerTitle = title.toLowerCase();
   const generatedLine = options.generatedLine
     || (lowerTitle.includes('facture') ? `Facture generee par ${identity.userLabel}`
-      : lowerTitle.includes('devis') ? `Devis genere par ${identity.userLabel}`
-        : `Document genere par ${identity.userLabel}`);
+      : `Document genere par ${identity.userLabel}`);
   printLayout({
     title,
     badge: badgeRow?.[1],
@@ -383,7 +381,7 @@ function printDocument(title, rows, options = {}) {
       { title: 'Controle', rows: [['Date', new Date().toLocaleDateString('fr-FR')], ['Document', title], ['Statut', 'Valide']] }
     ],
     table: { title: 'Details', headers: ['Element', 'Valeur'], rows },
-    note: 'Ce document est genere automatiquement depuis CRM PME.',
+    note: `Ce document est genere automatiquement depuis ${APP_NAME}.`,
     paper: options.paper || 'ticket',
     generatedLine,
     showSignatures: Boolean(options.showSignatures)
@@ -396,10 +394,10 @@ function printTableDocument(title, headers, rows, options = {}) {
     badge: options.badge,
     sections: [
       { title: 'Resume', rows: [['Periode', options.period || 'Actuelle'], ['Lignes', rows.length], ['Date', new Date().toLocaleDateString('fr-FR')]] },
-      { title: 'Source', rows: [['Application', 'CRM PME'], ['Etat', title], ['Devise', 'USD']] }
+      { title: 'Source', rows: [['Application', APP_NAME], ['Etat', title], ['Devise', 'USD']] }
     ],
     table: { title: options.tableTitle || 'Details commerciaux', headers, rows },
-    note: options.note || 'Cet etat de sortie est transmis par CRM PME pour consultation et archivage.',
+    note: options.note || `Cet etat de sortie est transmis par ${APP_NAME} pour consultation et archivage.`,
     paper: options.paper || 'page',
     generatedLine: options.generatedLine,
     showSignatures: Boolean(options.showSignatures)
@@ -420,6 +418,8 @@ function App() {
   const [showPasswordSettings, setShowPasswordSettings] = useState(false);
   const [passwordTargetEmail, setPasswordTargetEmail] = useState('');
   const [selectedNotification, setSelectedNotification] = useState(null);
+  const [showHelp, setShowHelp] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
 
   const notify = (message) => {
     setToast(message);
@@ -450,7 +450,7 @@ function App() {
   }, [lang]);
 
   useEffect(() => {
-    if (!token || authType === 'super_admin') return;
+    if (!token) return;
     let cancelled = false;
     fetch(`${API_URL}/auth/me`, {
       headers: { Authorization: `Bearer ${token}` }
@@ -487,26 +487,15 @@ function App() {
       return body;
     };
 
-    let result;
-    let nextAuthType = 'user';
-    try {
-      result = await requestLogin('/auth/login');
-    } catch (userError) {
-      try {
-        result = await requestLogin('/super-admin/login');
-        nextAuthType = 'super_admin';
-      } catch (adminError) {
-        throw new Error(adminError.message || userError.message || 'Connexion impossible');
-      }
-    }
+    const result = await requestLogin('/auth/login');
     const connectedUser = result.user || result.admin;
     setToken(result.token);
     setUser(connectedUser);
-    setAuthType(nextAuthType);
-    setPage(nextAuthType === 'super_admin' ? 'superadmin' : 'dashboard');
+    setAuthType('user');
+    setPage('dashboard');
     localStorage.setItem('crm_token', result.token);
     localStorage.setItem('crm_user', JSON.stringify(connectedUser));
-    localStorage.setItem('crm_auth_type', nextAuthType);
+    localStorage.setItem('crm_auth_type', 'user');
     notify('Connexion reussie');
   };
 
@@ -521,22 +510,15 @@ function App() {
   };
 
   const navItems = useMemo(() => {
-    if (authType === 'super_admin') return [
-      { id: 'superadmin', label: tr(lang, 'dashboard') },
-      { id: 'admin-entreprises', label: 'Entreprises' },
-      { id: 'admin-abonnements', label: 'Abonnements' },
-      { id: 'admin-rapports', label: tr(lang, 'rapports') },
-      { id: 'admin-parametres', label: 'Parametres' }
-    ];
     const role = user?.role;
     return [
       { id: 'dashboard', label: tr(lang, 'dashboard'), roles: ['manager', 'caissier', 'magasinier'] },
       { id: 'clients', label: tr(lang, 'clients'), roles: ['manager', 'caissier'] },
-      { id: 'devis', label: tr(lang, 'devis'), roles: ['manager', 'caissier'] },
       { id: 'ventes', label: 'Factures', roles: ['manager', 'caissier'] },
       { id: 'paiements', label: tr(lang, 'paiements'), roles: ['manager', 'caissier'] },
-      { id: 'produits', label: 'Produits & Stocks', roles: ['manager', 'caissier', 'magasinier'] },
       { id: 'categories', label: tr(lang, 'categories'), roles: ['manager', 'magasinier'] },
+      { id: 'fournisseurs', label: tr(lang, 'fournisseurs'), roles: ['manager', 'magasinier'] },
+      { id: 'produits', label: 'Produits & Stocks', roles: ['manager', 'caissier', 'magasinier'] },
       { id: 'rapports', label: tr(lang, 'rapports'), roles: ['manager', 'caissier', 'magasinier'] },
       { id: 'utilisateurs', label: tr(lang, 'utilisateurs'), roles: ['manager'] },
       { id: 'mails', label: tr(lang, 'mails'), roles: ['manager'] }
@@ -580,35 +562,29 @@ function App() {
     dashboard: [tr(lang, 'dashboard'), "Bienvenue, voici l'activite de votre entreprise aujourd'hui."],
     clients: ['Clients', 'Fiche client 360 et historique commercial.'],
     produits: ['Produits et stock', 'Catalogue, alertes et reapprovisionnement.'],
-    devis: ['Devis', 'Creation et conversion directe en facture.'],
-    ventes: ['Ventes et factures', 'Facturation, details et reste a payer.'],
-    paiements: ['Paiements', 'Encaissements et rapport caisse.'],
+    ventes: ['Factures', 'Ventes, details et reste a payer.'],
+    paiements: ['Paiements', 'Argent recu et rapport de caisse.'],
     utilisateurs: ['Utilisateurs', 'Comptes, roles et acces de votre equipe.'],
     mails: ['Emails', 'Envoyer des notifications et messages clients.'],
     categories: ['Categories', 'Classification simple des produits et services.'],
+    fournisseurs: ['Fournisseurs', 'Contacts et historique des approvisionnements.'],
     rapports: user?.role === 'magasinier'
       ? ['Rapports produits', 'Inventaire, stock et approvisionnements.']
       : user?.role === 'caissier'
-        ? ['Rapports caisse', 'Factures, creances et encaissements.']
+        ? ['Rapports caisse', 'Factures, dettes et paiements recus.']
         : ['Rapports', 'Factures, creances, stock et meilleurs clients.'],
-    superadmin: ["Vue d'ensemble du reseau", 'Admin > Dashboard Plateforme'],
-    'admin-entreprises': ['Entreprises clientes', 'Admin > Entreprises'],
-    'admin-abonnements': ['Paiements & abonnements', 'Admin > Abonnements'],
-    'admin-rapports': ['Etats de sortie', 'Admin > Rapports'],
-    'admin-parametres': ['Parametres plateforme', 'Admin > Parametres']
   };
-  const [title, subtitle] = titles[page] || ['CRM PME', ''];
-  const isSuperAdmin = authType === 'super_admin';
-  const sidebarTitle = isSuperAdmin ? 'CRM PME' : (user?.entreprise_nom || user?.raison_sociale || user?.entreprise_id || 'CRM PME');
+  const [title, subtitle] = titles[page] || [APP_NAME, ''];
+  const sidebarTitle = user?.entreprise_nom || user?.raison_sociale || user?.entreprise_id || APP_NAME;
 
   return (
-    <div className={`shell ${isSuperAdmin ? 'admin-shell' : ''}`}>
+    <div className="shell">
       <aside className="sidebar">
         <div className="brand">
-          {!isSuperAdmin && <div className="brand-mark">C</div>}
+          <div className="brand-mark">C</div>
           <div>
             <strong>{sidebarTitle}</strong>
-            <span>PME Solutions</span>
+            <span>{APP_TAGLINE}</span>
           </div>
         </div>
         <nav className="nav">
@@ -625,13 +601,13 @@ function App() {
         </nav>
       </aside>
       <main className="main">
-        <header className={`topbar ${isSuperAdmin ? 'admin-topbar' : ''}`}>
+        <header className="topbar">
           <SearchInput value={platformSearch} onChange={setPlatformSearch} placeholder={searchPlaceholders[page] || 'Rechercher...'} />
           <div className="toolbar">
             <div className="notification-wrap">
               <button className="icon-button ghost-icon" title="Notifications" type="button" onClick={() => setShowNotifications(!showNotifications)}>
                 <Bell size={22} />
-                {notifications.some((n) => !n.lu) && <span className="dot" />}
+                {notifications.filter((n) => !n.lu).length > 0 && <span className="notification-count">{notifications.filter((n) => !n.lu).length}</span>}
               </button>
               {showNotifications && (
                 <div className="notification-menu">
@@ -646,28 +622,30 @@ function App() {
                 </div>
               )}
             </div>
+            <button className="icon-button ghost-icon" title="Aide" type="button" onClick={() => setShowHelp(true)}>
+              <HelpCircle size={22} />
+            </button>
             <div className="user-card">
               <div>
                 <strong>{user?.nom || user?.email || 'Admin'}</strong>
-                <span>{isSuperAdmin ? 'SUPER CONTROL' : (user?.role || user?.type || 'manager')}</span>
+                <span>{user?.role || user?.type || 'manager'}</span>
               </div>
-              <div className="avatar">{getInitials(user?.nom || user?.email || 'U')}</div>
+              <button className="avatar profile-button" type="button" title="Profil" onClick={() => setShowProfile(true)}>{getInitials(user?.nom || user?.email || 'U')}</button>
             </div>
           </div>
         </header>
-        {!(page === 'dashboard' && !isSuperAdmin) && (
-          <section className={`content-heading ${isSuperAdmin ? 'admin-heading' : ''}`}>
+        {page !== 'dashboard' && (
+          <section className="content-heading">
             <div>
-              {isSuperAdmin && <p className="breadcrumb">{subtitle}</p>}
               <h1>{title}</h1>
-              {!isSuperAdmin && <p>{subtitle}</p>}
+              <p>{subtitle}</p>
             </div>
           </section>
         )}
         <Page page={page} api={api} notify={notify} lang={lang} user={user} searchQuery={platformSearch} setPage={setPage} />
       </main>
       {showPasswordSettings && (
-        <PasswordSettings api={api} notify={notify} user={user} targetEmail={passwordTargetEmail} isSuperAdmin={isSuperAdmin} onClose={() => { setShowPasswordSettings(false); setPasswordTargetEmail(''); }} />
+        <PasswordSettings api={api} notify={notify} user={user} targetEmail={passwordTargetEmail} onClose={() => { setShowPasswordSettings(false); setPasswordTargetEmail(''); }} />
       )}
       {selectedNotification && (
         <Modal title={selectedNotification.titre || 'Notification'} onClose={() => setSelectedNotification(null)}>
@@ -677,6 +655,12 @@ function App() {
           </div>
         </Modal>
       )}
+      {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+      {showProfile && <ProfileModal api={api} notify={notify} user={user} onUserUpdate={(updatedUser) => {
+        const nextUser = { ...user, ...updatedUser };
+        setUser(nextUser);
+        localStorage.setItem('crm_user', JSON.stringify(nextUser));
+      }} onClose={() => setShowProfile(false)} />}
       {toast && <div className="toast">{toast}</div>}
     </div>
   );
@@ -687,14 +671,18 @@ function Login({ onLogin, notify, toast }) {
   const [forgotMotif, setForgotMotif] = useState('');
   const [showForgot, setShowForgot] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const passwordRef = useRef(null);
 
   const submit = async (event) => {
     event.preventDefault();
+    if (loading) return;
+    setLoading(true);
     try {
       await onLogin(form);
     } catch (error) {
       notify(error.message);
+      setLoading(false);
     }
   };
 
@@ -738,8 +726,8 @@ function Login({ onLogin, notify, toast }) {
           <div className="login-card-brand">
             <Briefcase size={36} />
             <div>
-              <strong>CRM PME</strong>
-              <span>PME Solutions</span>
+              <strong>{APP_NAME}</strong>
+              <span>{APP_TAGLINE}</span>
             </div>
           </div>
           <h2>Bienvenue</h2>
@@ -764,7 +752,9 @@ function Login({ onLogin, notify, toast }) {
               </span>
               <button className="forgot-inline" type="button" onClick={() => setShowForgot(!showForgot)}>Mot de passe oublie ?</button>
             </label>
-            <button className="btn login-submit">Se connecter <LogIn size={20} /></button>
+            <button className="btn login-submit" disabled={loading}>
+              {loading ? 'Connexion...' : 'Se connecter'} <LogIn size={20} />
+            </button>
           </form>
           {showForgot && (
             <form className="forgot-box" onSubmit={forgot}>
@@ -775,7 +765,6 @@ function Login({ onLogin, notify, toast }) {
               <button className="btn secondary">Envoyer la demande</button>
             </form>
           )}
-          <div className="login-card-footer">Copyright 2026 CRM PME</div>
         </div>
       </section>
       {toast && <div className="toast">{toast}</div>}
@@ -783,7 +772,7 @@ function Login({ onLogin, notify, toast }) {
   );
 }
 
-function PasswordSettings({ api, notify, user, targetEmail, isSuperAdmin, onClose }) {
+function PasswordSettings({ api, notify, user, targetEmail, onClose }) {
   const [form, setForm] = useState({ new_password: '', confirm_password: '' });
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState(null);
@@ -811,10 +800,6 @@ function PasswordSettings({ api, notify, user, targetEmail, isSuperAdmin, onClos
       if (targetEmail && targetEmail !== user?.email) {
         const response = await api('/auth/reset-request-password', { method: 'POST', body: JSON.stringify({ email: targetEmail, new_password: form.new_password }) });
         message = response.message || `Mot de passe reinitialise pour ${targetEmail}.`;
-      } else if (isSuperAdmin) {
-        message = 'Selectionnez une notification contenant l email du demandeur.';
-        setFeedback({ type: 'error', message });
-        return;
       } else {
         const response = await api('/auth/change-password', { method: 'POST', body: JSON.stringify(form) });
         message = response.message || 'Mot de passe mis a jour.';
@@ -854,8 +839,75 @@ function PasswordSettings({ api, notify, user, targetEmail, isSuperAdmin, onClos
   );
 }
 
+function HelpModal({ onClose }) {
+  return (
+    <Modal title="Aide rapide" onClose={onClose}>
+      <div className="help-grid">
+        <article><strong>Tableau de bord</strong><span>Voir les ventes, le resultat, les paiements et les alertes stock.</span></article>
+        <article><strong>Factures</strong><span>Enregistrer une vente directe avec un prix de vente par produit.</span></article>
+        <article><strong>Stock</strong><span>Ajouter des produits et approvisionner en choisissant un fournisseur et un prix d'achat.</span></article>
+        <article><strong>Rapports</strong><span>Filtrer par dates, imprimer les bilans, journaux et le livre de caisse.</span></article>
+      </div>
+    </Modal>
+  );
+}
+
+function ProfileModal({ api, notify, user, onUserUpdate, onClose }) {
+  const [profile, setProfile] = useState({ nom: user?.nom || '', telephone: user?.telephone || '' });
+  const [form, setForm] = useState({ new_password: '', confirm_password: '' });
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  const saveProfile = async () => {
+    if (!profile.nom.trim()) {
+      notify('Le nom est requis');
+      return;
+    }
+    setSavingProfile(true);
+    try {
+      const response = await api('/auth/profile', { method: 'PUT', body: JSON.stringify(profile) });
+      onUserUpdate?.(response.user || profile);
+      notify(response.message || 'Profil mis a jour');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const savePassword = async () => {
+    if (form.new_password !== form.confirm_password) {
+      notify('Les mots de passe ne correspondent pas');
+      return;
+    }
+    await api('/auth/change-password', { method: 'POST', body: JSON.stringify(form) });
+    setForm({ new_password: '', confirm_password: '' });
+    notify('Mot de passe mis a jour');
+  };
+
+  return (
+    <Modal title="Profil" onClose={onClose}>
+      <div className="profile-summary">
+        <div className="avatar big">{getInitials(profile.nom || user?.email || 'U')}</div>
+        <div>
+          <strong>{profile.nom || '-'}</strong>
+          <span>{user?.email || '-'}</span>
+          <em>{user?.role || 'utilisateur'}</em>
+        </div>
+      </div>
+      <Form onSubmit={saveProfile}>
+        <Input label="Nom complet" value={profile.nom} onChange={(nom) => setProfile({ ...profile, nom })} required />
+        <Input label="Telephone" value={profile.telephone} onChange={(telephone) => setProfile({ ...profile, telephone })} placeholder="Ex: +243..." />
+        <button className="btn modal-submit" disabled={savingProfile}><UserCog size={18} /> {savingProfile ? 'Enregistrement...' : 'Enregistrer le profil'}</button>
+      </Form>
+      <Form onSubmit={savePassword}>
+        <Input label="Nouveau mot de passe" type="password" value={form.new_password} onChange={(new_password) => setForm({ ...form, new_password })} />
+        <Input label="Confirmer" type="password" value={form.confirm_password} onChange={(confirm_password) => setForm({ ...form, confirm_password })} />
+        <button className="btn modal-submit"><LockKeyhole size={18} /> Changer mon mot de passe</button>
+      </Form>
+    </Modal>
+  );
+}
+
 function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
-  const [data, setData] = useState({ clients: [], produits: [], categories: [], devis: [], ventes: [], extra: {} });
+  const [data, setData] = useState({ clients: [], produits: [], categories: [], fournisseurs: [], ventes: [], extra: {} });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -863,21 +915,20 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
     setLoading(true);
     setError('');
     try {
-      const next = { clients: [], produits: [], categories: [], devis: [], ventes: [], extra: {} };
+      const next = { clients: [], produits: [], categories: [], fournisseurs: [], ventes: [], extra: {} };
       const tasks = [];
-      const adminPages = ['superadmin', 'admin-entreprises', 'admin-abonnements', 'admin-rapports', 'admin-parametres'];
-      if (['clients', 'devis', 'ventes', 'paiements'].includes(page)) tasks.push(api('/clients').then((r) => { next.clients = r.data || []; }));
-      if (['produits', 'categories', 'devis', 'ventes', 'rapports'].includes(page)) tasks.push(api('/produits').then((r) => { next.produits = r.data || []; }));
-      if (['produits', 'categories', 'devis', 'ventes'].includes(page)) tasks.push(api('/categories').then((r) => { next.categories = r.data || []; }).catch(() => {}));
-      if (page === 'devis') tasks.push(api('/devis').then((r) => { next.devis = r.data || []; }));
+      if (['clients', 'ventes', 'paiements'].includes(page)) tasks.push(api('/clients').then((r) => { next.clients = r.data || []; }));
+      if (['produits', 'categories', 'fournisseurs', 'ventes', 'rapports'].includes(page)) tasks.push(api('/produits').then((r) => { next.produits = r.data || []; }));
+      if (['produits', 'categories', 'ventes'].includes(page)) tasks.push(api('/categories').then((r) => { next.categories = r.data || []; }).catch(() => {}));
+      if (['produits', 'fournisseurs'].includes(page)) tasks.push(api('/fournisseurs').then((r) => { next.fournisseurs = r.data || []; }).catch(() => {}));
       if (['ventes', 'paiements'].includes(page)) tasks.push(api('/ventes').then((r) => { next.ventes = r.data || []; }));
       if (page === 'dashboard') {
         tasks.push(api('/clients').then((r) => { next.clients = r.data || []; }).catch(() => {}));
         tasks.push(api('/produits').then((r) => { next.produits = r.data || []; }).catch(() => {}));
-        tasks.push(api('/devis').then((r) => { next.devis = r.data || []; }).catch(() => {}));
         tasks.push(api('/ventes').then((r) => { next.ventes = r.data || []; }).catch(() => {}));
         tasks.push(api('/dashboard/stats').then((r) => { next.extra.stats = r.data || {}; }).catch(() => {}));
         tasks.push(api('/dashboard/ventes-mensuelles').then((r) => { next.extra.ventesMensuelles = r.data || []; }).catch(() => {}));
+        tasks.push(api('/dashboard/resultat-mensuel').then((r) => { next.extra.resultatMensuel = r.data || []; }).catch(() => {}));
         tasks.push(api('/dashboard/alertes-stock').then((r) => { next.extra.alertes = r.data || []; }).catch(() => {}));
         tasks.push(api('/dashboard/produits-plus-vendus').then((r) => { next.extra.produitsPlusVendus = r.data || []; }).catch(() => {}));
         tasks.push(api('/produits/mouvements-recents').then((r) => { next.extra.mouvementsStock = r.data || []; }).catch(() => {}));
@@ -897,10 +948,9 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
         tasks.push(api('/rapports/stock-inventaire').then((r) => { next.extra.stock = r.data || []; }).catch(() => {}));
         tasks.push(api('/rapports/top-acheteurs').then((r) => { next.extra.top = r.data || []; }).catch(() => {}));
         tasks.push(api('/paiements/rapport-caisse').then((r) => { next.extra.caisse = r.data || []; }).catch(() => {}));
-      }
-      if (adminPages.includes(page)) {
-        tasks.push(api('/super-admin/stats').then((r) => { next.extra.stats = r.data || {}; }));
-        tasks.push(api('/super-admin/entreprises').then((r) => { next.extra.entreprises = r.data || []; }));
+        tasks.push(api('/rapports/bilan').then((r) => { next.extra.bilan = r.data || {}; }).catch(() => {}));
+        tasks.push(api('/rapports/journal').then((r) => { next.extra.journal = r.data || []; }).catch(() => {}));
+        tasks.push(api('/rapports/livre-caisse').then((r) => { next.extra.livreCaisse = r.data || []; }).catch(() => {}));
       }
       await Promise.all(tasks);
       setData(next);
@@ -931,18 +981,13 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
   if (page === 'dashboard') return <Dashboard data={data} searchQuery={searchQuery} setPage={setPage} user={user} />;
   if (page === 'clients') return <Clients {...props} />;
   if (page === 'produits') return <Produits {...props} />;
-  if (page === 'devis') return <Devis {...props} />;
+  if (page === 'fournisseurs') return <Fournisseurs {...props} />;
   if (page === 'ventes') return <Ventes {...props} />;
   if (page === 'paiements') return <Paiements {...props} />;
   if (page === 'utilisateurs') return <Utilisateurs {...props} />;
   if (page === 'mails') return <Mails {...props} />;
   if (page === 'categories') return <Categories {...props} />;
   if (page === 'rapports') return <Rapports data={data} searchQuery={searchQuery} user={user} />;
-  if (page === 'superadmin') return <SuperAdminDashboard {...props} />;
-  if (page === 'admin-entreprises') return <SuperAdminEntreprises {...props} />;
-  if (page === 'admin-abonnements') return <SuperAdminAbonnements {...props} />;
-  if (page === 'admin-rapports') return <SuperAdminRapports data={data} searchQuery={searchQuery} />;
-  if (page === 'admin-parametres') return <SuperAdminParametres data={data} />;
   return null;
 }
 
@@ -954,11 +999,11 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
   const alertes = data.extra.alertes || [];
   const topClients = (data.extra.top || []).slice(0, 3);
   const topProducts = data.extra.produitsPlusVendus || [];
+  const resultatRows = data.extra.resultatMensuel || [];
   const dashboardTerm = searchQuery.trim().toLowerCase();
   const factures = (data.ventes || [])
     .filter((v) => !dashboardTerm || `${v.numero_facture} ${v.client_nom || ''}`.toLowerCase().includes(dashboardTerm))
     .slice(0, 5);
-  const devisAttente = (data.devis || []).filter((devis) => String(devis.statut || '').includes('attente')).length;
   const chartMonths = (ventes.length ? ventes.slice(0, 6) : ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Juin'].map((mois) => ({ mois, total: 0 })));
   const maxVente = Math.max(...chartMonths.map((v) => Number(v.total || 0)), 1);
   const paymentRows = (data.extra.repartitionPaiements || []).map((row) => ({
@@ -1000,9 +1045,9 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
   const stockAlerts = alertes.length || (data.produits || []).filter((produit) => produit.statut_stock && produit.statut_stock !== 'OK').length;
   const dashboardKpis = [
     canClients && { icon: Users, tone: 'blue', label: 'Total Clients', value: stats.total_clients || data.clients.length || 0, page: 'clients' },
-    canSales && { icon: CreditCard, tone: 'orange', label: 'CA mois en cours', value: `USD ${Number(stats.ca_mois_en_cours || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, page: 'ventes' },
-    canSales && { icon: FileText, tone: 'pink', label: 'Devis en attente', value: devisAttente || 0, page: 'devis' },
-    canPayments && { icon: WalletCards, tone: 'green', label: 'Caisse encaissee', value: money(paymentTotal), page: 'paiements' },
+    canSales && { icon: CreditCard, tone: 'orange', label: 'Ventes du mois', value: moneySmart(stats.ca_mois_en_cours), page: 'ventes' },
+    canSales && { icon: BarChart3, tone: Number(stats.resultat_mois || 0) >= 0 ? 'green' : 'danger', label: Number(stats.resultat_mois || 0) >= 0 ? 'Benefice mois en cours' : 'Perte mois en cours', value: moneySmart(stats.resultat_mois), page: 'rapports', negative: Number(stats.resultat_mois || 0) < 0 },
+    canPayments && { icon: WalletCards, tone: 'green', label: 'Argent recu', value: moneySmart(paymentTotal), page: 'paiements' },
     canStock && { icon: Package, tone: 'blue', label: 'Produits suivis', value: data.produits.length || 0, page: 'produits' },
     canStock && { icon: Box, tone: 'orange', label: 'Stock total', value: stockTotal, page: 'produits' },
     canStock && { icon: AlertTriangle, tone: 'danger', label: 'Alertes stock', value: `${stockAlerts} produits`, trend: stockAlerts ? 'Urgent' : 'OK', negative: Boolean(stockAlerts), page: 'produits' },
@@ -1081,6 +1126,31 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
         </div>
       )}
 
+      {canSales && (
+        <div className="panel result-panel">
+          <div className="panel-heading">
+            <h3>Resultat mensuel</h3>
+            <span className={`panel-pill ${Number(stats.resultat_mois || 0) >= 0 ? 'ok' : 'danger'}`}>
+              {Number(stats.resultat_mois || 0) >= 0 ? 'Benefice mois en cours' : 'Perte mois en cours'} {moneySmart(stats.resultat_mois)}
+            </span>
+          </div>
+          <div className="result-bars">
+            {(resultatRows.length ? resultatRows.slice(0, 12) : chartMonths.map((row) => ({ mois: row.mois, resultat: 0 }))).map((row) => {
+              const values = (resultatRows.length ? resultatRows : [{ resultat: 1 }]).map((item) => Math.abs(Number(item.resultat || 0)));
+              const maxResult = Math.max(...values, 1);
+              const value = Number(row.resultat || 0);
+              const height = Math.max(8, Math.abs(value) / maxResult * 120);
+              return (
+                <button className={`result-bar ${value < 0 ? 'loss' : 'profit'}`} key={row.mois} type="button" title={`${row.mois}: ${moneySmart(value)}`}>
+                  <i style={{ height }} />
+                  <span>{row.mois}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {canClients && (
         <div className="grid manager-bottom">
         <div className="panel manager-table-panel">
@@ -1141,7 +1211,7 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
             const maxQty = Math.max(...topProducts.map((p) => Number(p.quantite_vendue || 0)), 1);
             const width = Math.max(18, (Number(product.quantite_vendue || 0) / maxQty) * 100);
             return (
-              <article key={product.id_produit || product.nom}>
+              <article className={`top-product top-${index + 1}`} key={product.id_produit || product.nom}>
                 <div className="product-rank">{index + 1}</div>
                 <div>
                   <strong>{product.nom}</strong>
@@ -1160,10 +1230,13 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
           <h3>{role === 'magasinier' ? 'Approvisionnements recents' : 'Mouvements stock recents'}</h3>
           <span className="panel-pill">{(data.extra.mouvementsStock || []).length} mouvements</span>
         </div>
-        <Table headers={['Produit', 'Type', 'Quantite', 'Date']} rows={(data.extra.mouvementsStock || []).map((m) => [
+        <Table headers={['Produit', 'Type', 'Quantite', 'Fournisseur', 'Prix achat', 'Total', 'Date']} rows={(data.extra.mouvementsStock || []).map((m) => [
           m.produit_nom,
           <Badge>{m.type_mouvement}</Badge>,
           m.quantite,
+          m.fournisseur_nom || '-',
+          m.prix_achat_unitaire !== null && m.prix_achat_unitaire !== undefined ? moneySmart(m.prix_achat_unitaire) : '-',
+          m.prix_achat_total !== null && m.prix_achat_total !== undefined ? moneySmart(m.prix_achat_total) : '-',
           formatDate(m.date_mouvement)
         ])} />
       </div>
@@ -1199,6 +1272,30 @@ function KpiCard({ icon: Icon, tone, label, value, trend, negative = false, acti
   );
 }
 
+function AnimatedValue({ value }) {
+  const [display, setDisplay] = useState(value);
+  useEffect(() => {
+    const numeric = typeof value === 'number' ? value : Number(String(value).replace(/[^\d.-]/g, ''));
+    if (!Number.isFinite(numeric)) {
+      setDisplay(value);
+      return;
+    }
+    let frame = 0;
+    const totalFrames = 24;
+    const timer = window.setInterval(() => {
+      frame += 1;
+      const next = numeric * (frame / totalFrames);
+      setDisplay(typeof value === 'number' ? Math.round(next) : String(value).replace(/-?\d[\d,.]*/, Math.round(next).toLocaleString('en-US')));
+      if (frame >= totalFrames) {
+        window.clearInterval(timer);
+        setDisplay(value);
+      }
+    }, 22);
+    return () => window.clearInterval(timer);
+  }, [value]);
+  return display;
+}
+
 function Stat({ label, value }) {
   return <div className="card stat"><span>{label}</span><strong>{value}</strong></div>;
 }
@@ -1225,6 +1322,10 @@ function CreateLauncher({ title, description, buttonLabel, onClick }) {
 function LineEditor({ lignes, setLignes, produits }) {
   const [productQuery, setProductQuery] = useState('');
   const productKey = (produit) => produit?.reference_produit || produit?.id_produit || '';
+  const salePriceForLine = (ligne, produit) => {
+    const value = Number(ligne.prix);
+    return Number.isFinite(value) && value > 0 ? value : Number(produit?.prix_ht || 0);
+  };
   const sortProductsByName = (items) => [...items].sort((a, b) => (
     `${a.nom || ''} ${a.reference_produit || ''}`.localeCompare(`${b.nom || ''} ${b.reference_produit || ''}`, 'fr', { numeric: true })
   ));
@@ -1239,8 +1340,13 @@ function LineEditor({ lignes, setLignes, produits }) {
       });
       if (existing) {
         existing.quantite = Number(existing.quantite || 0) + Math.max(1, Number(ligne.quantite || 1));
+        if (ligne.prix !== undefined) existing.prix = ligne.prix;
       } else {
-        grouped.push({ produit_id: ligne.produit_id, quantite: Math.max(1, Number(ligne.quantite || 1)) });
+        grouped.push({
+          produit_id: ligne.produit_id,
+          quantite: Math.max(1, Number(ligne.quantite || 1)),
+          prix: ligne.prix
+        });
       }
     });
     return grouped.length ? grouped : [{ produit_id: '', quantite: 1 }];
@@ -1258,6 +1364,12 @@ function LineEditor({ lignes, setLignes, produits }) {
     const safeQuantity = Math.max(1, Number(quantite || 1));
     setLignes(normalizeLines(activeLines.map((ligne) => (
       ligne.produit_id === produit_id ? { ...ligne, quantite: safeQuantity } : ligne
+    ))));
+  };
+  const updatePrice = (produit_id, prix) => {
+    const safePrice = Number(prix);
+    setLignes(normalizeLines(activeLines.map((ligne) => (
+      ligne.produit_id === produit_id ? { ...ligne, prix: Number.isFinite(safePrice) ? safePrice : '' } : ligne
     ))));
   };
   const remove = (produit_id) => setLignes(normalizeLines(activeLines.filter((ligne) => ligne.produit_id !== produit_id)));
@@ -1278,7 +1390,7 @@ function LineEditor({ lignes, setLignes, produits }) {
       const updatedLine = updatedLines[existingIndex];
       setLignes(normalizeLines([updatedLine, ...updatedLines.filter((_, index) => index !== existingIndex)]));
     } else {
-      setLignes(normalizeLines([{ produit_id, quantite: 1 }, ...activeLines]));
+      setLignes(normalizeLines([{ produit_id, quantite: 1, prix: Number(selectedProduct?.prix_ht || 0) }, ...activeLines]));
     }
 
     setProductQuery('');
@@ -1313,15 +1425,28 @@ function LineEditor({ lignes, setLignes, produits }) {
       <div className="quote-line-list">
       {activeLines.length ? activeLines.map((ligne, index) => {
         const selectedProduct = produits.find((p) => p.id_produit === ligne.produit_id);
+        const prixVente = salePriceForLine(ligne, selectedProduct);
+        const quantite = Math.max(1, Number(ligne.quantite || 1));
+        const prixAchat = Number(selectedProduct?.prix_achat || 0);
+        const totalLigne = prixVente * quantite;
+        const resultatLigne = (prixVente - prixAchat) * quantite;
         return (
           <div className="quote-line-item" key={ligne.produit_id || index}>
             <div>
               <strong>{selectedProduct?.nom || 'Produit selectionne'}</strong>
               <span>{selectedProduct?.reference_produit || 'Sans reference'} - {selectedProduct?.categorie_nom || 'Sans categorie'} - Stock {selectedProduct?.quantite_stock ?? '-'}</span>
-              <em>{money(selectedProduct?.prix_ht || 0)}</em>
+              <em>Cout moyen {moneySmart(prixAchat)} / catalogue {moneySmart(selectedProduct?.prix_ht || 0)}</em>
             </div>
             <div className="line-qty">
               <Input label="Quantite" type="number" min="1" value={ligne.quantite} onChange={(quantite) => updateQuantity(ligne.produit_id, quantite)} />
+              <Input label="Prix vente unitaire" type="number" min="0" step="0.01" value={prixVente} onChange={(prix) => updatePrice(ligne.produit_id, prix)} />
+              <div className="line-result">
+                <span>Total</span>
+                <strong>{moneySmart(totalLigne)}</strong>
+                <small className={resultatLigne >= 0 ? 'profit' : 'loss'}>
+                  {resultatLigne >= 0 ? 'Benefice' : 'Perte'} {moneySmart(resultatLigne)}
+                </small>
+              </div>
               <button className="action delete" type="button" onClick={() => remove(ligne.produit_id)} title="Supprimer ligne"><Trash2 size={16} /></button>
             </div>
           </div>
@@ -1335,7 +1460,8 @@ function LineEditor({ lignes, setLignes, produits }) {
 function quoteTotal(lignes, produits) {
   return lignes.reduce((total, ligne) => {
     const produit = produits.find((p) => p.id_produit === ligne.produit_id);
-    return total + (Number(produit?.prix_ht || 0) * Math.max(0, Number(ligne.quantite || 0)));
+    const prix = Number.isFinite(Number(ligne.prix)) && Number(ligne.prix) > 0 ? Number(ligne.prix) : Number(produit?.prix_ht || 0);
+    return total + (prix * Math.max(0, Number(ligne.quantite || 0)));
   }, 0);
 }
 
@@ -1419,6 +1545,7 @@ function Clients({ api, notify, data, submit, searchQuery = '' }) {
               <option value="sans_achat">Sans achat</option>
               <option value="vip">VIP</option>
             </select>
+            <button className="btn secondary small" type="button" onClick={() => printTableDocument('Archive clients', ['Nom', 'Telephone', 'Achats', 'CA'], clients.map((c) => [`${c.nom} ${c.postnom || ''}`, c.telephone || '-', c.nombre_achats || 0, moneySmart(c.ca_total)]), { badge: 'ARCHIVE', tableTitle: 'Liste complete des clients', paper: 'page' })}><Printer size={16} /> Archiver</button>
             <button className="btn small" type="button" onClick={() => setCreating(true)}><Plus size={16} /> Ajouter client</button>
           </div>
         </div>
@@ -1476,7 +1603,7 @@ function Clients({ api, notify, data, submit, searchQuery = '' }) {
 function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
   const emptyProductForm = { reference_produit: '', nom: '', categorie_id: '', photo_url: '', prix_ht: '', taux_tva: 16, quantite_stock: 0, seuil_alerte: 5 };
   const [form, setForm] = useState(emptyProductForm);
-  const [stock, setStock] = useState({ id: '', quantite: 1 });
+  const [stock, setStock] = useState({ id: '', fournisseur_id: '', quantite: 1, prix_achat: '', note: '' });
   const [creating, setCreating] = useState(false);
   const [stocking, setStocking] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -1537,7 +1664,7 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
                 <article className="product-rank-card" key={p.id_produit}>
                   <b>#{index + 1}</b>
                   <div className="product-rank-visual">
-                    <img src={p.photo_url || imageForIndex(index)} alt="" />
+                    {p.photo_url ? <img src={p.photo_url} alt="" /> : <div className="photo-placeholder">{p.nom?.slice(0, 2).toUpperCase() || 'PR'}</div>}
                   </div>
                   <strong>{p.nom}</strong>
                   <p>{p.categorie_nom || 'Sans categorie'} - Ref. {p.reference_produit}</p>
@@ -1593,9 +1720,21 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
       )}
       {stocking && (
         <Modal title="Approvisionnement" onClose={() => setStocking(false)}>
-          <Form onSubmit={() => submit(async () => { await api(`/produits/${stock.id || data.produits[0]?.id_produit}/approvisionner`, { method: 'POST', body: JSON.stringify({ quantite: stock.quantite }) }); setStocking(false); notify('Stock mis a jour'); })}>
+          <Form onSubmit={() => submit(async () => {
+            await api(`/produits/${stock.id || data.produits[0]?.id_produit}/approvisionner`, { method: 'POST', body: JSON.stringify(stock) });
+            setStock({ id: '', fournisseur_id: '', quantite: 1, prix_achat: '', note: '' });
+            setStocking(false);
+            notify('Stock mis a jour');
+          })}>
             <Select label="Produit" value={stock.id} onChange={(id) => setStock({ ...stock, id })} options={data.produits.map((p) => [p.id_produit, p.nom])} />
+            <Select label="Fournisseur" value={stock.fournisseur_id} onChange={(fournisseur_id) => setStock({ ...stock, fournisseur_id })} options={data.fournisseurs.map((f) => [f.id_fournisseur, f.nom])} />
             <Input label="Quantite" type="number" value={stock.quantite} onChange={(quantite) => setStock({ ...stock, quantite })} required />
+            <Input label="Prix d'achat unitaire" type="number" step="0.01" value={stock.prix_achat} onChange={(prix_achat) => setStock({ ...stock, prix_achat })} required />
+            <div className="debt-preview">
+              <span>Prix total achat</span>
+              <strong>{moneySmart(Number(stock.quantite || 0) * Number(stock.prix_achat || 0))}</strong>
+            </div>
+            <Input label="Note" value={stock.note} onChange={(note) => setStock({ ...stock, note })} />
             <button className="btn modal-submit">Mettre a jour le stock <ArrowRight size={20} /></button>
           </Form>
         </Modal>
@@ -1616,114 +1755,6 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
         </Modal>
       )}
     </>
-  );
-}
-
-function Devis({ api, notify, data, submit, searchQuery = '' }) {
-  const emptyLine = () => ({ produit_id: '', quantite: 1 });
-  const [form, setForm] = useState({ client_id: '', lignes: [emptyLine()] });
-  const [creating, setCreating] = useState(false);
-  const [editing, setEditing] = useState(null);
-  const [query, setQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('tous');
-  const term = `${searchQuery} ${query}`.trim().toLowerCase();
-  const devisList = data.devis
-    .filter((d) => `${d.numero_devis} ${d.client_nom || ''} ${d.client_postnom || ''} ${d.statut || ''}`.toLowerCase().includes(term))
-    .filter((d) => statusFilter === 'tous' || d.statut === statusFilter);
-  const convert = (id) => submit(async () => {
-    const result = await api(`/devis/${id}/convertir`, { method: 'POST', body: '{}' });
-    notify(`Facture creee: ${result.facture}`);
-  });
-  const startEdit = async (devis) => {
-    const detail = await api(`/devis/${devis.id_devis}`);
-    setEditing({
-      ...devis,
-      client_id: detail.data.client_id,
-      lignes: detail.data.lignes?.length ? detail.data.lignes.map((l) => ({ produit_id: l.produit_id, quantite: l.quantite })) : [emptyLine()]
-    });
-  };
-  const buildLignes = (lignes) => lignes.filter((ligne) => ligne.produit_id).map((ligne) => {
-    const produit = data.produits.find((p) => p.id_produit === ligne.produit_id);
-    return { produit_id: ligne.produit_id, quantite: Math.max(1, Number(ligne.quantite || 1)), prix_unitaire_ht: Number(produit?.prix_ht || 0) };
-  });
-  const saveEdit = () => submit(async () => {
-    const lignes = buildLignes(editing.lignes);
-    if (lignes.length === 0) {
-      notify('Selectionnez au moins un produit.');
-      return;
-    }
-    await api(`/devis/${editing.id_devis}`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        client_id: editing.client_id,
-        lignes
-      })
-    });
-    setEditing(null);
-    notify('Devis mis a jour');
-  });
-  const remove = (devis) => {
-    if (!window.confirm(`Supprimer le devis ${devis.numero_devis} ?`)) return;
-    submit(async () => {
-      await api(`/devis/${devis.id_devis}`, { method: 'DELETE' });
-      notify('Devis supprime');
-    });
-  };
-  return (
-    <div className="grid">
-      <div className="panel">
-        <div className="panel-heading client-toolbar">
-          <h3>Devis</h3>
-          <div className="actions">
-            <SearchInput value={query} onChange={setQuery} placeholder="Rechercher un devis" />
-            <select className="compact-filter" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-              <option value="tous">Tous</option>
-              <option value="en_attente">En attente</option>
-              <option value="converti">Converti</option>
-              <option value="annule">Annule</option>
-            </select>
-            <button className="btn small" type="button" onClick={() => setCreating(true)}><Plus size={16} /> Nouveau devis</button>
-          </div>
-        </div>
-        <Table headers={['Numero', 'Client', 'Montant', 'Statut', 'Actions']} rows={devisList.map((d) => [
-          d.numero_devis,
-          `${d.client_nom} ${d.client_postnom || ''}`,
-          money(d.montant_ttc),
-          <Badge>{d.statut}</Badge>,
-          <div className="actions">
-            {d.statut === 'en_attente' && <button className="btn small" onClick={() => convert(d.id_devis)}>Convertir</button>}
-            <RowActions
-              onEdit={d.statut === 'en_attente' ? () => startEdit(d) : null}
-              onPrint={() => printDocument('Devis', [['Numero', d.numero_devis], ['Client', `${d.client_nom} ${d.client_postnom || ''}`], ['Montant', money(d.montant_ttc)], ['Statut', d.statut]], { paper: 'page' })}
-              onDelete={d.statut === 'en_attente' ? () => remove(d) : null}
-            />
-          </div>
-        ])} />
-      </div>
-      {creating && (
-        <Modal title="Nouveau devis" onClose={() => setCreating(false)} className="quote-modal">
-          <Form onSubmit={() => submit(async () => {
-            const lignes = buildLignes(form.lignes);
-            if (lignes.length === 0) {
-              notify('Selectionnez au moins un produit.');
-              return;
-            }
-            await api('/devis', { method: 'POST', body: JSON.stringify({ client_id: form.client_id || data.clients[0]?.id_client, lignes }) });
-            setCreating(false);
-            notify('Devis cree');
-          })}>
-            <QuoteComposer form={form} setForm={setForm} clients={data.clients} produits={data.produits} submitLabel="Creer le devis" />
-          </Form>
-        </Modal>
-      )}
-      {editing && (
-        <Modal title="Modifier devis" onClose={() => setEditing(null)} className="quote-modal">
-          <Form onSubmit={saveEdit}>
-            <QuoteComposer form={editing} setForm={setEditing} clients={data.clients} produits={data.produits} submitLabel="Mettre a jour" />
-          </Form>
-        </Modal>
-      )}
-    </div>
   );
 }
 
@@ -1750,11 +1781,11 @@ function Ventes({ api, notify, data, submit, searchQuery = '' }) {
     setEditing({
       ...vente,
       client_id: detail.data.client_id,
-      lignes: detail.data.lignes?.length ? detail.data.lignes.map((l) => ({ produit_id: l.produit_id, quantite: l.quantite })) : [emptyLine()]
+      lignes: detail.data.lignes?.length ? detail.data.lignes.map((l) => ({ produit_id: l.produit_id, quantite: l.quantite, prix: l.prix_unitaire_ht })) : [emptyLine()]
     });
   };
   const saveEdit = () => submit(async () => {
-    const articles = editing.lignes.filter((ligne) => ligne.produit_id).map((ligne) => ({ produit_id: ligne.produit_id, quantite: Math.max(1, Number(ligne.quantite || 1)) }));
+    const articles = editing.lignes.filter((ligne) => ligne.produit_id).map((ligne) => ({ produit_id: ligne.produit_id, quantite: Math.max(1, Number(ligne.quantite || 1)), prix: Number(ligne.prix || 0) }));
     if (articles.length === 0) {
       notify('Selectionnez au moins un produit.');
       return;
@@ -1808,7 +1839,7 @@ function Ventes({ api, notify, data, submit, searchQuery = '' }) {
       {creating && (
         <Modal title="Vente directe" onClose={() => setCreating(false)}>
           <Form onSubmit={() => submit(async () => {
-            const articles = form.lignes.filter((ligne) => ligne.produit_id).map((ligne) => ({ produit_id: ligne.produit_id, quantite: Math.max(1, Number(ligne.quantite || 1)) }));
+            const articles = form.lignes.filter((ligne) => ligne.produit_id).map((ligne) => ({ produit_id: ligne.produit_id, quantite: Math.max(1, Number(ligne.quantite || 1)), prix: Number(ligne.prix || 0) }));
             if (articles.length === 0) {
               notify('Selectionnez au moins un produit.');
               return;
@@ -1942,25 +1973,47 @@ function Rapports({ data, searchQuery = '', user }) {
   const source = data.extra;
   const term = searchQuery.trim().toLowerCase();
   const [period, setPeriod] = useState('journalier');
+  const [dateRange, setDateRange] = useState({ debut: '', fin: '' });
   const role = user?.role || 'manager';
   const canSalesReports = ['manager', 'caissier'].includes(role);
   const canStockReports = ['manager', 'magasinier'].includes(role);
   const canCashReports = ['manager', 'caissier'].includes(role);
-  const factures = filterRowsByPeriod(source.factures || [], period)
+  const byPeriod = (rows, keys) => {
+    if (period !== 'personnalise') return filterRowsByPeriod(rows, period, keys);
+    if (!dateRange.debut && !dateRange.fin) return rows;
+    const start = dateRange.debut ? new Date(`${dateRange.debut}T00:00:00`) : null;
+    const end = dateRange.fin ? new Date(`${dateRange.fin}T23:59:59`) : null;
+    return rows.filter((row) => {
+      const rawDate = (keys || ['date_vente', 'date_paiement', 'Date', 'derniere_visite', 'date_operation']).map((key) => row[key]).find(Boolean);
+      if (!rawDate) return false;
+      const date = new Date(rawDate);
+      if (Number.isNaN(date.getTime())) return false;
+      if (start && date < start) return false;
+      if (end && date > end) return false;
+      return true;
+    });
+  };
+  const periodText = period === 'personnalise'
+    ? `${dateRange.debut || 'debut'} au ${dateRange.fin || 'fin'}`
+    : periodLabel(period);
+  const factures = byPeriod(source.factures || [])
     .filter((r) => !term || `${r.numero_facture} ${r.client_nom || ''} ${r.client_postnom || ''}`.toLowerCase().includes(term));
-  const creances = filterRowsByPeriod(source.creances || [], period)
+  const creances = byPeriod(source.creances || [])
     .filter((r) => !term || `${r.numero_facture} ${r.client_nom || ''}`.toLowerCase().includes(term));
   const stock = (source.stock || []).filter((r) => !term || `${r.nom} ${r.statut || ''}`.toLowerCase().includes(term));
-  const top = filterRowsByPeriod(source.top || [], period, ['derniere_visite'])
+  const top = byPeriod(source.top || [], ['derniere_visite'])
     .filter((r) => !term || `${r.nom} ${r.postnom || ''}`.toLowerCase().includes(term));
-  const caisse = (source.caisse || []).filter((r) => !term || `${r.Date} ${r.Mode_Paiement} ${r.Total_Encaisse}`.toLowerCase().includes(term));
+  const caisse = byPeriod(source.caisse || [], ['Date']).filter((r) => !term || `${r.Date} ${r.Mode_Paiement} ${r.Total_Encaisse}`.toLowerCase().includes(term));
+  const journal = byPeriod(source.journal || [], ['date_operation']).filter((r) => !term || `${r.reference} ${r.libelle || ''} ${r.type_operation || ''}`.toLowerCase().includes(term));
+  const livreCaisse = byPeriod(source.livreCaisse || [], ['date_paiement']).filter((r) => !term || `${r.numero_facture} ${r.client_nom || ''} ${r.mode_paiement || ''}`.toLowerCase().includes(term));
+  const bilan = source.bilan || {};
   const stockValue = stock.reduce((sum, row) => sum + Number(row.valeur_stock_ht || 0), 0);
   const stockRisks = stock.filter((row) => String(row.statut || '').toUpperCase() !== 'OK').length;
   const reportTitle = role === 'magasinier' ? 'Rapports produits' : role === 'caissier' ? 'Rapports caisse' : 'Rapports';
   const printRows = (title, headers, rows) => {
     printTableDocument(title, headers, rows, {
-      badge: periodLabel(period).toUpperCase(),
-      period: periodLabel(period),
+      badge: periodText.toUpperCase(),
+      period: periodText,
       tableTitle: 'Details commerciaux'
     });
   };
@@ -1970,35 +2023,47 @@ function Rapports({ data, searchQuery = '', user }) {
         <div className="panel-heading">
           <div>
             <h3>{reportTitle}</h3>
-            <p>Etat de sortie {periodLabel(period).toLowerCase()} pret pour impression.</p>
+            <p>Etat de sortie {periodText.toLowerCase()} pret pour impression.</p>
           </div>
-          <select className="compact-filter" value={period} onChange={(event) => setPeriod(event.target.value)}>
-            <option value="journalier">Journalier</option>
-            <option value="hebdomadaire">Hebdomadaire</option>
-            <option value="mensuel">Mensuel</option>
-            <option value="annuel">Annuel</option>
-          </select>
+          <div className="actions">
+            <select className="compact-filter" value={period} onChange={(event) => setPeriod(event.target.value)}>
+              <option value="journalier">Journalier</option>
+              <option value="hebdomadaire">Hebdomadaire</option>
+              <option value="mensuel">Mensuel</option>
+              <option value="annuel">Annuel</option>
+              <option value="personnalise">Du ... au ...</option>
+            </select>
+            {period === 'personnalise' && (
+              <>
+                <input className="date-filter" type="date" value={dateRange.debut} onChange={(event) => setDateRange({ ...dateRange, debut: event.target.value })} />
+                <input className="date-filter" type="date" value={dateRange.fin} onChange={(event) => setDateRange({ ...dateRange, fin: event.target.value })} />
+              </>
+            )}
+          </div>
         </div>
         <div className="report-cards">
-          <Stat label="Periode" value={periodLabel(period)} />
+          <Stat label="Periode" value={periodText} />
           {canSalesReports && <Stat label="Factures" value={factures.length} />}
-          {canSalesReports && <Stat label="Creances" value={creances.length} />}
+          {canSalesReports && <Stat label="Dettes clients" value={creances.length} />}
           {canCashReports && <Stat label="Lignes caisse" value={caisse.length} />}
           {canStockReports && <Stat label="Produits en stock" value={stock.length} />}
-          {canStockReports && <Stat label="Valeur stock" value={money(stockValue)} />}
+          {canStockReports && <Stat label="Valeur stock" value={moneySmart(stockValue)} />}
+          {canSalesReports && <Stat label={Number(bilan.resultat || 0) >= 0 ? 'Benefice' : 'Perte'} value={moneySmart(bilan.resultat)} />}
           {canStockReports && <Stat label="A surveiller" value={stockRisks} />}
         </div>
       </div>
-      {canSalesReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Creances</h3><button className="btn print" onClick={() => printRows(`Creances - ${period}`, ['Facture', 'Client', 'Du', 'Paye', 'Reste'], creances.map((r) => [r.numero_facture, r.client_nom, money(r.montant_du), money(r.montant_paye), money(r.reste_a_payer)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Facture', 'Client', 'Du', 'Paye', 'Reste']} rows={creances.map((r) => [r.numero_facture, r.client_nom, money(r.montant_du), money(r.montant_paye), money(r.reste_a_payer)])} /></div>}
-      {canSalesReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Factures</h3><button className="btn print" onClick={() => printRows('Factures', ['Facture', 'Client', 'Montant', 'Reste'], factures.map((r) => [r.numero_facture, `${r.client_nom} ${r.client_postnom || ''}`, money(r.montant_ttc), money(r.reste_a_payer)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Facture', 'Client', 'Montant', 'Reste']} rows={factures.map((r) => [r.numero_facture, `${r.client_nom} ${r.client_postnom || ''}`, money(r.montant_ttc), money(r.reste_a_payer)])} /></div>}
-      {canCashReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Rapport caisse</h3><button className="btn print" onClick={() => printRows(`Caisse - ${period}`, ['Date', 'Mode', 'Transactions', 'Total'], caisse.map((r) => [r.Date, r.Mode_Paiement, r.Nombre_Transactions, money(r.Total_Encaisse)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Date', 'Mode', 'Transactions', 'Total']} rows={caisse.map((r) => [r.Date, r.Mode_Paiement, r.Nombre_Transactions, money(r.Total_Encaisse)])} /></div>}
+      {canSalesReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Dettes clients</h3><button className="btn print" onClick={() => printRows(`Dettes clients - ${periodText}`, ['Facture', 'Client', 'Du', 'Paye', 'Reste'], creances.map((r) => [r.numero_facture, r.client_nom, moneySmart(r.montant_du), moneySmart(r.montant_paye), moneySmart(r.reste_a_payer)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Facture', 'Client', 'Du', 'Paye', 'Reste']} rows={creances.map((r) => [r.numero_facture, r.client_nom, moneySmart(r.montant_du), moneySmart(r.montant_paye), moneySmart(r.reste_a_payer)])} /></div>}
+      {canSalesReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Factures</h3><button className="btn print" onClick={() => printRows('Factures', ['Facture', 'Client', 'Montant', 'Reste'], factures.map((r) => [r.numero_facture, `${r.client_nom} ${r.client_postnom || ''}`, moneySmart(r.montant_ttc), moneySmart(r.reste_a_payer)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Facture', 'Client', 'Montant', 'Reste']} rows={factures.map((r) => [r.numero_facture, `${r.client_nom} ${r.client_postnom || ''}`, moneySmart(r.montant_ttc), moneySmart(r.reste_a_payer)])} /></div>}
+      {canCashReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Livre de caisse</h3><button className="btn print" onClick={() => printRows(`Livre de caisse - ${periodText}`, ['Date', 'Facture', 'Client', 'Mode', 'Montant'], livreCaisse.map((r) => [formatDate(r.date_paiement), r.numero_facture, r.client_nom, r.mode_paiement, moneySmart(r.montant)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Date', 'Facture', 'Client', 'Mode', 'Montant']} rows={livreCaisse.map((r) => [formatDate(r.date_paiement), r.numero_facture, r.client_nom, r.mode_paiement, moneySmart(r.montant)])} /></div>}
+      {canSalesReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Bilan</h3><button className="btn print" onClick={() => printRows(`Bilan - ${periodText}`, ['Ventes HT', 'Cout achat', 'Resultat', 'Factures'], [[moneySmart(bilan.ventes_ht), moneySmart(bilan.cout_achat), moneySmart(bilan.resultat), bilan.total_factures || 0]])}><Printer size={18} /> Imprimer</button></div><Table headers={['Ventes HT', 'Cout achat', 'Resultat', 'Factures']} rows={[[moneySmart(bilan.ventes_ht), moneySmart(bilan.cout_achat), <Badge>{Number(bilan.resultat || 0) >= 0 ? moneySmart(bilan.resultat) : moneySmart(bilan.resultat)}</Badge>, bilan.total_factures || 0]]} /></div>}
+      {canSalesReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Journal</h3><button className="btn print" onClick={() => printRows(`Journal - ${periodText}`, ['Date', 'Reference', 'Libelle', 'Entree', 'Sortie'], journal.map((r) => [formatDate(r.date_operation), r.reference, r.libelle, moneySmart(r.entree), moneySmart(r.sortie)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Date', 'Reference', 'Libelle', 'Entree', 'Sortie']} rows={journal.map((r) => [formatDate(r.date_operation), r.reference, r.libelle, moneySmart(r.entree), moneySmart(r.sortie)])} /></div>}
       <div className="grid report-detail-grid">
         {canStockReports && <div className="panel report-table-panel inventory-panel">
           <div className="panel-heading">
             <h3>Inventaire</h3>
-            <button className="btn print" onClick={() => printTableDocument('Fiche de stock', ['Produit', 'Stock', 'Valeur', 'Statut'], stock.map((r) => [r.nom, r.quantite_stock, money(r.valeur_stock_ht), r.statut]), { badge: 'INVENTAIRE', period: 'Inventaire courant', tableTitle: 'Etat du stock' })}><Printer size={18} /> Imprimer</button>
+            <button className="btn print" onClick={() => printTableDocument('Fiche de stock', ['Produit', 'Stock', 'Valeur', 'Statut'], stock.map((r) => [r.nom, r.quantite_stock, moneySmart(r.valeur_stock_ht), r.statut]), { badge: 'INVENTAIRE', period: 'Inventaire courant', tableTitle: 'Etat du stock' })}><Printer size={18} /> Imprimer</button>
           </div>
-          <Table headers={['Produit', 'Stock', 'Valeur', 'Statut']} rows={stock.map((r) => [r.nom, r.quantite_stock, money(r.valeur_stock_ht), <Badge>{r.statut}</Badge>])} />
+          <Table headers={['Produit', 'Stock', 'Valeur', 'Statut']} rows={stock.map((r) => [r.nom, r.quantite_stock, moneySmart(r.valeur_stock_ht), <Badge>{r.statut}</Badge>])} />
         </div>}
         {canSalesReports && <div className="panel">
           <div className="panel-heading">
@@ -2029,13 +2094,11 @@ function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
     clients: 'Clients',
     produits: 'Produits',
     categories: 'Categories',
-    devis: 'Devis',
     ventes: 'Factures',
     paiements: 'Paiements',
     utilisateurs: 'Utilisateurs',
     auth: 'Compte',
     mail: 'Emails',
-    'super-admin': 'Super admin'
   };
   const formatLogDate = (value) => {
     if (!value) return '-';
@@ -2113,8 +2176,8 @@ function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
     notify('Utilisateur mis a jour');
   });
   const toggle = (user) => submit(async () => {
-    await api(`/utilisateurs/${user.id_utilisateur}/toggle`, { method: 'PUT', body: '{}' });
-    notify('Statut modifie');
+    const response = await api(`/utilisateurs/${user.id_utilisateur}/toggle`, { method: 'PUT', body: '{}' });
+    notify(response.message || 'Statut modifie');
   });
   const remove = (user) => {
     if (!canDeleteUser(user)) {
@@ -2219,8 +2282,7 @@ function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
   const status = data.extra.mailStatus || {};
   const [form, setForm] = useState({ to: '', subject: '', message: '' });
   const [creating, setCreating] = useState(null);
-  const [query, setQuery] = useState('');
-  const term = `${searchQuery} ${query}`.trim().toLowerCase();
+  const term = searchQuery.trim().toLowerCase();
   const messages = (data.extra.mailMessages || []).filter((row) => `${row.to_email || ''} ${row.sender_email || ''} ${row.subject || ''} ${row.status || ''}`.toLowerCase().includes(term));
   const isTeamNotification = creating === 'team';
 
@@ -2230,7 +2292,6 @@ function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
         <div className="panel-heading client-toolbar">
           <h3>Communications envoyees</h3>
           <div className="actions">
-            <SearchInput value={query} onChange={setQuery} placeholder="Rechercher email" />
             <button className="btn secondary small" type="button" onClick={() => setCreating('team')}><Bell size={16} /> Message equipe</button>
             <button className="btn small" type="button" onClick={() => setCreating('email')}><Plus size={16} /> Nouveau message</button>
           </div>
@@ -2289,8 +2350,87 @@ function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
   );
 }
 
+function Fournisseurs({ api, notify, data, submit, searchQuery = '' }) {
+  const emptyForm = { nom: '', telephone: '', email: '', adresse: '' };
+  const [form, setForm] = useState(emptyForm);
+  const [editing, setEditing] = useState(null);
+  const [creating, setCreating] = useState(false);
+  const [query, setQuery] = useState('');
+  const term = `${searchQuery} ${query}`.trim().toLowerCase();
+  const fournisseurs = (data.fournisseurs || []).filter((f) => `${f.nom} ${f.telephone || ''} ${f.email || ''}`.toLowerCase().includes(term));
+
+  const create = () => submit(async () => {
+    await api('/fournisseurs', { method: 'POST', body: JSON.stringify(form) });
+    setForm(emptyForm);
+    setCreating(false);
+    notify('Fournisseur ajoute');
+  });
+
+  const saveEdit = () => submit(async () => {
+    await api(`/fournisseurs/${editing.id_fournisseur}`, { method: 'PUT', body: JSON.stringify(editing) });
+    setEditing(null);
+    notify('Fournisseur mis a jour');
+  });
+
+  const remove = (fournisseur) => {
+    if (!window.confirm(`Supprimer ${fournisseur.nom} ?`)) return;
+    submit(async () => {
+      await api(`/fournisseurs/${fournisseur.id_fournisseur}`, { method: 'DELETE' });
+      notify('Fournisseur supprime');
+    });
+  };
+
+  return (
+    <div className="grid">
+      <div className="panel">
+        <div className="panel-heading client-toolbar">
+          <h3>Fournisseurs</h3>
+          <div className="actions">
+            <SearchInput value={query} onChange={setQuery} placeholder="Rechercher fournisseur" />
+            <button className="btn small" type="button" onClick={() => setCreating(true)}><Plus size={16} /> Ajouter fournisseur</button>
+          </div>
+        </div>
+        <Table headers={['Nom', 'Telephone', 'Email', 'Achats', 'Approvisionnements', 'Actions']} rows={fournisseurs.map((f) => [
+          f.nom,
+          f.telephone || '-',
+          f.email || '-',
+          moneySmart(f.total_achats),
+          f.total_approvisionnements || 0,
+          <RowActions
+            onEdit={() => setEditing(f)}
+            onPrint={() => printDocument('Fournisseur', [['Nom', f.nom], ['Telephone', f.telephone || '-'], ['Email', f.email || '-'], ['Achats', moneySmart(f.total_achats)]], { paper: 'page' })}
+            onDelete={() => remove(f)}
+          />
+        ])} />
+      </div>
+      {creating && (
+        <Modal title="Nouveau fournisseur" onClose={() => setCreating(false)}>
+          <Form onSubmit={create}>
+            <Input label="Nom" value={form.nom} onChange={(nom) => setForm({ ...form, nom })} required />
+            <Input label="Telephone" value={form.telephone} onChange={(telephone) => setForm({ ...form, telephone })} />
+            <Input label="Email" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} />
+            <Input label="Adresse" value={form.adresse} onChange={(adresse) => setForm({ ...form, adresse })} />
+            <button className="btn modal-submit">Enregistrer <ArrowRight size={20} /></button>
+          </Form>
+        </Modal>
+      )}
+      {editing && (
+        <Modal title="Modifier fournisseur" onClose={() => setEditing(null)}>
+          <Form onSubmit={saveEdit}>
+            <Input label="Nom" value={editing.nom || ''} onChange={(nom) => setEditing({ ...editing, nom })} required />
+            <Input label="Telephone" value={editing.telephone || ''} onChange={(telephone) => setEditing({ ...editing, telephone })} />
+            <Input label="Email" type="email" value={editing.email || ''} onChange={(email) => setEditing({ ...editing, email })} />
+            <Input label="Adresse" value={editing.adresse || ''} onChange={(adresse) => setEditing({ ...editing, adresse })} />
+            <button className="btn">Mettre a jour</button>
+          </Form>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
 function Categories({ api, notify, data, submit, searchQuery = '' }) {
-  const emptyCategoryForm = { reference_categorie: '', nom: '', description: '', photo_url: '' };
+  const emptyCategoryForm = { nom: '', description: '', photo_url: '' };
   const [form, setForm] = useState(emptyCategoryForm);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -2344,7 +2484,7 @@ function Categories({ api, notify, data, submit, searchQuery = '' }) {
                 <article className="category-rank-card" key={c.id_categorie}>
                   <b>#{index + 1}</b>
                   <div className="category-rank-visual">
-                    <img src={c.photo_url || imageForIndex(index + 2)} alt="" />
+                    {c.photo_url ? <img src={c.photo_url} alt="" /> : <div className="photo-placeholder">{c.nom?.slice(0, 2).toUpperCase() || 'CA'}</div>}
                   </div>
                   <strong>{c.nom}</strong>
                   <em>Ref. {c.reference_categorie || c.id_categorie}</em>
@@ -2360,7 +2500,7 @@ function Categories({ api, notify, data, submit, searchQuery = '' }) {
       {creating && (
         <Modal title="Nouvelle categorie" onClose={() => setCreating(false)}>
           <Form onSubmit={save}>
-            <Input label="Reference" value={form.reference_categorie} onChange={(reference_categorie) => setForm({ ...form, reference_categorie })} placeholder="ex: CAT-VIVRE" />
+            <div className="notice compact">La reference sera creee automatiquement.</div>
             <Input label="Nom" value={form.nom} onChange={(nom) => setForm({ ...form, nom })} required />
             <Input label="Description" value={form.description} onChange={(description) => setForm({ ...form, description })} />
             <PhotoInput label="Photo de la categorie" value={form.photo_url} onChange={(photo_url) => setForm({ ...form, photo_url })} />
@@ -2371,7 +2511,10 @@ function Categories({ api, notify, data, submit, searchQuery = '' }) {
       {editing && (
         <Modal title="Modifier categorie" onClose={() => setEditing(null)}>
           <Form onSubmit={saveEdit}>
-            <Input label="Reference" value={editing.reference_categorie || ''} onChange={(reference_categorie) => setEditing({ ...editing, reference_categorie })} />
+            <div className="debt-preview">
+              <span>Reference automatique</span>
+              <strong>{editing.reference_categorie || `CAT-${editing.id_categorie}`}</strong>
+            </div>
             <Input label="Nom" value={editing.nom || ''} onChange={(nom) => setEditing({ ...editing, nom })} required />
             <Input label="Description" value={editing.description || ''} onChange={(description) => setEditing({ ...editing, description })} />
             <PhotoInput label="Photo de la categorie" value={editing.photo_url || ''} onChange={(photo_url) => setEditing({ ...editing, photo_url })} />
@@ -2382,17 +2525,6 @@ function Categories({ api, notify, data, submit, searchQuery = '' }) {
     </div>
   );
 }
-
-const defaultCompanyForm = () => ({
-  raison_sociale: '',
-  num_id_nationale: '',
-  email_entreprise: '',
-  ville: '',
-  nom_manager: '',
-  email_manager: '',
-  mdp_manager: 'Manager@123',
-  plan: 'mensuel'
-});
 
 const formatDate = (value) => {
   if (!value) return '-';
@@ -2407,350 +2539,6 @@ const formatUsdCompact = (value) => {
   if (amount >= 1000) return `USD ${(amount / 1000).toFixed(1)}k`;
   return formatUsd(amount);
 };
-
-function AdminCompanyStatus({ entreprise }) {
-  const days = Number(entreprise.jours_restants ?? 0);
-  const suspended = entreprise.statut_abonnement !== 'actif';
-  if (suspended) return <Badge>Retard</Badge>;
-  if (days < 0) return <Badge>Expire</Badge>;
-  return <Badge>Paye</Badge>;
-}
-
-function CompanyForm({ form, setForm, onSubmit, mode = 'create' }) {
-  const editing = mode === 'edit';
-  return (
-    <Form onSubmit={onSubmit}>
-      <div className="form-row">
-        <Input label="Nom de la societe" value={form.raison_sociale || ''} onChange={(raison_sociale) => setForm({ ...form, raison_sociale })} required />
-        <Input label="ID national" value={form.num_id_nationale || ''} onChange={(num_id_nationale) => setForm({ ...form, num_id_nationale })} />
-      </div>
-      <div className="form-row">
-        <Input label="Email entreprise" type="email" value={editing ? (form.email || '') : (form.email_entreprise || '')} onChange={(email) => setForm(editing ? { ...form, email } : { ...form, email_entreprise: email })} />
-        <Input label="Ville" value={form.ville || ''} onChange={(ville) => setForm({ ...form, ville })} />
-      </div>
-      {!editing && (
-        <>
-          <div className="form-row">
-            <Input label="Manager" value={form.nom_manager || ''} onChange={(nom_manager) => setForm({ ...form, nom_manager })} required />
-            <Input label="Email manager" type="email" value={form.email_manager || ''} onChange={(email_manager) => setForm({ ...form, email_manager })} required />
-          </div>
-          <Input label="Mot de passe manager" type="password" value={form.mdp_manager || ''} onChange={(mdp_manager) => setForm({ ...form, mdp_manager })} required />
-          <div className="subscription-card selected">
-            <span className="radio-dot" />
-            <strong>Abonnement PME</strong>
-            <small>USD 10 / Mois</small>
-          </div>
-        </>
-      )}
-      <button className="btn modal-submit">{editing ? 'Mettre a jour' : 'Creer entreprise'} <ArrowRight size={20} /></button>
-    </Form>
-  );
-}
-
-function SuperAdminDashboard({ api, notify, data, submit, searchQuery = '' }) {
-  const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState(defaultCompanyForm());
-  const stats = data.extra.stats || {};
-  const term = searchQuery.trim().toLowerCase();
-  const entreprises = (data.extra.entreprises || []).filter((e) => !term || `${e.raison_sociale} ${e.email || ''} ${e.ville || ''}`.toLowerCase().includes(term));
-  const create = () => submit(async () => {
-    await api('/super-admin/entreprises', { method: 'POST', body: JSON.stringify(form) });
-    setForm(defaultCompanyForm());
-    setCreating(false);
-    notify('Entreprise creee');
-  });
-
-  return (
-    <>
-      <div className="grid cols-4 admin-kpis">
-        <KpiCard icon={Building2} tone="blue" label="Entreprises Actives" value={Number(stats.entreprises_actives || 0).toLocaleString('fr-FR')} trend="12%" />
-        <KpiCard icon={Building2} tone="pink" label="Entreprises Suspendues" value={stats.entreprises_suspendues || 0} trend="2%" negative />
-        <KpiCard icon={WalletCards} tone="green" label="Platform CA (Annuel)" value={formatUsdCompact(stats.ca_global)} trend="8.4%" />
-        <KpiCard icon={ArrowRight} tone="orange" label="Transactions (Mois)" value={stats.total_ventes || 0} trend={`Total ${formatUsdCompact(stats.ca_global).replace('USD ', '')}`} />
-      </div>
-
-      <div className="grid admin-dashboard-main">
-        <div className="panel admin-table-panel">
-          <div className="panel-heading">
-            <h3>Entreprises Recentes</h3>
-            <div className="actions">
-              <button className="btn secondary small" type="button"><SlidersHorizontal size={16} /> Filtrer</button>
-              <button className="btn small" type="button"><Download size={16} /> Exporter</button>
-            </div>
-          </div>
-          <Table headers={['Entreprise', 'Ville', 'Statut', 'Expiration', 'Staff', 'CA Total']} rows={entreprises.slice(0, 5).map((e) => [
-            <div><strong>{e.raison_sociale}</strong><span className="muted block">{e.email || 'Logistique & Transport'}</span></div>,
-            e.ville || '-',
-            <AdminCompanyStatus entreprise={e} />,
-            <div><strong>{formatDate(e.date_expiration_abonnement)}</strong><span className={Number(e.jours_restants) < 0 ? 'danger-text block' : 'muted block'}>{Number(e.jours_restants || 0) < 0 ? 'Expire' : `${e.jours_restants || 0} jours restants`}</span></div>,
-            e.nb_employes || 0,
-            <strong>{formatUsd(e.ca_total)}</strong>
-          ])} />
-        </div>
-
-        <div className="panel create-company-card">
-          <h3>Creer une entreprise</h3>
-          <p>Processus d'onboarding partenaire</p>
-          <div className="steps">
-            <span className="active">1<small>Details</small></span>
-            <i />
-            <span>2<small>Manager</small></span>
-            <i />
-            <span>3<small>Fin</small></span>
-          </div>
-          <div className="fake-field">
-            <label>Nom de la societe</label>
-            <div>ex: Africa Express S.A.</div>
-          </div>
-          <div className="subscription-card selected">
-            <span className="radio-dot" />
-            <strong>Abonnement PME</strong>
-            <small>USD 10 / Mois</small>
-          </div>
-          <button className="btn modal-submit" type="button" onClick={() => setCreating(true)}>
-            Creer le dossier <ArrowRight size={20} />
-          </button>
-        </div>
-      </div>
-
-      <div className="grid cols-2 admin-graphs">
-        <div className="panel">
-          <div className="panel-heading">
-            <h3>Repartition entreprises</h3>
-            <span className="panel-pill">Actives / suspendues</span>
-          </div>
-          <div className="admin-bars">
-            <article><span>Actives</span><i style={{ width: `${Math.min(100, Number(stats.entreprises_actives || 0) / Math.max(Number(stats.total_entreprises || 1), 1) * 100)}%` }} /><b>{stats.entreprises_actives || 0}</b></article>
-            <article><span>Suspendues</span><i className="danger-bar" style={{ width: `${Math.min(100, Number(stats.entreprises_suspendues || 0) / Math.max(Number(stats.total_entreprises || 1), 1) * 100)}%` }} /><b>{stats.entreprises_suspendues || 0}</b></article>
-          </div>
-        </div>
-        <div className="panel">
-          <div className="panel-heading">
-            <h3>Activite plateforme</h3>
-            <span className="panel-pill">{stats.total_ventes || 0} transactions</span>
-          </div>
-          <div className="platform-meter">
-            <strong>{formatUsdCompact(stats.ca_global)}</strong>
-            <span>Chiffre d'affaires global surveille</span>
-          </div>
-        </div>
-      </div>
-
-      {creating && (
-        <Modal title="Creer une entreprise" onClose={() => setCreating(false)}>
-          <CompanyForm form={form} setForm={setForm} onSubmit={create} />
-        </Modal>
-      )}
-    </>
-  );
-}
-
-function SuperAdminEntreprises({ api, notify, data, submit, searchQuery = '' }) {
-  const [form, setForm] = useState(defaultCompanyForm());
-  const [creating, setCreating] = useState(false);
-  const [editing, setEditing] = useState(null);
-  const [deleting, setDeleting] = useState(null);
-  const [query, setQuery] = useState('');
-  const term = `${searchQuery} ${query}`.trim().toLowerCase();
-  const entreprises = (data.extra.entreprises || []).filter((e) => `${e.raison_sociale} ${e.email || ''} ${e.ville || ''}`.toLowerCase().includes(term));
-  const create = () => submit(async () => {
-    await api('/super-admin/entreprises', { method: 'POST', body: JSON.stringify(form) });
-    setForm(defaultCompanyForm());
-    setCreating(false);
-    notify('Entreprise creee');
-  });
-  const saveEdit = () => submit(async () => {
-    await api(`/super-admin/entreprises/${editing.id_entreprise}`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        raison_sociale: editing.raison_sociale,
-        num_id_nationale: editing.num_id_nationale,
-        email_entreprise: editing.email,
-        ville: editing.ville
-      })
-    });
-    setEditing(null);
-    notify('Entreprise mise a jour');
-  });
-  const toggleSubscription = (entreprise) => submit(async () => {
-    const action = entreprise.statut_abonnement === 'actif' ? 'SUSPENDRE' : 'ACTIVER';
-    await api(`/super-admin/entreprises/${entreprise.id_entreprise}/abonnement`, { method: 'PUT', body: JSON.stringify({ action, mois: 1 }) });
-    notify(action === 'ACTIVER' ? 'Abonnement active' : 'Entreprise suspendue');
-  });
-  const remove = () => {
-    if (!deleting) return;
-    const target = deleting;
-    setDeleting(null);
-    submit(async () => {
-      await api(`/super-admin/entreprises/${target.id_entreprise}`, { method: 'DELETE' });
-      notify('Entreprise supprimee');
-    });
-  };
-
-  return (
-    <>
-      <div className="panel">
-        <div className="panel-heading">
-          <h3>Repertoire entreprises</h3>
-          <div className="actions">
-            <SearchInput value={query} onChange={setQuery} placeholder="Rechercher entreprise" />
-            <button className="btn" type="button" onClick={() => setCreating(true)}><Plus size={18} /> Nouvelle entreprise</button>
-          </div>
-        </div>
-        <Table headers={['Entreprise', 'Ville', 'Statut', 'Expiration', 'Staff', 'CA', 'Actions']} rows={entreprises.map((e) => [
-          <div><strong>{e.raison_sociale}</strong><span className="muted block">{e.email || '-'}</span></div>,
-          e.ville || '-',
-          <AdminCompanyStatus entreprise={e} />,
-          formatDate(e.date_expiration_abonnement),
-          e.nb_employes || 0,
-          formatUsd(e.ca_total),
-          <RowActions
-            onEdit={() => setEditing(e)}
-            onPrint={() => printDocument('Entreprise', [['Entreprise', e.raison_sociale], ['Ville', e.ville || '-'], ['Statut', e.statut_abonnement], ['Employes', e.nb_employes], ['CA', money(e.ca_total)]], { paper: 'page' })}
-            onToggle={() => toggleSubscription(e)}
-            toggleLabel={e.statut_abonnement === 'actif' ? 'Suspendre' : 'Activer'}
-            onDelete={() => setDeleting(e)}
-          />
-        ])} />
-      </div>
-      {creating && (
-        <Modal title="Nouvelle entreprise" onClose={() => setCreating(false)}>
-          <CompanyForm form={form} setForm={setForm} onSubmit={create} />
-        </Modal>
-      )}
-      {editing && (
-        <Modal title="Modifier entreprise" onClose={() => setEditing(null)}>
-          <CompanyForm form={editing} setForm={setEditing} onSubmit={saveEdit} mode="edit" />
-        </Modal>
-      )}
-      {deleting && (
-        <Modal title="Confirmer la suppression" onClose={() => setDeleting(null)} className="confirm-modal">
-          <div className="confirm-delete">
-            <AlertTriangle size={34} />
-            <h4>Vous etes sur de vouloir supprimer "{deleting.raison_sociale}" ?</h4>
-            <p>Cette action supprimera aussi ses clients, devis, factures, paiements, produits et utilisateurs.</p>
-            <div className="confirm-actions">
-              <button className="btn secondary" type="button" onClick={() => setDeleting(null)}>Annuler</button>
-              <button className="btn danger" type="button" onClick={remove}>Supprimer definitivement</button>
-            </div>
-          </div>
-        </Modal>
-      )}
-    </>
-  );
-}
-
-function SuperAdminAbonnements({ api, notify, data, submit, searchQuery = '' }) {
-  const [renewing, setRenewing] = useState(null);
-  const [months, setMonths] = useState(1);
-  const term = searchQuery.trim().toLowerCase();
-  const entreprises = (data.extra.entreprises || []).filter((e) => !term || `${e.raison_sociale} ${e.statut_abonnement || ''} ${e.ville || ''}`.toLowerCase().includes(term));
-  const renew = () => submit(async () => {
-    await api(`/super-admin/entreprises/${renewing.id_entreprise}/abonnement`, { method: 'PUT', body: JSON.stringify({ action: 'ACTIVER', mois: months }) });
-    setRenewing(null);
-    notify('Abonnement active');
-  });
-  const suspend = (entreprise) => submit(async () => {
-    await api(`/super-admin/entreprises/${entreprise.id_entreprise}/abonnement`, { method: 'PUT', body: JSON.stringify({ action: 'SUSPENDRE', mois: 1 }) });
-    notify('Entreprise suspendue');
-  });
-  return (
-    <>
-      <div className="grid cols-3">
-        <Stat label="Abonnements actifs" value={entreprises.filter((e) => e.statut_abonnement === 'actif').length} />
-        <Stat label="Suspendus" value={entreprises.filter((e) => e.statut_abonnement !== 'actif').length} />
-        <Stat label="CA abonnements" value={formatUsdCompact((data.extra.stats || {}).ca_global)} />
-      </div>
-      <div className="panel admin-table-panel" style={{ marginTop: 18 }}>
-        <div className="panel-heading">
-          <h3>Suivi des abonnements</h3>
-          <button className="btn secondary small" type="button"><SlidersHorizontal size={16} /> Filtrer</button>
-        </div>
-        <Table headers={['Entreprise', 'Plan', 'Statut', 'Expiration', 'Reste', 'CA', 'Actions']} rows={entreprises.map((e) => [
-          e.raison_sociale,
-          'Abonnement PME - USD 10 / Mois',
-          <AdminCompanyStatus entreprise={e} />,
-          formatDate(e.date_expiration_abonnement),
-          `${e.jours_restants || 0} jours`,
-          formatUsd(e.ca_total),
-          <div className="actions">
-            <button className="btn small" type="button" onClick={() => { setMonths(1); setRenewing(e); }}>Renouveler</button>
-            {e.statut_abonnement === 'actif' && <button className="action delete" type="button" title="Suspendre" onClick={() => suspend(e)}><X size={17} /></button>}
-          </div>
-        ])} />
-      </div>
-      {renewing && (
-        <Modal title={`Renouveler ${renewing.raison_sociale}`} onClose={() => setRenewing(null)}>
-          <Form onSubmit={renew}>
-            <Select label="Duree" value={months} onChange={(value) => setMonths(Number(value))} options={[[1, '1 mois'], [3, '3 mois'], [6, '6 mois'], [12, '12 mois']]} />
-            <button className="btn modal-submit">Valider paiement <WalletCards size={20} /></button>
-          </Form>
-        </Modal>
-      )}
-    </>
-  );
-}
-
-function SuperAdminRapports({ data, searchQuery = '' }) {
-  const stats = data.extra.stats || {};
-  const term = searchQuery.trim().toLowerCase();
-  const entreprises = (data.extra.entreprises || []).filter((e) => !term || `${e.raison_sociale} ${e.ville || ''} ${e.statut_abonnement || ''}`.toLowerCase().includes(term));
-  const printReport = () => printDocument('Etat de sortie plateforme', [
-    ['Entreprises', stats.total_entreprises || 0],
-    ['Actives', stats.entreprises_actives || 0],
-    ['Suspendues', stats.entreprises_suspendues || 0],
-    ['Transactions', stats.total_ventes || 0],
-    ['CA global', money(stats.ca_global)]
-  ], { paper: 'page' });
-  return (
-    <div className="grid">
-      <div className="grid cols-4">
-        <Stat label="Total entreprises" value={stats.total_entreprises || 0} />
-        <Stat label="Entreprises actives" value={stats.entreprises_actives || 0} />
-        <Stat label="Transactions" value={stats.total_ventes || 0} />
-        <Stat label="CA global" value={formatUsdCompact(stats.ca_global)} />
-      </div>
-      <div className="panel admin-table-panel">
-        <div className="panel-heading">
-          <h3>Etats de sortie</h3>
-          <button className="btn" type="button" onClick={printReport}><Printer size={18} /> Imprimer</button>
-        </div>
-        <Table headers={['Entreprise', 'Ville', 'Employes', 'Ventes', 'CA total', 'Abonnement']} rows={entreprises.map((e) => [
-          e.raison_sociale,
-          e.ville || '-',
-          e.nb_employes || 0,
-          e.nb_ventes || 0,
-          formatUsd(e.ca_total),
-          <AdminCompanyStatus entreprise={e} />
-        ])} />
-      </div>
-    </div>
-  );
-}
-
-function SuperAdminParametres({ data }) {
-  const stats = data.extra.stats || {};
-  return (
-    <div className="grid cols-2">
-      <div className="panel settings-panel">
-        <div className="settings-icon"><Settings size={30} /></div>
-        <h3>Configuration plateforme</h3>
-        <p className="muted">Controle global des entreprises, roles, acces et abonnement SaaS.</p>
-        <div className="setting-row"><span>Mode plateforme</span><strong>Production</strong></div>
-        <div className="setting-row"><span>Entreprises suivies</span><strong>{stats.total_entreprises || 0}</strong></div>
-        <div className="setting-row"><span>Devise</span><strong>USD</strong></div>
-      </div>
-      <div className="panel settings-panel">
-        <div className="settings-icon"><Bell size={30} /></div>
-        <h3>Notifications admin</h3>
-        <p className="muted">Alertes pour expirations, suspensions et nouveaux dossiers entreprises.</p>
-        <div className="setting-row"><span>Expirations abonnement</span><strong>Actif</strong></div>
-        <div className="setting-row"><span>Rapports de sortie</span><strong>Hebdomadaire</strong></div>
-        <div className="setting-row"><span>Support</span><strong>Aide interne</strong></div>
-      </div>
-    </div>
-  );
-}
 
 function Form({ children, onSubmit }) {
   return <form className="form" onSubmit={(event) => { event.preventDefault(); onSubmit(); }}>{children}</form>;

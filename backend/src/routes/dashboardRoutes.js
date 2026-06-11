@@ -3,7 +3,8 @@ import {
     getStats, 
     getVentesMensuelles, 
     getAlertesStock,
-    getProduitsPlusVendus
+    getProduitsPlusVendus,
+    getResultatMensuel
 } from '../controllers/dashboardController.js';
 import { protect, authorizeRoles } from '../middleware/authMiddleware.js';
 
@@ -32,6 +33,12 @@ router.get('/produits-plus-vendus',
     protect,
     authorizeRoles('manager', 'caissier', 'magasinier'),
     getProduitsPlusVendus
+);
+
+router.get('/resultat-mensuel',
+    protect,
+    authorizeRoles('manager', 'caissier'),
+    getResultatMensuel
 );
 
 export default router;

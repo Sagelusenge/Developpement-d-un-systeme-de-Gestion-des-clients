@@ -1,7 +1,22 @@
 import pool from '../config/db.js';
 
+const buildDateFilter = (alias, query) => {
+    const clauses = [];
+    const params = [];
+    if (query.date_debut) {
+        clauses.push(`DATE(${alias}) >= ?`);
+        params.push(query.date_debut);
+    }
+    if (query.date_fin) {
+        clauses.push(`DATE(${alias}) <= ?`);
+        params.push(query.date_fin);
+    }
+    return { sql: clauses.length ? ` AND ${clauses.join(' AND ')}` : '', params };
+};
+
 export const getFactures = async (req, res) => {
     const entreprise_id = req.user.entreprise_id;
+    const dateFilter = buildDateFilter('v.date_vente', req.query);
     try {
         const [rows] = await pool.query(
             `SELECT v.id_ventes, v.numero_facture, v.date_vente, v.montant_ttc,
@@ -11,10 +26,10 @@ export const getFactures = async (req, res) => {
              FROM ventes v
              JOIN client c ON c.id_client = v.client_id
              LEFT JOIN paiement p ON p.vente_id = v.id_ventes
-             WHERE v.entreprise_id = ?
+             WHERE v.entreprise_id = ?${dateFilter.sql}
              GROUP BY v.id_ventes
              ORDER BY v.date_vente DESC`,
-            [entreprise_id]
+            [entreprise_id, ...dateFilter.params]
         );
         res.json({ success: true, data: rows });
     } catch (error) {
@@ -24,6 +39,7 @@ export const getFactures = async (req, res) => {
 
 export const getCreances = async (req, res) => {
     const entreprise_id = req.user.entreprise_id;
+    const dateFilter = buildDateFilter('v.date_vente', req.query);
     try {
         const [rows] = await pool.query(
             `SELECT v.numero_facture, v.date_vente, c.nom AS client_nom,
@@ -33,11 +49,11 @@ export const getCreances = async (req, res) => {
              FROM ventes v
              JOIN client c ON c.id_client = v.client_id
              LEFT JOIN paiement p ON p.vente_id = v.id_ventes
-             WHERE v.entreprise_id = ?
+             WHERE v.entreprise_id = ?${dateFilter.sql}
              GROUP BY v.id_ventes
              HAVING reste_a_payer > 0
              ORDER BY reste_a_payer DESC`,
-            [entreprise_id]
+            [entreprise_id, ...dateFilter.params]
         );
         res.json({ success: true, data: rows });
     } catch (error) {
@@ -69,6 +85,7 @@ export const getStockInventaire = async (req, res) => {
 
 export const getTopAcheteurs = async (req, res) => {
     const entreprise_id = req.user.entreprise_id;
+    const dateFilter = buildDateFilter('v.date_vente', req.query);
     try {
         const [rows] = await pool.query(
             `SELECT c.id_client, c.nom, c.postnom,
@@ -77,12 +94,84 @@ export const getTopAcheteurs = async (req, res) => {
                     MAX(v.date_vente) AS derniere_visite
              FROM client c
              LEFT JOIN ventes v ON v.client_id = c.id_client
+                ${dateFilter.sql ? dateFilter.sql.replace(' AND ', ' AND ') : ''}
              WHERE c.entreprise_id = ?
              GROUP BY c.id_client
              ORDER BY ca_total DESC, nombre_achats DESC
              LIMIT 10`,
-            [entreprise_id]
+            [...dateFilter.params, entreprise_id]
         );
+        res.json({ success: true, data: rows });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getBilan = async (req, res) => {
+    const entreprise_id = req.user.entreprise_id;
+    const dateFilter = buildDateFilter('v.date_vente', req.query);
+    try {
+        const [[row]] = await pool.query(
+            `SELECT
+                IFNULL(SUM(lv.quantite * lv.prix_unitaire_ht), 0) AS ventes_ht,
+                IFNULL(SUM(lv.quantite * IFNULL(lv.prix_achat_unitaire, 0)), 0) AS cout_achat,
+                IFNULL(SUM(lv.quantite * (lv.prix_unitaire_ht - IFNULL(lv.prix_achat_unitaire, 0))), 0) AS resultat,
+                COUNT(DISTINCT v.id_ventes) AS total_factures
+             FROM ventes v
+             JOIN lignes_ventes lv ON lv.vente_id = v.id_ventes
+             WHERE v.entreprise_id = ?${dateFilter.sql}`,
+            [entreprise_id, ...dateFilter.params]
+        );
+
+        res.json({ success: true, data: row });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getJournal = async (req, res) => {
+    const entreprise_id = req.user.entreprise_id;
+    const dateFilter = buildDateFilter('v.date_vente', req.query);
+    try {
+        const [rows] = await pool.query(
+            `SELECT v.date_vente AS date_operation,
+                    v.numero_facture AS reference,
+                    c.nom AS libelle,
+                    v.montant_ttc AS entree,
+                    0 AS sortie,
+                    'Facture' AS type_operation
+             FROM ventes v
+             JOIN client c ON c.id_client = v.client_id
+             WHERE v.entreprise_id = ?${dateFilter.sql}
+             ORDER BY date_operation DESC`,
+            [entreprise_id, ...dateFilter.params]
+        );
+
+        res.json({ success: true, data: rows });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getLivreCaisse = async (req, res) => {
+    const entreprise_id = req.user.entreprise_id;
+    const dateFilter = buildDateFilter('p.date_paiement', req.query);
+    try {
+        const [rows] = await pool.query(
+            `SELECT p.date_paiement,
+                    v.numero_facture,
+                    c.nom AS client_nom,
+                    p.mode_paiement,
+                    p.montant,
+                    p.reference_externe
+             FROM paiement p
+             JOIN ventes v ON v.id_ventes = p.vente_id
+             JOIN client c ON c.id_client = v.client_id
+             WHERE v.entreprise_id = ?${dateFilter.sql}
+             ORDER BY p.date_paiement DESC`,
+            [entreprise_id, ...dateFilter.params]
+        );
+
         res.json({ success: true, data: rows });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
