@@ -8,7 +8,9 @@ import {
   Box,
   Briefcase,
   Building2,
+  ChevronLeft,
   ChevronDown,
+  ChevronRight,
   CheckCircle2,
   CreditCard,
   Download,
@@ -1418,7 +1420,7 @@ function LineEditor({ lignes, setLignes, produits }) {
         />
         <select value="" onChange={(event) => addProduct(event.target.value)}>
           <option value="">Choisir un produit a ajouter</option>
-          {availableProducts().map((p) => <option key={p.id_produit} value={p.id_produit}>{p.nom} - {money(p.prix_ht)}</option>)}
+          {availableProducts().map((p) => <option key={p.id_produit} value={p.id_produit}>{p.nom} - {p.reference_produit || 'Sans ref.'} - {money(p.prix_ht)}</option>)}
         </select>
         <span>{availableProducts().length} produit{availableProducts().length > 1 ? 's' : ''} disponible{availableProducts().length > 1 ? 's' : ''}</span>
       </div>
@@ -1434,7 +1436,7 @@ function LineEditor({ lignes, setLignes, produits }) {
           <div className="quote-line-item" key={ligne.produit_id || index}>
             <div>
               <strong>{selectedProduct?.nom || 'Produit selectionne'}</strong>
-              <span>{selectedProduct?.reference_produit || 'Sans reference'} - {selectedProduct?.categorie_nom || 'Sans categorie'} - Stock {selectedProduct?.quantite_stock ?? '-'}</span>
+              <span>{selectedProduct?.reference_produit || 'Sans reference'} - {selectedProduct?.categorie_nom || 'Sans categorie'} - Stock {selectedProduct?.quantite_stock ?? '-'} {selectedProduct?.unite || 'piece'}</span>
               <em>Cout moyen {moneySmart(prixAchat)} / catalogue {moneySmart(selectedProduct?.prix_ht || 0)}</em>
             </div>
             <div className="line-qty">
@@ -1601,7 +1603,17 @@ function Clients({ api, notify, data, submit, searchQuery = '' }) {
 }
 
 function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
-  const emptyProductForm = { reference_produit: '', nom: '', categorie_id: '', photo_url: '', prix_ht: '', taux_tva: 16, quantite_stock: 0, seuil_alerte: 5 };
+  const unitOptions = [
+    ['piece', 'Pieces'],
+    ['kilogramme', 'Kilogrammes'],
+    ['gramme', 'Grammes'],
+    ['carton', 'Cartons'],
+    ['sac', 'Sacs'],
+    ['litre', 'Litres'],
+    ['metre', 'Metres'],
+    ['paquet', 'Paquets']
+  ];
+  const emptyProductForm = { reference_produit: '', nom: '', categorie_id: '', unite: 'piece', photo_url: '', prix_ht: '', taux_tva: 16, quantite_stock: 0, seuil_alerte: 5 };
   const [form, setForm] = useState(emptyProductForm);
   const [stock, setStock] = useState({ id: '', fournisseur_id: '', quantite: 1, prix_achat: '', note: '' });
   const [creating, setCreating] = useState(false);
@@ -1609,6 +1621,7 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
   const [editing, setEditing] = useState(null);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('tous');
+  const [page, setPage] = useState(1);
   const categoryOptions = [['', 'Sans categorie'], ...data.categories.map((c) => [c.id_categorie, c.nom])];
   const canManageProducts = user?.role !== 'caissier';
   const term = `${searchQuery} ${query}`.trim().toLowerCase();
@@ -1616,6 +1629,13 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
   const produits = data.produits
     .filter((p) => `${p.reference_produit} ${p.nom} ${p.categorie_nom || ''}`.toLowerCase().includes(term))
     .filter((p) => statusFilter === 'tous' || p.statut_stock === statusFilter);
+  const productsPerPage = 10;
+  const totalPages = Math.max(1, Math.ceil(produits.length / productsPerPage));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedProduits = produits.slice((currentPage - 1) * productsPerPage, currentPage * productsPerPage);
+  useEffect(() => {
+    setPage(1);
+  }, [term, statusFilter]);
   const saveEdit = () => submit(async () => {
     await api(`/produits/${editing.id_produit}`, { method: 'PUT', body: JSON.stringify(editing) });
     setEditing(null);
@@ -1657,12 +1677,12 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
           <div className="category-rank-zone">
             <div className="category-rank-header">
               <h4>Produits populaires</h4>
-              <span>Page 1 sur 1</span>
+              <span>Page {currentPage} sur {totalPages}</span>
             </div>
             <div className="product-rank-list">
-              {produits.map((p, index) => (
+              {paginatedProduits.map((p, index) => (
                 <article className="product-rank-card" key={p.id_produit}>
-                  <b>#{index + 1}</b>
+                  <b>#{(currentPage - 1) * productsPerPage + index + 1}</b>
                   <div className="product-rank-visual">
                     {p.photo_url ? <img src={p.photo_url} alt="" /> : <div className="photo-placeholder">{p.nom?.slice(0, 2).toUpperCase() || 'PR'}</div>}
                   </div>
@@ -1671,7 +1691,7 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
                   <div className="product-rank-meta">
                     <span>{money(p.prix_ht)}</span>
                     <Badge>{p.statut_stock}</Badge>
-                    <em>Stock {p.quantite_stock}</em>
+                    <em>Stock {p.quantite_stock} {p.unite || 'piece'}</em>
                   </div>
                   <div className="actions">
                     {canManageProducts && <button className="action edit" type="button" title="Modifier" onClick={() => setEditing(p)}><Edit3 size={17} /></button>}
@@ -1680,6 +1700,15 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
                   </div>
                 </article>
               ))}
+            </div>
+            <div className="product-pagination">
+              <button className="btn secondary small" type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={currentPage <= 1}>
+                <ChevronLeft size={16} /> Precedent
+              </button>
+              <strong>{produits.length} produit{produits.length > 1 ? 's' : ''}</strong>
+              <button className="btn secondary small" type="button" onClick={() => setPage((value) => Math.min(totalPages, value + 1))} disabled={currentPage >= totalPages}>
+                Suivant <ChevronRight size={16} />
+              </button>
             </div>
           </div>
         </div>
@@ -1701,10 +1730,13 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
         <Modal title="Nouveau produit" onClose={() => setCreating(false)}>
           <Form onSubmit={() => submit(async () => { await api('/produits', { method: 'POST', body: JSON.stringify(form) }); setForm(emptyProductForm); setCreating(false); notify('Produit cree'); })}>
             <div className="form-row">
-              <Input label="Reference" value={form.reference_produit} onChange={(reference_produit) => setForm({ ...form, reference_produit })} required />
+              <Input label="Reference auto" value={form.reference_produit} onChange={(reference_produit) => setForm({ ...form, reference_produit })} placeholder="Laisser vide pour generer" />
               <Input label="Designation" value={form.nom} onChange={(nom) => setForm({ ...form, nom })} required />
             </div>
-            <Select label="Categorie" value={form.categorie_id} onChange={(categorie_id) => setForm({ ...form, categorie_id })} options={categoryOptions} required={false} />
+            <div className="form-row">
+              <Select label="Categorie" value={form.categorie_id} onChange={(categorie_id) => setForm({ ...form, categorie_id })} options={categoryOptions} required={false} />
+              <Select label="Unite" value={form.unite} onChange={(unite) => setForm({ ...form, unite })} options={unitOptions} />
+            </div>
             <PhotoInput label="Photo du produit" value={form.photo_url} onChange={(photo_url) => setForm({ ...form, photo_url })} />
             <div className="form-row">
               <Input label="Prix HT" type="number" value={form.prix_ht} onChange={(prix_ht) => setForm({ ...form, prix_ht })} required />
@@ -1728,7 +1760,7 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
           })}>
             <Select label="Produit" value={stock.id} onChange={(id) => setStock({ ...stock, id })} options={data.produits.map((p) => [p.id_produit, p.nom])} />
             <Select label="Fournisseur" value={stock.fournisseur_id} onChange={(fournisseur_id) => setStock({ ...stock, fournisseur_id })} options={data.fournisseurs.map((f) => [f.id_fournisseur, f.nom])} />
-            <Input label="Quantite" type="number" value={stock.quantite} onChange={(quantite) => setStock({ ...stock, quantite })} required />
+            <Input label={`Quantite (${data.produits.find((p) => p.id_produit === stock.id)?.unite || 'unite'})`} type="number" value={stock.quantite} onChange={(quantite) => setStock({ ...stock, quantite })} required />
             <Input label="Prix d'achat unitaire" type="number" step="0.01" value={stock.prix_achat} onChange={(prix_achat) => setStock({ ...stock, prix_achat })} required />
             <div className="debt-preview">
               <span>Prix total achat</span>
@@ -1743,7 +1775,10 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
         <Modal title="Modifier produit" onClose={() => setEditing(null)}>
           <Form onSubmit={saveEdit}>
             <Input label="Designation" value={editing.nom || ''} onChange={(nom) => setEditing({ ...editing, nom })} required />
-            <Select label="Categorie" value={editing.categorie_id || ''} onChange={(categorie_id) => setEditing({ ...editing, categorie_id })} options={categoryOptions} required={false} />
+            <div className="form-row">
+              <Select label="Categorie" value={editing.categorie_id || ''} onChange={(categorie_id) => setEditing({ ...editing, categorie_id })} options={categoryOptions} required={false} />
+              <Select label="Unite" value={editing.unite || 'piece'} onChange={(unite) => setEditing({ ...editing, unite })} options={unitOptions} />
+            </div>
             <PhotoInput label="Photo du produit" value={editing.photo_url || ''} onChange={(photo_url) => setEditing({ ...editing, photo_url })} />
             <div className="form-row">
               <Input label="Prix HT" type="number" value={editing.prix_ht || ''} onChange={(prix_ht) => setEditing({ ...editing, prix_ht })} required />
@@ -1837,7 +1872,7 @@ function Ventes({ api, notify, data, submit, searchQuery = '' }) {
         ])} />
       </div>
       {creating && (
-        <Modal title="Vente directe" onClose={() => setCreating(false)}>
+        <Modal title="Vente directe" onClose={() => setCreating(false)} className="quote-modal">
           <Form onSubmit={() => submit(async () => {
             const articles = form.lignes.filter((ligne) => ligne.produit_id).map((ligne) => ({ produit_id: ligne.produit_id, quantite: Math.max(1, Number(ligne.quantite || 1)), prix: Number(ligne.prix || 0) }));
             if (articles.length === 0) {
@@ -1902,7 +1937,7 @@ function Paiements({ api, notify, data, submit, searchQuery = '' }) {
             <button className="btn small" type="button" onClick={() => setCreating(true)}><Plus size={16} /> Nouveau paiement</button>
           </div>
         </div>
-        <Table headers={['Date', 'Mode', 'Transactions', 'Total']} rows={caisseRows.map((r) => [r.Date, r.Mode_Paiement, r.Nombre_Transactions, money(r.Total_Encaisse)])} />
+        <Table headers={['Date', 'Mode', 'Transactions', 'Total']} rows={caisseRows.map((r) => [formatDate(r.Date), r.Mode_Paiement, r.Nombre_Transactions, money(r.Total_Encaisse)])} />
       </div>
       {creating && (
         <Modal title="Encaisser un paiement" onClose={() => setCreating(false)}>

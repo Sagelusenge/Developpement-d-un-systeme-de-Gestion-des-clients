@@ -76,14 +76,15 @@ const main = async () => {
 
         await connection.query(
             `INSERT INTO produits
-                (id_produit, reference_produit, nom, categorie_id, prix_ht, prix_achat, taux_tva, quantite_stock, seuil_alerte, entreprise_id)
+                (id_produit, reference_produit, nom, categorie_id, unite, prix_ht, prix_achat, taux_tva, quantite_stock, seuil_alerte, entreprise_id)
              VALUES
-                ('', 'CIM-42', 'Ciment gris 42.5', 'CAT-DEMO-CIMENT', 20.00, 15.00, 16.00, 65, 15, ?),
-                ('', 'OUT-MAR', 'Marteau chantier', 'CAT-DEMO-OUTILS', 9.00, 5.50, 16.00, 28, 8, ?),
-                ('', 'PLO-TUY', 'Tuyau PVC 32mm', 'CAT-DEMO-PLOMBERIE', 4.50, 2.75, 16.00, 90, 20, ?),
-                ('', 'PLO-ROB', 'Robinet laiton', 'CAT-DEMO-PLOMBERIE', 7.50, 4.25, 16.00, 18, 10, ?)
+                ('', 'CIM-42', 'Ciment gris 42.5', 'CAT-DEMO-CIMENT', 'sac', 20.00, 15.00, 16.00, 65, 15, ?),
+                ('', 'OUT-MAR', 'Marteau chantier', 'CAT-DEMO-OUTILS', 'piece', 9.00, 5.50, 16.00, 28, 8, ?),
+                ('', 'PLO-TUY', 'Tuyau PVC 32mm', 'CAT-DEMO-PLOMBERIE', 'piece', 4.50, 2.75, 16.00, 90, 20, ?),
+                ('', 'PLO-ROB', 'Robinet laiton', 'CAT-DEMO-PLOMBERIE', 'piece', 7.50, 4.25, 16.00, 18, 10, ?)
              ON DUPLICATE KEY UPDATE
                 categorie_id = VALUES(categorie_id),
+                unite = VALUES(unite),
                 prix_ht = VALUES(prix_ht),
                 prix_achat = VALUES(prix_achat),
                 taux_tva = VALUES(taux_tva),

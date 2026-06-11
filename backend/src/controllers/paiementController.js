@@ -68,15 +68,15 @@ export const getRapportCaisse = async (req, res) => {
     const entreprise_id = req.user.entreprise_id;
     try {
         const [rows] = await pool.query(
-            `SELECT DATE(p.date_paiement) AS date_paiement,
-                    p.mode_paiement,
-                    COUNT(*) AS nombre_paiements,
-                    IFNULL(SUM(p.montant), 0) AS total
+            `SELECT DATE(p.date_paiement) AS Date,
+                    p.mode_paiement AS Mode_Paiement,
+                    COUNT(*) AS Nombre_Transactions,
+                    IFNULL(SUM(p.montant), 0) AS Total_Encaisse
              FROM paiement p
              JOIN ventes v ON v.id_ventes = p.vente_id
              WHERE v.entreprise_id = ?
              GROUP BY DATE(p.date_paiement), p.mode_paiement
-             ORDER BY date_paiement DESC`,
+             ORDER BY Date DESC`,
             [entreprise_id]
         );
         res.json({ success: true, data: rows });

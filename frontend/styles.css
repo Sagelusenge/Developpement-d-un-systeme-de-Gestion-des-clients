@@ -744,13 +744,13 @@ tr:last-child td {
 }
 
 .quote-line-item {
-  align-items: center;
+  align-items: start;
   background: #fff;
   border: 1px solid #d8deea;
   border-radius: 8px;
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(0, 1fr) minmax(128px, 170px);
+  grid-template-columns: minmax(220px, 1fr) minmax(390px, 1.4fr);
   padding: 12px;
 }
 
@@ -854,7 +854,12 @@ tr:last-child td {
   align-items: end;
   display: grid;
   gap: 8px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(88px, 0.75fr) minmax(160px, 1fr) minmax(132px, auto) 36px;
+  min-width: 0;
+}
+
+.line-qty label {
+  min-width: 0;
 }
 
 .search-field {
@@ -2656,8 +2661,8 @@ button.kpi-card {
 
 .product-rank-list {
   display: grid;
-  gap: 26px;
-  grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+  gap: 16px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .product-rank-card {
@@ -2697,7 +2702,8 @@ button.kpi-card {
 .product-rank-visual {
   background: #f3f5f9;
   border-radius: 8px 8px 0 0;
-  height: 176px;
+  aspect-ratio: 1.2;
+  height: auto;
   overflow: hidden;
 }
 
@@ -2737,7 +2743,7 @@ button.kpi-card {
 
 .product-rank-card strong {
   color: #0057a8;
-  font-size: 20px;
+  font-size: 17px;
   line-height: 1.25;
   padding: 0 14px;
 }
@@ -2772,6 +2778,19 @@ button.kpi-card {
 
 .product-rank-card .actions {
   padding: 0 14px;
+}
+
+.product-pagination {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.product-pagination strong {
+  color: #263142;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 .report-cards {
@@ -3444,6 +3463,19 @@ button.kpi-card {
   .quote-line-item,
   .login-page {
     grid-template-columns: 1fr;
+  }
+
+  .line-qty {
+    grid-template-columns: 1fr;
+  }
+
+  .line-qty .action.delete {
+    justify-self: end;
+  }
+
+  .product-pagination {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .nav {

@@ -1,6 +1,19 @@
 import pool from '../config/db.js';
 import { nextId } from '../services/idService.js';
 
+const sanitizeReference = (value) => String(value || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 50);
+
+const buildProductReference = (nom) => {
+    const base = sanitizeReference(nom).slice(0, 18) || 'PRODUIT';
+    const suffix = Date.now().toString(36).toUpperCase().slice(-5);
+    return sanitizeReference(`${base}-${suffix}`);
+};
+
 // GET /api/produits
 export const getAllProduits = async (req, res) => {
     const entreprise_id = req.user.entreprise_id;
@@ -48,13 +61,13 @@ export const getMouvementsStock = async (req, res) => {
 
 // POST /api/produits
 export const createProduit = async (req, res) => {
-    const { reference_produit, nom, categorie_id, photo_url, prix_ht, taux_tva, quantite_stock, seuil_alerte } = req.body;
+    const { reference_produit, nom, categorie_id, photo_url, prix_ht, taux_tva, quantite_stock, seuil_alerte, unite } = req.body;
     const entreprise_id = req.user.entreprise_id;
 
-    if (!reference_produit || !nom || Number(prix_ht) <= 0) {
+    if (!nom || Number(prix_ht) <= 0) {
         return res.status(400).json({
             success: false,
-            message: 'Reference, nom et prix positif requis'
+            message: 'Nom et prix positif requis'
         });
     }
 
@@ -62,15 +75,17 @@ export const createProduit = async (req, res) => {
     try {
         await connection.beginTransaction();
         const idProduit = await nextId(connection, 'produits', 'PRD', 5);
+        const reference = sanitizeReference(reference_produit) || buildProductReference(nom);
         await connection.query(
             `INSERT INTO produits
-             (id_produit, reference_produit, nom, categorie_id, photo_url, prix_ht, taux_tva, quantite_stock, seuil_alerte, entreprise_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             (id_produit, reference_produit, nom, categorie_id, unite, photo_url, prix_ht, taux_tva, quantite_stock, seuil_alerte, entreprise_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 idProduit,
-                reference_produit,
+                reference,
                 nom,
                 categorie_id || null,
+                unite || 'piece',
                 photo_url || null,
                 Number(prix_ht),
                 Number(taux_tva) || 16,
@@ -80,7 +95,7 @@ export const createProduit = async (req, res) => {
             ]
         );
         await connection.commit();
-        res.status(201).json({ success: true, message: 'Produit cree avec succes', data: { id_produit: idProduit } });
+        res.status(201).json({ success: true, message: 'Produit cree avec succes', data: { id_produit: idProduit, reference_produit: reference } });
     } catch (error) {
         await connection.rollback();
         res.status(500).json({ success: false, message: error.message });
@@ -92,7 +107,7 @@ export const createProduit = async (req, res) => {
 // PUT /api/produits/:id
 export const updateProduit = async (req, res) => {
     const { id } = req.params;
-    const { nom, categorie_id, photo_url, prix_ht, taux_tva, seuil_alerte } = req.body;
+    const { nom, categorie_id, unite, photo_url, prix_ht, taux_tva, seuil_alerte } = req.body;
     const entreprise_id = req.user.entreprise_id;
 
     if (!nom || Number(prix_ht) <= 0) {
@@ -102,9 +117,9 @@ export const updateProduit = async (req, res) => {
     try {
         const [result] = await pool.query(
             `UPDATE produits
-             SET nom = ?, categorie_id = ?, photo_url = ?, prix_ht = ?, taux_tva = ?, seuil_alerte = ?
+             SET nom = ?, categorie_id = ?, unite = ?, photo_url = ?, prix_ht = ?, taux_tva = ?, seuil_alerte = ?
              WHERE id_produit = ? AND entreprise_id = ?`,
-            [nom, categorie_id || null, photo_url || null, Number(prix_ht), Number(taux_tva) || 16, Number(seuil_alerte) || 5, id, entreprise_id]
+            [nom, categorie_id || null, unite || 'piece', photo_url || null, Number(prix_ht), Number(taux_tva) || 16, Number(seuil_alerte) || 5, id, entreprise_id]
         );
 
         if (result.affectedRows === 0) {

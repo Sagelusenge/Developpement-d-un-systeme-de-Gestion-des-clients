@@ -63,6 +63,7 @@ export const ensureRuntimeSchema = async (pool) => {
             reference_produit VARCHAR(50) NOT NULL,
             nom VARCHAR(200) NOT NULL,
             categorie_id VARCHAR(50) NULL,
+            unite VARCHAR(40) NOT NULL DEFAULT 'piece',
             prix_ht DECIMAL(10,2) NOT NULL,
             prix_achat DECIMAL(10,2) NOT NULL DEFAULT 0,
             taux_tva DECIMAL(5,2) DEFAULT 16.00,
@@ -203,7 +204,7 @@ export const ensureRuntimeSchema = async (pool) => {
         );
 
         if (rows.length === 0) {
-            await pool.query(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+            await pool.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}`);
         }
     };
 
@@ -221,7 +222,7 @@ export const ensureRuntimeSchema = async (pool) => {
     await addColumnIfMissing('mail_messages', 'to_email', "VARCHAR(160) NOT NULL DEFAULT ''");
     await addColumnIfMissing('mail_messages', 'subject', "VARCHAR(255) NOT NULL DEFAULT ''");
     await addColumnIfMissing('mail_messages', 'message', 'TEXT NULL');
-    await addColumnIfMissing('mail_messages', 'status', 'VARCHAR(40) NOT NULL DEFAULT "envoye"');
+    await addColumnIfMissing('mail_messages', 'status', "VARCHAR(40) NOT NULL DEFAULT 'envoye'");
     await addColumnIfMissing('mail_messages', 'created_at', 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
 
     await addColumnIfMissing('utilisateur', 'telephone', 'VARCHAR(30) NULL');
@@ -230,10 +231,10 @@ export const ensureRuntimeSchema = async (pool) => {
     await addColumnIfMissing('user_activity_logs', 'user_id', 'VARCHAR(50) NOT NULL');
     await addColumnIfMissing('user_activity_logs', 'user_name', 'VARCHAR(160) NULL');
     await addColumnIfMissing('user_activity_logs', 'user_role', 'VARCHAR(50) NULL');
-    await addColumnIfMissing('user_activity_logs', 'action_type', 'VARCHAR(30) NOT NULL DEFAULT "ACTION"');
+    await addColumnIfMissing('user_activity_logs', 'action_type', "VARCHAR(30) NOT NULL DEFAULT 'ACTION'");
     await addColumnIfMissing('user_activity_logs', 'module', 'VARCHAR(80) NULL');
     await addColumnIfMissing('user_activity_logs', 'entity_id', 'VARCHAR(80) NULL');
-    await addColumnIfMissing('user_activity_logs', 'description', 'VARCHAR(255) NOT NULL DEFAULT "Action utilisateur"');
+    await addColumnIfMissing('user_activity_logs', 'description', "VARCHAR(255) NOT NULL DEFAULT 'Action utilisateur'");
     await addColumnIfMissing('user_activity_logs', 'metadata', 'JSON NULL');
     await addColumnIfMissing('user_activity_logs', 'created_at', 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
 
@@ -250,6 +251,7 @@ export const ensureRuntimeSchema = async (pool) => {
     }
 
     await addColumnIfMissing('produits', 'photo_url', 'TEXT NULL');
+    await addColumnIfMissing('produits', 'unite', "VARCHAR(40) NOT NULL DEFAULT 'piece'");
     await addColumnIfMissing('produits', 'prix_achat', 'DECIMAL(10,2) NOT NULL DEFAULT 0');
     await addColumnIfMissing('mouvements_stock', 'fournisseur_id', 'VARCHAR(50) NULL');
     await addColumnIfMissing('mouvements_stock', 'prix_achat_unitaire', 'DECIMAL(10,2) NULL');

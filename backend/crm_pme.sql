@@ -82,6 +82,7 @@ CREATE TABLE produits (
     reference_produit VARCHAR(50) NOT NULL,
     nom VARCHAR(200) NOT NULL,
     categorie_id VARCHAR(50) NULL,
+    unite VARCHAR(40) NOT NULL DEFAULT 'piece',
     prix_ht DECIMAL(10,2) NOT NULL,
     prix_achat DECIMAL(10,2) NOT NULL DEFAULT 0,
     taux_tva DECIMAL(5,2) DEFAULT 16.00,
