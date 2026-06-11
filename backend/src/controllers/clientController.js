@@ -1,11 +1,25 @@
 import pool from '../config/db.js';
 
-// GET /api/clients - Tous les clients de l'entreprise
+const nextClientId = async (connection) => {
+    await connection.query(
+        `INSERT INTO sequences (nom_table, derniere_valeur)
+         VALUES ('client', 0)
+         ON DUPLICATE KEY UPDATE derniere_valeur = derniere_valeur`
+    );
+    await connection.query(
+        `UPDATE sequences SET derniere_valeur = derniere_valeur + 1 WHERE nom_table = 'client'`
+    );
+    const [[row]] = await connection.query(
+        `SELECT derniere_valeur FROM sequences WHERE nom_table = 'client'`
+    );
+    return `CLI-${String(row.derniere_valeur).padStart(5, '0')}`;
+};
+
 export const getAllClients = async (req, res) => {
     const entreprise_id = req.user.entreprise_id;
     try {
         const [rows] = await pool.query(
-            `SELECT c.*, 
+            `SELECT c.*,
                 COUNT(v.id_ventes) AS nombre_achats,
                 IFNULL(SUM(v.montant_ttc), 0) AS ca_total
              FROM client c
@@ -21,22 +35,19 @@ export const getAllClients = async (req, res) => {
     }
 };
 
-// GET /api/clients/:id - Un client et son historique
 export const getClientById = async (req, res) => {
     const { id } = req.params;
     const entreprise_id = req.user.entreprise_id;
     try {
-        // Infos du client
         const [clients] = await pool.query(
             'SELECT * FROM client WHERE id_client = ? AND entreprise_id = ?',
             [id, entreprise_id]
         );
 
         if (clients.length === 0) {
-            return res.status(404).json({ success: false, message: 'Client non trouvé' });
+            return res.status(404).json({ success: false, message: 'Client non trouve' });
         }
 
-        // Historique des achats du client
         const [historique] = await pool.query(
             `SELECT v.numero_facture, v.date_vente, v.montant_ttc,
                     IFNULL(SUM(p.montant), 0) AS total_paye,
@@ -49,16 +60,15 @@ export const getClientById = async (req, res) => {
             [id, entreprise_id]
         );
 
-        res.json({ 
-            success: true, 
-            data: { client: clients[0], historique } 
+        res.json({
+            success: true,
+            data: { client: clients[0], historique }
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
-// POST /api/clients - Créer un client
 export const createClient = async (req, res) => {
     const { nom, postnom, telephone } = req.body;
     const entreprise_id = req.user.entreprise_id;
@@ -67,57 +77,78 @@ export const createClient = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Le nom du client est requis' });
     }
 
+    const connection = await pool.getConnection();
     try {
-        await pool.query(
-            `INSERT INTO client (nom, postnom, telephone, entreprise_id) VALUES (?, ?, ?, ?)`,
-            [nom, postnom || null, telephone || null, entreprise_id]
+        await connection.beginTransaction();
+        const idClient = await nextClientId(connection);
+
+        await connection.query(
+            `INSERT INTO client (id_client, nom, postnom, telephone, entreprise_id)
+             VALUES (?, ?, ?, ?, ?)`,
+            [idClient, nom, postnom || null, telephone || null, entreprise_id]
         );
 
-        // Récupère le client créé avec son ID auto-généré
-        const [newClient] = await pool.query(
-            'SELECT * FROM client WHERE telephone = ? AND entreprise_id = ? ORDER BY id_client DESC LIMIT 1',
-            [telephone, entreprise_id]
+        const [newClient] = await connection.query(
+            `SELECT * FROM client
+             WHERE entreprise_id = ?
+               AND (id_client = ? OR telephone = ?)
+             ORDER BY id_client DESC
+             LIMIT 1`,
+            [entreprise_id, idClient, telephone || null]
         );
 
-        res.status(201).json({ 
-            success: true, 
-            message: 'Client créé avec succès', 
-            data: newClient[0] 
+        await connection.commit();
+        res.status(201).json({
+            success: true,
+            message: 'Client cree avec succes',
+            data: newClient[0]
         });
     } catch (error) {
+        await connection.rollback();
         res.status(500).json({ success: false, message: error.message });
+    } finally {
+        connection.release();
     }
 };
 
-// PUT /api/clients/:id - Modifier un client
 export const updateClient = async (req, res) => {
     const { id } = req.params;
     const { nom, postnom, telephone } = req.body;
     const entreprise_id = req.user.entreprise_id;
 
     try {
-        await pool.query(
-            `UPDATE client SET nom = ?, postnom = ?, telephone = ?
+        const [result] = await pool.query(
+            `UPDATE client
+             SET nom = ?, postnom = ?, telephone = ?
              WHERE id_client = ? AND entreprise_id = ?`,
-            [nom, postnom, telephone, id, entreprise_id]
+            [nom, postnom || null, telephone || null, id, entreprise_id]
         );
-        res.json({ success: true, message: 'Client mis à jour' });
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'Client introuvable' });
+        }
+
+        res.json({ success: true, message: 'Client mis a jour' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
-// DELETE /api/clients/:id - Supprimer un client
 export const deleteClient = async (req, res) => {
     const { id } = req.params;
     const entreprise_id = req.user.entreprise_id;
 
     try {
-        await pool.query(
+        const [result] = await pool.query(
             'DELETE FROM client WHERE id_client = ? AND entreprise_id = ?',
             [id, entreprise_id]
         );
-        res.json({ success: true, message: 'Client supprimé' });
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'Client introuvable' });
+        }
+
+        res.json({ success: true, message: 'Client supprime' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
