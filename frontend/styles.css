@@ -4740,6 +4740,7 @@ button:disabled {
   .line-qty {
     grid-template-columns: 1fr;
   }
+}
   
 /* Animations */
 @keyframes slideUp {
@@ -4775,6 +4776,209 @@ button:disabled {
   opacity: 0.8;
   font-size: 0.85em;
   margin-left: 4px;
+}
+
+/* Final consistency overrides */
+.kpi-card,
+.top-products-chart article,
+.manager-chart-panel,
+.payment-panel,
+.result-panel {
+  animation-duration: 900ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.kpi-card:nth-child(1) { animation-delay: 120ms; }
+.kpi-card:nth-child(2) { animation-delay: 220ms; }
+.kpi-card:nth-child(3) { animation-delay: 320ms; }
+.kpi-card:nth-child(4) { animation-delay: 420ms; }
+
+.result-bar-fill,
+.activity-track i,
+.result-bar i,
+.product-bar i {
+  animation-duration: 1400ms;
+  transition-duration: 1400ms;
+  transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@media (max-width: 900px) {
+  .shell,
+  .shell:not(.admin-shell),
+  .admin-shell {
+    display: block;
+    grid-template-columns: 1fr;
+    min-height: 100vh;
+    width: 100%;
+  }
+
+  .sidebar,
+  .shell:not(.admin-shell) .sidebar,
+  .admin-shell .sidebar {
+    display: block;
+    height: auto;
+    min-height: 0;
+    padding: 12px;
+    position: static;
+    width: 100%;
+  }
+
+  .nav,
+  .shell:not(.admin-shell) .nav {
+    display: flex;
+    gap: 8px;
+    grid-template-columns: none;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  .nav button,
+  .nav-logout,
+  .shell:not(.admin-shell) .nav button,
+  .shell:not(.admin-shell) .nav-logout {
+    flex: 0 0 auto;
+    font-size: 12px;
+    min-height: 38px;
+    padding: 8px 10px;
+    white-space: nowrap;
+    width: auto;
+  }
+
+  .main,
+  .shell:not(.admin-shell) .main,
+  .admin-shell .main {
+    padding: 0 12px 20px;
+    width: 100%;
+  }
+
+  .topbar,
+  .shell:not(.admin-shell) .topbar,
+  .admin-topbar {
+    align-items: stretch;
+    flex-direction: column;
+    margin-inline: -12px;
+    min-height: 0;
+    padding: 12px;
+    position: static;
+  }
+
+  .topbar-left,
+  .toolbar,
+  .user-card,
+  .panel-heading,
+  .panel-heading .actions,
+  .client-toolbar,
+  .product-toolbar,
+  .product-toolbar .actions {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .grid,
+  .grid.cols-2,
+  .grid.cols-3,
+  .grid.cols-4,
+  .manager-kpis,
+  .manager-mid,
+  .manager-bottom,
+  .report-detail-grid,
+  .report-cards,
+  .form-row,
+  .quote-product-picker,
+  .quote-line-item,
+  .line-qty {
+    grid-template-columns: 1fr;
+  }
+
+  .search-field,
+  .topbar .search-field,
+  .product-toolbar .search-field {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .panel,
+  .card {
+    border-radius: 8px;
+    padding: 14px;
+  }
+
+  .btn,
+  .btn.small,
+  .btn.print,
+  .modal-submit {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .category-rank-list,
+  .product-rank-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .modal {
+    max-height: calc(100vh - 20px);
+    max-width: 100%;
+    overflow-y: auto;
+    width: 100%;
+  }
+
+  .table-wrap {
+    overflow: visible;
+  }
+
+  .table-wrap table,
+  .table-wrap thead,
+  .table-wrap tbody,
+  .table-wrap tr,
+  .table-wrap th,
+  .table-wrap td {
+    display: block;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .table-wrap thead {
+    display: none;
+  }
+
+  .table-wrap tr {
+    background: #fff;
+    border: 1px solid #d9deea;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+
+  .table-wrap td {
+    border-bottom: 1px solid #edf0f6;
+    color: #172033;
+    display: grid;
+    font-size: 13px;
+    gap: 8px;
+    grid-template-columns: minmax(94px, 0.42fr) minmax(0, 1fr);
+    padding: 10px 12px;
+  }
+
+  .table-wrap td::before {
+    color: #566176;
+    content: attr(data-label);
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+}
+
+@media (max-width: 520px) {
+  .category-rank-list,
+  .product-rank-list {
+    grid-template-columns: 1fr;
+  }
+
+  .table-wrap td {
+    grid-template-columns: 1fr;
+  }
 }
 
 

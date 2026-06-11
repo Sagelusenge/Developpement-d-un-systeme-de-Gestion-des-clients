@@ -1306,7 +1306,7 @@ function AnimatedValue({ value }) {
       return;
     }
     let frame = 0;
-    const totalFrames = 24;
+    const totalFrames = 54;
     const timer = window.setInterval(() => {
       frame += 1;
       const next = numeric * (frame / totalFrames);
@@ -1315,7 +1315,7 @@ function AnimatedValue({ value }) {
         window.clearInterval(timer);
         setDisplay(value);
       }
-    }, 22);
+    }, 32);
     return () => window.clearInterval(timer);
   }, [value]);
   return display;
@@ -1893,9 +1893,9 @@ function Ventes({ api, notify, data, submit, searchQuery = '' }) {
           money(v.total_paye),
           money(v.reste_a_payer),
           <RowActions
-            onEdit={Number(v.total_paye) === 0 ? () => startEdit(v) : null}
+            onEdit={() => startEdit(v)}
             onPrint={() => printDocument('Facture', [['Facture', v.numero_facture], ['Client', v.client_nom], ['Montant', money(v.montant_ttc)], ['Paye', money(v.total_paye)], ['Reste', money(v.reste_a_payer)]], { paper: 'page' })}
-            onDelete={Number(v.total_paye) === 0 ? () => remove(v) : null}
+            onDelete={() => remove(v)}
           />
         ])} />
       </div>

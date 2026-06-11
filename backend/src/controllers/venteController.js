@@ -2,6 +2,7 @@ import pool from '../config/db.js';
 import { nextFactureId, nextId } from '../services/idService.js';
 
 const toNumber = (value) => Number(value);
+const lineCostSql = 'COALESCE(NULLIF(lv.prix_achat_unitaire, 0), NULLIF(p.prix_achat, 0), 0)';
 
 // GET /api/ventes
 export const getAllVentes = async (req, res) => {
@@ -47,8 +48,8 @@ export const getVenteById = async (req, res) => {
         const [lignes] = await pool.query(
             `SELECT lv.*, p.nom AS produit_nom,
                     (lv.quantite * lv.prix_unitaire_ht) AS total_ht,
-                    (lv.quantite * IFNULL(lv.prix_achat_unitaire, 0)) AS cout_total,
-                    (lv.quantite * (lv.prix_unitaire_ht - IFNULL(lv.prix_achat_unitaire, 0))) AS resultat_ligne_ht,
+                    (lv.quantite * ${lineCostSql}) AS cout_total,
+                    (lv.quantite * (lv.prix_unitaire_ht - ${lineCostSql})) AS resultat_ligne_ht,
                     (lv.quantite * lv.prix_unitaire_ht * 1.16) AS total_ttc
              FROM lignes_ventes lv
              JOIN produits p ON lv.produit_id = p.id_produit
@@ -174,7 +175,7 @@ export const createVente = async (req, res) => {
     }
 };
 
-const ensureNoPayment = async (connection, vente_id, entreprise_id) => {
+const getTotalPaid = async (connection, vente_id, entreprise_id) => {
     const [rows] = await connection.query(
         `SELECT IFNULL(SUM(p.montant), 0) AS total_paye
          FROM ventes v
@@ -188,9 +189,7 @@ const ensureNoPayment = async (connection, vente_id, entreprise_id) => {
         throw new Error('Facture introuvable');
     }
 
-    if (Number(rows[0].total_paye) > 0) {
-        throw new Error('Impossible de modifier ou supprimer une facture deja payee');
-    }
+    return Number(rows[0].total_paye || 0);
 };
 
 const restoreSaleStock = async (connection, vente_id) => {
@@ -220,7 +219,7 @@ export const updateVente = async (req, res) => {
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
-        await ensureNoPayment(connection, id, entreprise_id);
+        const totalPaye = await getTotalPaid(connection, id, entreprise_id);
 
         const [clients] = await connection.query(
             `SELECT id_client FROM client WHERE id_client = ? AND entreprise_id = ?`,
@@ -279,6 +278,10 @@ export const updateVente = async (req, res) => {
             montantTtc += quantite * prix * 1.16;
         }
 
+        if (Number(montantTtc.toFixed(2)) < totalPaye) {
+            throw new Error(`Impossible de modifier: le nouveau total (${montantTtc.toFixed(2)} USD) est inferieur au montant deja paye (${totalPaye.toFixed(2)} USD).`);
+        }
+
         await connection.query(
             `UPDATE ventes SET montant_ttc = ? WHERE id_ventes = ? AND entreprise_id = ?`,
             [Number(montantTtc.toFixed(2)), id, entreprise_id]
@@ -302,8 +305,9 @@ export const deleteVente = async (req, res) => {
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
-        await ensureNoPayment(connection, id, entreprise_id);
+        await getTotalPaid(connection, id, entreprise_id);
         await restoreSaleStock(connection, id);
+        await connection.query(`DELETE FROM paiement WHERE vente_id = ?`, [id]);
 
         const [result] = await connection.query(
             `DELETE FROM ventes WHERE id_ventes = ? AND entreprise_id = ?`,

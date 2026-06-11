@@ -1,5 +1,7 @@
 import pool from '../config/db.js';
 
+const lineCostSql = 'COALESCE(NULLIF(lv.prix_achat_unitaire, 0), NULLIF(p.prix_achat, 0), 0)';
+
 const percentChange = (current, previous) => {
     const now = Number(current || 0);
     const before = Number(previous || 0);
@@ -25,15 +27,17 @@ export const getStats = async (req, res) => {
                  WHERE v.entreprise_id = ?
                    AND MONTH(v.date_vente) = MONTH(CURDATE())
                    AND YEAR(v.date_vente) = YEAR(CURDATE())) AS ventes_ht_mois,
-                (SELECT IFNULL(SUM(lv.quantite * IFNULL(lv.prix_achat_unitaire, 0)), 0)
+                (SELECT IFNULL(SUM(lv.quantite * ${lineCostSql}), 0)
                  FROM lignes_ventes lv
                  JOIN ventes v ON v.id_ventes = lv.vente_id
+                 JOIN produits p ON p.id_produit = lv.produit_id
                  WHERE v.entreprise_id = ?
                    AND MONTH(v.date_vente) = MONTH(CURDATE())
                    AND YEAR(v.date_vente) = YEAR(CURDATE())) AS cout_achat_mois,
-                (SELECT IFNULL(SUM(lv.quantite * (lv.prix_unitaire_ht - IFNULL(lv.prix_achat_unitaire, 0))), 0)
+                (SELECT IFNULL(SUM(lv.quantite * (lv.prix_unitaire_ht - ${lineCostSql})), 0)
                  FROM lignes_ventes lv
                  JOIN ventes v ON v.id_ventes = lv.vente_id
+                 JOIN produits p ON p.id_produit = lv.produit_id
                  WHERE v.entreprise_id = ?
                    AND MONTH(v.date_vente) = MONTH(CURDATE())
                    AND YEAR(v.date_vente) = YEAR(CURDATE())) AS resultat_mois,
@@ -148,10 +152,11 @@ export const getResultatMensuel = async (req, res) => {
             `SELECT
                 MONTH(v.date_vente) AS mois,
                 SUM(lv.quantite * lv.prix_unitaire_ht) AS ventes_ht,
-                SUM(lv.quantite * IFNULL(lv.prix_achat_unitaire, 0)) AS cout_achat,
-                SUM(lv.quantite * (lv.prix_unitaire_ht - IFNULL(lv.prix_achat_unitaire, 0))) AS resultat
+                SUM(lv.quantite * ${lineCostSql}) AS cout_achat,
+                SUM(lv.quantite * (lv.prix_unitaire_ht - ${lineCostSql})) AS resultat
              FROM ventes v
              JOIN lignes_ventes lv ON lv.vente_id = v.id_ventes
+             JOIN produits p ON p.id_produit = lv.produit_id
              WHERE v.entreprise_id = ? AND YEAR(v.date_vente) = YEAR(CURDATE())
              GROUP BY MONTH(v.date_vente)
              ORDER BY MONTH(v.date_vente)`,

@@ -1,5 +1,7 @@
 import pool from '../config/db.js';
 
+const lineCostSql = 'COALESCE(NULLIF(lv.prix_achat_unitaire, 0), NULLIF(p.prix_achat, 0), 0)';
+
 const buildDateFilter = (alias, query) => {
     const clauses = [];
     const params = [];
@@ -121,11 +123,12 @@ export const getBilan = async (req, res) => {
         const [[row]] = await pool.query(
             `SELECT
                 IFNULL(SUM(lv.quantite * lv.prix_unitaire_ht), 0) AS ventes_ht,
-                IFNULL(SUM(lv.quantite * IFNULL(lv.prix_achat_unitaire, 0)), 0) AS cout_achat,
-                IFNULL(SUM(lv.quantite * (lv.prix_unitaire_ht - IFNULL(lv.prix_achat_unitaire, 0))), 0) AS resultat,
+                IFNULL(SUM(lv.quantite * ${lineCostSql}), 0) AS cout_achat,
+                IFNULL(SUM(lv.quantite * (lv.prix_unitaire_ht - ${lineCostSql})), 0) AS resultat,
                 COUNT(DISTINCT v.id_ventes) AS total_factures
              FROM ventes v
              JOIN lignes_ventes lv ON lv.vente_id = v.id_ventes
+             JOIN produits p ON p.id_produit = lv.produit_id
              WHERE v.entreprise_id = ?${dateFilter.sql}`,
             [entreprise_id, ...dateFilter.params]
         );
