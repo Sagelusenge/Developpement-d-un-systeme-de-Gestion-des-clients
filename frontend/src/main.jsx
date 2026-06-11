@@ -12,6 +12,7 @@ import {
   ChevronDown,
   ChevronRight,
   CheckCircle2,
+  Coins,
   CreditCard,
   Download,
   Edit3,
