@@ -47,6 +47,20 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 const APP_NAME = 'Quincaillerie Centrale';
 const APP_TAGLINE = 'Gestion commerciale interne';
 
+const formatDate = (value) => {
+  if (!value) return '-';
+  return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value));
+};
+
+const formatUsd = (value) => `USD ${Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+
+const formatUsdCompact = (value) => {
+  const amount = Number(value || 0);
+  if (amount >= 1000000) return `USD ${(amount / 1000000).toFixed(1)}M`;
+  if (amount >= 1000) return `USD ${(amount / 1000).toFixed(1)}k`;
+  return formatUsd(amount);
+};
+
 const money = (value) => `${Number(value || 0).toFixed(2)} USD`;
 
 const moneySmart = (value) => {
