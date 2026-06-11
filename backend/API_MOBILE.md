@@ -1,23 +1,43 @@
 # Documentation API Mobile - Quincaillerie Centrale
 
-Base URL locale: `http://localhost:5000/api`
+Base URL locale:
 
-En production, remplacer par l'URL du backend deploye.
+```txt
+http://localhost:5000
+```
 
-## Authentification
+Base URL Render:
 
-Toutes les routes protegees utilisent:
+```txt
+https://developpement-d-un-systeme-de-gestion.onrender.com
+```
+
+Toutes les routes metier commencent par `/api`.
+
+## Headers
+
+Routes publiques: pas de token.
+
+Routes protegees:
 
 ```http
 Authorization: Bearer <token>
 Content-Type: application/json
 ```
 
-### Connexion
+## Authentification
 
-`POST /auth/login`
+```http
+GET  /api/health
+POST /api/auth/login
+GET  /api/auth/me
+PUT  /api/auth/profile
+POST /api/auth/change-password
+POST /api/auth/forgot-password
+POST /api/auth/reset-request-password
+```
 
-Body:
+### Login
 
 ```json
 {
@@ -26,33 +46,7 @@ Body:
 }
 ```
 
-Reponse:
-
-```json
-{
-  "success": true,
-  "token": "jwt_token",
-  "user": {
-    "id": "USR-00001",
-    "nom": "KITSA LUSENGE Sage",
-    "email": "sage.kitsa@quincaillerie-centrale.cd",
-    "telephone": "+243...",
-    "role": "manager",
-    "entreprise_id": "ENT-...",
-    "entreprise_nom": "Quincaillerie Centrale"
-  }
-}
-```
-
-### Profil connecte
-
-`GET /auth/me`
-
 ### Modifier profil
-
-`PUT /auth/profile`
-
-Body:
 
 ```json
 {
@@ -63,10 +57,6 @@ Body:
 
 ### Changer mot de passe
 
-`POST /auth/change-password`
-
-Body:
-
 ```json
 {
   "new_password": "nouveauMotDePasse",
@@ -76,71 +66,95 @@ Body:
 
 ## Dashboard
 
-### Statistiques
-
-`GET /dashboard/stats`
-
-Retourne clients, chiffre du mois, argent recu, cout d'achat et resultat du mois.
-
-### Resultat mensuel
-
-`GET /dashboard/resultat-mensuel`
-
-Retourne par mois:
-
-```json
-{
-  "mois": "Jun",
-  "ventes_ht": 1000,
-  "cout_achat": 700,
-  "resultat": 300
-}
+```http
+GET /api/dashboard/stats
+GET /api/dashboard/ventes-mensuelles
+GET /api/dashboard/resultat-mensuel
+GET /api/dashboard/alertes-stock
+GET /api/dashboard/produits-plus-vendus
 ```
 
-Formule:
+Formule du resultat:
 
-```text
+```txt
 benefice/perte = somme((prix_vente_unitaire - prix_achat_unitaire) * quantite)
 ```
 
+## Clients
+
+```http
+GET    /api/clients
+GET    /api/clients/:id
+POST   /api/clients
+PUT    /api/clients/:id
+DELETE /api/clients/:id
+```
+
+Body:
+
+```json
+{
+  "nom": "Kabongo",
+  "postnom": "Patrick",
+  "telephone": "+243990000000"
+}
+```
+
+## Categories
+
+```http
+GET    /api/categories
+POST   /api/categories
+PUT    /api/categories/:id
+DELETE /api/categories/:id
+```
+
+Body:
+
+```json
+{
+  "nom": "Ciment",
+  "description": "Produits de construction",
+  "photo_url": ""
+}
+```
+
+La reference categorie est generee automatiquement par le backend.
+
 ## Fournisseurs
 
-### Liste
+```http
+GET    /api/fournisseurs
+POST   /api/fournisseurs
+PUT    /api/fournisseurs/:id
+DELETE /api/fournisseurs/:id
+```
 
-`GET /fournisseurs`
-
-### Ajouter
-
-`POST /fournisseurs`
+Body:
 
 ```json
 {
   "nom": "Katanga Materiaux",
-  "telephone": "+243 990 120 111",
-  "email": "vente@example.cd",
+  "telephone": "+243990000000",
+  "email": "contact@example.cd",
   "adresse": "Lubumbashi"
 }
 ```
 
-### Modifier
-
-`PUT /fournisseurs/:id`
-
-### Supprimer
-
-`DELETE /fournisseurs/:id`
-
 Un fournisseur deja utilise dans un approvisionnement n'est pas supprime afin de garder l'historique.
 
-## Produits et stock
+## Produits et Stock
 
-### Liste produits
+```http
+GET    /api/produits
+POST   /api/produits
+PUT    /api/produits/:id
+DELETE /api/produits/:id
+GET    /api/produits/mouvements-recents
+POST   /api/produits/:id/approvisionner
+```
 
-`GET /produits`
-
-### Ajouter produit
-
-`POST /produits`
+### Produit
 
 ```json
 {
@@ -155,9 +169,7 @@ Un fournisseur deja utilise dans un approvisionnement n'est pas supprime afin de
 }
 ```
 
-### Approvisionner
-
-`POST /produits/:id/approvisionner`
+### Approvisionnement
 
 ```json
 {
@@ -168,36 +180,30 @@ Un fournisseur deja utilise dans un approvisionnement n'est pas supprime afin de
 }
 ```
 
-Le backend calcule:
+Calculs:
 
-```text
+```txt
 prix_achat_total = quantite * prix_achat
+cout_moyen_pondere = valeur_stock_actuelle + nouvel_achat / stock_total
 ```
-
-Le produit garde un coût moyen pondéré pour calculer le bénéfice des ventes.
-Chaque mouvement stock conserve aussi son prix exact pour l'historique.
 
 Exemple:
 
-```text
-10 pièces à 12 USD + 10 pièces à 15 USD = coût moyen 13,50 USD
+```txt
+10 pieces a 12 USD + 10 pieces a 15 USD = cout moyen 13,50 USD
 ```
 
-### Mouvements recents
+## Ventes / Factures
 
-`GET /produits/mouvements-recents`
+```http
+GET    /api/ventes
+GET    /api/ventes/:id
+POST   /api/ventes
+PUT    /api/ventes/:id
+DELETE /api/ventes/:id
+```
 
-Retourne produit, fournisseur, quantite, prix achat unitaire, prix achat total et date.
-
-## Ventes / factures
-
-### Liste factures
-
-`GET /ventes`
-
-### Creer une vente
-
-`POST /ventes`
+Body:
 
 ```json
 {
@@ -212,43 +218,22 @@ Retourne produit, fournisseur, quantite, prix achat unitaire, prix achat total e
 }
 ```
 
-Important:
+Notes:
 
 - `prix` est le prix de vente unitaire saisi par le caissier.
-- Le backend prend le prix d'achat courant du produit au moment de la vente.
+- Le backend garde le prix d'achat unitaire au moment de la vente.
 - Le stock est verifie puis diminue.
-- La facture est creee automatiquement.
-- Le benefice/perte est calcule dans les rapports avec `prix - prix_achat_unitaire`.
-
-### Detail facture
-
-`GET /ventes/:id`
-
-Retourne les lignes avec:
-
-- `prix_unitaire_ht`
-- `prix_achat_unitaire`
-- `total_ht`
-- `cout_total`
-- `resultat_ligne_ht`
-
-### Modifier facture
-
-`PUT /ventes/:id`
-
-Impossible si la facture a deja un paiement.
-
-### Supprimer facture
-
-`DELETE /ventes/:id`
-
-Impossible si la facture a deja un paiement.
+- Une facture payee ne peut pas etre modifiee ou supprimee.
 
 ## Paiements
 
-### Enregistrer paiement
+```http
+POST /api/paiements
+GET  /api/paiements/rapport-caisse
+GET  /api/paiements/repartition
+```
 
-`POST /paiements`
+Body:
 
 ```json
 {
@@ -262,56 +247,87 @@ Impossible si la facture a deja un paiement.
 
 Modes:
 
-- `especes`
-- `carte`
-- `virement`
-- `mobile_money`
+```txt
+especes
+carte
+virement
+mobile_money
+```
 
 Pour `mobile_money`, `reference_externe` et `telephone_payeur` sont requis.
 
 ## Rapports
 
-Les rapports acceptent les filtres:
-
 ```http
-?date_debut=2026-06-01&date_fin=2026-06-30
+GET /api/rapports/factures
+GET /api/rapports/creances
+GET /api/rapports/stock
+GET /api/rapports/top-acheteurs
+GET /api/rapports/bilan
+GET /api/rapports/journal
+GET /api/rapports/livre-caisse
 ```
 
-### Bilan
+Filtres date:
 
-`GET /rapports/bilan`
+```http
+GET /api/rapports/bilan?date_debut=2026-06-01&date_fin=2026-06-30
+```
 
-Retourne:
+## Utilisateurs
 
-- `ventes_ht`
-- `cout_achat`
-- `resultat`
-- `total_factures`
+```http
+GET    /api/utilisateurs
+POST   /api/utilisateurs
+PUT    /api/utilisateurs/:id
+DELETE /api/utilisateurs/:id
+PUT    /api/utilisateurs/:id/toggle
+GET    /api/utilisateurs/:id/activity
+```
 
-### Journal
+Body:
 
-`GET /rapports/journal`
+```json
+{
+  "nom": "Nom Utilisateur",
+  "email": "user@example.com",
+  "password": "12345678",
+  "role": "caissier"
+}
+```
 
-### Livre de caisse
+Roles:
 
-`GET /rapports/livre-caisse`
-
-### Valeur stock
-
-`GET /rapports/stock`
-
-### Creances
-
-`GET /rapports/creances`
+```txt
+manager
+caissier
+magasinier
+```
 
 ## Notifications
 
-### Liste
-
-`GET /notifications`
-
-### Marquer comme lue
-
-`PUT /notifications/:id/read`
+```http
+GET /api/notifications
+PUT /api/notifications/:id/read
+```
 
 Le compteur mobile doit compter uniquement les notifications avec `lu = false`.
+
+## Emails
+
+```http
+GET  /api/mail/status
+GET  /api/mail/messages
+POST /api/mail/send
+POST /api/mail/notify-team
+```
+
+Body email:
+
+```json
+{
+  "to": "client@example.com",
+  "subject": "Sujet",
+  "message": "Message"
+}
+```
