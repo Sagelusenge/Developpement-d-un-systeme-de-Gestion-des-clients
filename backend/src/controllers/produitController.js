@@ -1,4 +1,5 @@
 import pool from '../config/db.js';
+import { nextId } from '../services/idService.js';
 
 // GET /api/produits
 export const getAllProduits = async (req, res) => {
@@ -57,12 +58,16 @@ export const createProduit = async (req, res) => {
         });
     }
 
+    const connection = await pool.getConnection();
     try {
-        await pool.query(
+        await connection.beginTransaction();
+        const idProduit = await nextId(connection, 'produits', 'PRD', 5);
+        await connection.query(
             `INSERT INTO produits
-             (reference_produit, nom, categorie_id, photo_url, prix_ht, taux_tva, quantite_stock, seuil_alerte, entreprise_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             (id_produit, reference_produit, nom, categorie_id, photo_url, prix_ht, taux_tva, quantite_stock, seuil_alerte, entreprise_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
+                idProduit,
                 reference_produit,
                 nom,
                 categorie_id || null,
@@ -74,9 +79,13 @@ export const createProduit = async (req, res) => {
                 entreprise_id
             ]
         );
-        res.status(201).json({ success: true, message: 'Produit cree avec succes' });
+        await connection.commit();
+        res.status(201).json({ success: true, message: 'Produit cree avec succes', data: { id_produit: idProduit } });
     } catch (error) {
+        await connection.rollback();
         res.status(500).json({ success: false, message: error.message });
+    } finally {
+        connection.release();
     }
 };
 
@@ -172,13 +181,7 @@ export const approvisionner = async (req, res) => {
                  WHERE id_produit = ? AND entreprise_id = ?`,
                 [quantiteNumber, coutMoyenPondere, id, entreprise_id]
             );
-            await connection.query(
-                `UPDATE sequences SET derniere_valeur = derniere_valeur + 1 WHERE nom_table = 'mouvements_stock'`
-            );
-            const [[seq]] = await connection.query(
-                `SELECT derniere_valeur FROM sequences WHERE nom_table = 'mouvements_stock'`
-            );
-            const idMouvement = `MVT-${String(seq.derniere_valeur).padStart(6, '0')}`;
+            const idMouvement = await nextId(connection, 'mouvements_stock', 'MVT', 6);
             await connection.query(
                 `INSERT INTO mouvements_stock
                     (id_mouvement, produit_id, type_mouvement, quantite, fournisseur_id, prix_achat_unitaire, prix_achat_total, note)

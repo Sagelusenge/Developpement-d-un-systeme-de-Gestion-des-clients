@@ -1,18 +1,9 @@
 import pool from '../config/db.js';
 import bcrypt from 'bcryptjs';
 import { sendWelcomeUserEmail } from '../services/mailService.js';
+import { nextId } from '../services/idService.js';
 
 const rolesAutorises = ['manager', 'caissier', 'magasinier'];
-
-const nextUtilisateurId = async (connection) => {
-    await connection.query(
-        `UPDATE sequences SET derniere_valeur = derniere_valeur + 1 WHERE nom_table = 'utilisateur'`
-    );
-    const [rows] = await connection.query(
-        `SELECT derniere_valeur FROM sequences WHERE nom_table = 'utilisateur'`
-    );
-    return `USR-${String(rows[0].derniere_valeur).padStart(5, '0')}`;
-};
 
 // GET /api/utilisateurs
 export const getAllUtilisateurs = async (req, res) => {
@@ -92,7 +83,7 @@ export const createUtilisateur = async (req, res) => {
     try {
         await connection.beginTransaction();
 
-        const id_utilisateur = await nextUtilisateurId(connection);
+        const id_utilisateur = await nextId(connection, 'utilisateur', 'USR', 5);
         const hashedMdp = await bcrypt.hash(mot_de_passe, 10);
 
         await connection.query(

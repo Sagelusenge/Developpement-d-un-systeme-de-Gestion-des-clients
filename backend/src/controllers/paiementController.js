@@ -1,4 +1,5 @@
 import pool from '../config/db.js';
+import { nextId } from '../services/idService.js';
 
 // POST /api/paiements
 export const createPaiement = async (req, res) => {
@@ -16,8 +17,10 @@ export const createPaiement = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Reference et numero requis pour Mobile Money' });
     }
 
+    const connection = await pool.getConnection();
     try {
-        const [ventes] = await pool.query(
+        await connection.beginTransaction();
+        const [ventes] = await connection.query(
             `SELECT v.id_ventes, v.montant_ttc, IFNULL(SUM(p.montant), 0) AS total_paye
              FROM ventes v
              LEFT JOIN paiement p ON p.vente_id = v.id_ventes
@@ -38,20 +41,25 @@ export const createPaiement = async (req, res) => {
             });
         }
 
-        await pool.query('CALL sp_EnregistrerPaiement(?, ?, ?, ?, ?)', [
-            vente_id,
-            montantNumber,
-            mode_paiement,
-            reference || null,
-            telephone || null
-        ]);
+        const idPaiement = await nextId(connection, 'paiement', 'PAY', 5);
+        await connection.query(
+            `INSERT INTO paiement
+                (id_paiement, vente_id, montant, mode_paiement, reference_externe, telephone_payeur)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [idPaiement, vente_id, montantNumber, mode_paiement, reference || null, telephone || null]
+        );
 
+        await connection.commit();
         res.status(201).json({
             success: true,
-            message: `Paiement de ${montantNumber} USD enregistre (${mode_paiement})`
+            message: `Paiement de ${montantNumber} USD enregistre (${mode_paiement})`,
+            data: { id_paiement: idPaiement }
         });
     } catch (error) {
+        await connection.rollback();
         res.status(500).json({ success: false, message: error.message });
+    } finally {
+        connection.release();
     }
 };
 
@@ -60,7 +68,15 @@ export const getRapportCaisse = async (req, res) => {
     const entreprise_id = req.user.entreprise_id;
     try {
         const [rows] = await pool.query(
-            `SELECT * FROM v_rapport_caisse_journalier WHERE entreprise_id = ?`,
+            `SELECT DATE(p.date_paiement) AS date_paiement,
+                    p.mode_paiement,
+                    COUNT(*) AS nombre_paiements,
+                    IFNULL(SUM(p.montant), 0) AS total
+             FROM paiement p
+             JOIN ventes v ON v.id_ventes = p.vente_id
+             WHERE v.entreprise_id = ?
+             GROUP BY DATE(p.date_paiement), p.mode_paiement
+             ORDER BY date_paiement DESC`,
             [entreprise_id]
         );
         res.json({ success: true, data: rows });

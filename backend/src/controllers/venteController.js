@@ -1,18 +1,7 @@
 import pool from '../config/db.js';
+import { nextFactureId, nextId } from '../services/idService.js';
 
 const toNumber = (value) => Number(value);
-
-const nextId = async (connection, nomTable, prefix, size = 5) => {
-    await connection.query(
-        `UPDATE sequences SET derniere_valeur = derniere_valeur + 1 WHERE nom_table = ?`,
-        [nomTable]
-    );
-    const [rows] = await connection.query(
-        `SELECT derniere_valeur FROM sequences WHERE nom_table = ?`,
-        [nomTable]
-    );
-    return `${prefix}-${String(rows[0].derniere_valeur).padStart(size, '0')}`;
-};
 
 // GET /api/ventes
 export const getAllVentes = async (req, res) => {
@@ -141,17 +130,14 @@ export const createVente = async (req, res) => {
             lignes.push({ produit_id, quantite, prix, prix_achat: toNumber(produits[0].prix_achat || 0) });
         }
 
+        const facture_id = await nextFactureId(connection);
         await connection.query(
-            `INSERT INTO ventes (client_id, entreprise_id, montant_ttc)
-             VALUES (?, ?, 0)`,
-            [client_id, entreprise_id]
+            `INSERT INTO ventes (id_ventes, numero_facture, client_id, entreprise_id, montant_ttc)
+             VALUES (?, ?, ?, ?, 0)`,
+            [facture_id, facture_id, client_id, entreprise_id]
         );
 
-        const [seq] = await connection.query(
-            `SELECT derniere_valeur FROM sequences WHERE nom_table = 'ventes'`
-        );
-        const facture_id = `FAC-${new Date().getFullYear()}-${String(seq[0].derniere_valeur).padStart(5, '0')}`;
-
+        let montantTtc = 0;
         for (const ligne of lignes) {
             const id_ligne = await nextId(connection, 'lignes_ventes', 'LVT', 6);
             await connection.query(
@@ -160,7 +146,17 @@ export const createVente = async (req, res) => {
                  VALUES (?, ?, ?, ?, ?, ?)`,
                 [id_ligne, facture_id, ligne.produit_id, ligne.quantite, ligne.prix, ligne.prix_achat]
             );
+            await connection.query(
+                `UPDATE produits SET quantite_stock = quantite_stock - ? WHERE id_produit = ? AND entreprise_id = ?`,
+                [ligne.quantite, ligne.produit_id, entreprise_id]
+            );
+            montantTtc += ligne.quantite * ligne.prix * 1.16;
         }
+
+        await connection.query(
+            `UPDATE ventes SET montant_ttc = ? WHERE id_ventes = ? AND entreprise_id = ?`,
+            [Number(montantTtc.toFixed(2)), facture_id, entreprise_id]
+        );
 
         await connection.commit();
 
@@ -241,6 +237,7 @@ export const updateVente = async (req, res) => {
             [client_id, id, entreprise_id]
         );
 
+        let montantTtc = 0;
         for (const article of articles) {
             const produit_id = article.produit_id || article.id;
             const quantite = toNumber(article.quantite ?? article.qte);
@@ -275,7 +272,17 @@ export const updateVente = async (req, res) => {
                  VALUES (?, ?, ?, ?, ?, ?)`,
                 [id_ligne, id, produit_id, quantite, prix, toNumber(produits[0].prix_achat || 0)]
             );
+            await connection.query(
+                `UPDATE produits SET quantite_stock = quantite_stock - ? WHERE id_produit = ? AND entreprise_id = ?`,
+                [quantite, produit_id, entreprise_id]
+            );
+            montantTtc += quantite * prix * 1.16;
         }
+
+        await connection.query(
+            `UPDATE ventes SET montant_ttc = ? WHERE id_ventes = ? AND entreprise_id = ?`,
+            [Number(montantTtc.toFixed(2)), id, entreprise_id]
+        );
 
         await connection.commit();
         res.json({ success: true, message: 'Facture mise a jour' });
