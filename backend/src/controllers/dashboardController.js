@@ -40,9 +40,10 @@ export const getStats = async (req, res) => {
                 (SELECT IFNULL(SUM(v.montant_ttc), 0) - IFNULL(SUM(p.montant), 0)
                  FROM ventes v
                  LEFT JOIN paiement p ON v.id_ventes = p.vente_id
-                 WHERE v.entreprise_id = ?) AS total_creances`,
-            [entreprise_id, entreprise_id, entreprise_id, entreprise_id, entreprise_id, entreprise_id, entreprise_id]
-        );
+                 WHERE v.entreprise_id = ?) AS total_creances,
+                (SELECT IFNULL(SUM(quantite_stock * IFNULL(prix_achat, 0)), 0) FROM produits WHERE entreprise_id = ?) AS total_valeur_stock`,
+                [entreprise_id, entreprise_id, entreprise_id, entreprise_id, entreprise_id, entreprise_id, entreprise_id, entreprise_id]
+                );
 
         const [[comparaison]] = await pool.query(
             `SELECT

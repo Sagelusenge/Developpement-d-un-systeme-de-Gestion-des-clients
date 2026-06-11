@@ -191,7 +191,7 @@ function Table({ headers, rows }) {
         <tbody>
           {rows.map((row, index) => (
             <tr key={index}>
-              {row.map((cell, i) => <td key={i}>{cell ?? '-'}</td>)}
+              {row.map((cell, i) => <td key={i} data-label={headers[i]}>{cell ?? '-'}</td>)}
             </tr>
           ))}
         </tbody>
@@ -478,11 +478,15 @@ function App() {
   }, [token, page]);
 
   const login = async (payload) => {
+    const credentials = {
+      email: String(payload.email || '').trim().toLowerCase(),
+      password: String(payload.password || '').trim()
+    };
     const requestLogin = async (path) => {
       const response = await fetch(`${API_URL}${path}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(credentials)
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.message || 'Identifiants incorrects');
@@ -681,7 +685,10 @@ function Login({ onLogin, notify, toast }) {
     if (loading) return;
     setLoading(true);
     try {
-      await onLogin(form);
+      await onLogin({
+        email: form.email,
+        password: form.password
+      });
     } catch (error) {
       notify(error.message);
       setLoading(false);
@@ -1052,6 +1059,7 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
     canPayments && { icon: WalletCards, tone: 'green', label: 'Argent recu', value: moneySmart(paymentTotal), page: 'paiements' },
     canStock && { icon: Package, tone: 'blue', label: 'Produits suivis', value: data.produits.length || 0, page: 'produits' },
     canStock && { icon: Box, tone: 'orange', label: 'Stock total', value: stockTotal, page: 'produits' },
+    canStock && { icon: Coins, tone: 'blue', label: 'Valeur du stock', value: moneySmart(stats.total_valeur_stock), page: 'produits' },
     canStock && { icon: AlertTriangle, tone: 'danger', label: 'Alertes stock', value: `${stockAlerts} produits`, trend: stockAlerts ? 'Urgent' : 'OK', negative: Boolean(stockAlerts), page: 'produits' },
     role === 'magasinier' && { icon: Download, tone: 'green', label: 'Approvisionnements', value: (data.extra.mouvementsStock || []).filter((m) => m.type_mouvement === 'entree').length, page: 'produits' }
   ].filter(Boolean).slice(0, 4);
@@ -1269,7 +1277,7 @@ function KpiCard({ icon: Icon, tone, label, value, trend, negative = false, acti
         {trend && <span className={`trend ${negative ? 'down' : ''}`}>{trendPrefix}{trendText}</span>}
       </div>
       <span>{label}</span>
-      <strong>{value}</strong>
+      <strong><AnimatedValue value={value} /></strong>
     </Wrapper>
   );
 }
@@ -1447,6 +1455,7 @@ function LineEditor({ lignes, setLignes, produits }) {
                 <strong>{moneySmart(totalLigne)}</strong>
                 <small className={resultatLigne >= 0 ? 'profit' : 'loss'}>
                   {resultatLigne >= 0 ? 'Benefice' : 'Perte'} {moneySmart(resultatLigne)}
+                  <span className="unit-profit"> ({moneySmart(prixVente - prixAchat)} x {quantite})</span>
                 </small>
               </div>
               <button className="action delete" type="button" onClick={() => remove(ligne.produit_id)} title="Supprimer ligne"><Trash2 size={16} /></button>
@@ -1613,7 +1622,7 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
     ['metre', 'Metres'],
     ['paquet', 'Paquets']
   ];
-  const emptyProductForm = { reference_produit: '', nom: '', categorie_id: '', unite: 'piece', photo_url: '', prix_ht: '', taux_tva: 16, quantite_stock: 0, seuil_alerte: 5 };
+  const emptyProductForm = { reference_produit: '', nom: '', categorie_id: '', unite: 'piece', photo_url: '', prix_ht: '', prix_achat: '', taux_tva: 16, quantite_stock: 0, seuil_alerte: 5 };
   const [form, setForm] = useState(emptyProductForm);
   const [stock, setStock] = useState({ id: '', fournisseur_id: '', quantite: 1, prix_achat: '', note: '' });
   const [creating, setCreating] = useState(false);
@@ -1739,13 +1748,14 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
             </div>
             <PhotoInput label="Photo du produit" value={form.photo_url} onChange={(photo_url) => setForm({ ...form, photo_url })} />
             <div className="form-row">
-              <Input label="Prix HT" type="number" value={form.prix_ht} onChange={(prix_ht) => setForm({ ...form, prix_ht })} required />
-              <Input label="TVA %" type="number" value={form.taux_tva} onChange={(taux_tva) => setForm({ ...form, taux_tva })} />
+              <Input label="Prix d'achat unitaire (CMP)" type="number" step="0.01" value={form.prix_achat} onChange={(prix_achat) => setForm({ ...form, prix_achat })} placeholder="Prix d'achat initial" />
+              <Input label="Prix de vente HT" type="number" value={form.prix_ht} onChange={(prix_ht) => setForm({ ...form, prix_ht })} required />
             </div>
             <div className="form-row">
+              <Input label="TVA %" type="number" value={form.taux_tva} onChange={(taux_tva) => setForm({ ...form, taux_tva })} />
               <Input label="Stock initial" type="number" value={form.quantite_stock} onChange={(quantite_stock) => setForm({ ...form, quantite_stock })} />
-              <Input label="Seuil alerte" type="number" value={form.seuil_alerte} onChange={(seuil_alerte) => setForm({ ...form, seuil_alerte })} />
             </div>
+            <Input label="Seuil alerte" type="number" value={form.seuil_alerte} onChange={(seuil_alerte) => setForm({ ...form, seuil_alerte })} />
             <button className="btn modal-submit">Ajouter <ArrowRight size={20} /></button>
           </Form>
         </Modal>
@@ -1781,10 +1791,13 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
             </div>
             <PhotoInput label="Photo du produit" value={editing.photo_url || ''} onChange={(photo_url) => setEditing({ ...editing, photo_url })} />
             <div className="form-row">
-              <Input label="Prix HT" type="number" value={editing.prix_ht || ''} onChange={(prix_ht) => setEditing({ ...editing, prix_ht })} required />
-              <Input label="TVA %" type="number" value={editing.taux_tva || 16} onChange={(taux_tva) => setEditing({ ...editing, taux_tva })} />
+              <Input label="Prix d'achat (CMP)" type="number" step="0.01" value={editing.prix_achat || ''} onChange={(prix_achat) => setEditing({ ...editing, prix_achat })} />
+              <Input label="Prix de vente HT" type="number" value={editing.prix_ht || ''} onChange={(prix_ht) => setEditing({ ...editing, prix_ht })} required />
             </div>
-            <Input label="Seuil alerte" type="number" value={editing.seuil_alerte || 5} onChange={(seuil_alerte) => setEditing({ ...editing, seuil_alerte })} />
+            <div className="form-row">
+              <Input label="TVA %" type="number" value={editing.taux_tva || 16} onChange={(taux_tva) => setEditing({ ...editing, taux_tva })} />
+              <Input label="Seuil alerte" type="number" value={editing.seuil_alerte || 5} onChange={(seuil_alerte) => setEditing({ ...editing, seuil_alerte })} />
+            </div>
             <button className="btn">Mettre a jour</button>
           </Form>
         </Modal>
@@ -2042,7 +2055,7 @@ function Rapports({ data, searchQuery = '', user }) {
   const journal = byPeriod(source.journal || [], ['date_operation']).filter((r) => !term || `${r.reference} ${r.libelle || ''} ${r.type_operation || ''}`.toLowerCase().includes(term));
   const livreCaisse = byPeriod(source.livreCaisse || [], ['date_paiement']).filter((r) => !term || `${r.numero_facture} ${r.client_nom || ''} ${r.mode_paiement || ''}`.toLowerCase().includes(term));
   const bilan = source.bilan || {};
-  const stockValue = stock.reduce((sum, row) => sum + Number(row.valeur_stock_ht || 0), 0);
+  const stockValue = stock.reduce((sum, row) => sum + Number(row.valeur_stock_achat || 0), 0);
   const stockRisks = stock.filter((row) => String(row.statut || '').toUpperCase() !== 'OK').length;
   const reportTitle = role === 'magasinier' ? 'Rapports produits' : role === 'caissier' ? 'Rapports caisse' : 'Rapports';
   const printRows = (title, headers, rows) => {
@@ -2082,7 +2095,7 @@ function Rapports({ data, searchQuery = '', user }) {
           {canSalesReports && <Stat label="Dettes clients" value={creances.length} />}
           {canCashReports && <Stat label="Lignes caisse" value={caisse.length} />}
           {canStockReports && <Stat label="Produits en stock" value={stock.length} />}
-          {canStockReports && <Stat label="Valeur stock" value={moneySmart(stockValue)} />}
+          {canStockReports && <Stat label="Valeur stock (Achat)" value={moneySmart(stockValue)} />}
           {canSalesReports && <Stat label={Number(bilan.resultat || 0) >= 0 ? 'Benefice' : 'Perte'} value={moneySmart(bilan.resultat)} />}
           {canStockReports && <Stat label="A surveiller" value={stockRisks} />}
         </div>
@@ -2096,9 +2109,9 @@ function Rapports({ data, searchQuery = '', user }) {
         {canStockReports && <div className="panel report-table-panel inventory-panel">
           <div className="panel-heading">
             <h3>Inventaire</h3>
-            <button className="btn print" onClick={() => printTableDocument('Fiche de stock', ['Produit', 'Stock', 'Valeur', 'Statut'], stock.map((r) => [r.nom, r.quantite_stock, moneySmart(r.valeur_stock_ht), r.statut]), { badge: 'INVENTAIRE', period: 'Inventaire courant', tableTitle: 'Etat du stock' })}><Printer size={18} /> Imprimer</button>
+            <button className="btn print" onClick={() => printTableDocument('Fiche de stock', ['Produit', 'Stock', 'P. Achat (CMP)', 'Valeur (Achat)', 'Statut'], stock.map((r) => [r.nom, `${r.quantite_stock} ${r.unite || ''}`, moneySmart(r.prix_achat_moyen), moneySmart(r.valeur_stock_achat), r.statut]), { badge: 'INVENTAIRE', period: 'Inventaire courant', tableTitle: 'Etat du stock detaille' })}><Printer size={18} /> Imprimer</button>
           </div>
-          <Table headers={['Produit', 'Stock', 'Valeur', 'Statut']} rows={stock.map((r) => [r.nom, r.quantite_stock, moneySmart(r.valeur_stock_ht), <Badge>{r.statut}</Badge>])} />
+          <Table headers={['Produit', 'Stock', 'P. Achat (CMP)', 'Valeur (Achat)', 'Statut']} rows={stock.map((r) => [r.nom, `${r.quantite_stock} ${r.unite || ''}`, moneySmart(r.prix_achat_moyen), moneySmart(r.valeur_stock_achat), <Badge>{r.statut}</Badge>])} />
         </div>}
         {canSalesReports && <div className="panel">
           <div className="panel-heading">

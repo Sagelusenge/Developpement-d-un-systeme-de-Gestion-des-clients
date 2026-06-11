@@ -61,7 +61,7 @@ export const getMouvementsStock = async (req, res) => {
 
 // POST /api/produits
 export const createProduit = async (req, res) => {
-    const { reference_produit, nom, categorie_id, photo_url, prix_ht, taux_tva, quantite_stock, seuil_alerte, unite } = req.body;
+    const { reference_produit, nom, categorie_id, photo_url, prix_ht, prix_achat, taux_tva, quantite_stock, seuil_alerte, unite } = req.body;
     const entreprise_id = req.user.entreprise_id;
 
     if (!nom || Number(prix_ht) <= 0) {
@@ -78,8 +78,8 @@ export const createProduit = async (req, res) => {
         const reference = sanitizeReference(reference_produit) || buildProductReference(nom);
         await connection.query(
             `INSERT INTO produits
-             (id_produit, reference_produit, nom, categorie_id, unite, photo_url, prix_ht, taux_tva, quantite_stock, seuil_alerte, entreprise_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             (id_produit, reference_produit, nom, categorie_id, unite, photo_url, prix_ht, prix_achat, taux_tva, quantite_stock, seuil_alerte, entreprise_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 idProduit,
                 reference,
@@ -88,6 +88,7 @@ export const createProduit = async (req, res) => {
                 unite || 'piece',
                 photo_url || null,
                 Number(prix_ht),
+                Number(prix_achat) || 0,
                 Number(taux_tva) || 16,
                 Number(quantite_stock) || 0,
                 Number(seuil_alerte) || 5,
@@ -107,7 +108,7 @@ export const createProduit = async (req, res) => {
 // PUT /api/produits/:id
 export const updateProduit = async (req, res) => {
     const { id } = req.params;
-    const { nom, categorie_id, unite, photo_url, prix_ht, taux_tva, seuil_alerte } = req.body;
+    const { nom, categorie_id, unite, photo_url, prix_ht, prix_achat, taux_tva, seuil_alerte } = req.body;
     const entreprise_id = req.user.entreprise_id;
 
     if (!nom || Number(prix_ht) <= 0) {
@@ -117,9 +118,9 @@ export const updateProduit = async (req, res) => {
     try {
         const [result] = await pool.query(
             `UPDATE produits
-             SET nom = ?, categorie_id = ?, unite = ?, photo_url = ?, prix_ht = ?, taux_tva = ?, seuil_alerte = ?
+             SET nom = ?, categorie_id = ?, unite = ?, photo_url = ?, prix_ht = ?, prix_achat = ?, taux_tva = ?, seuil_alerte = ?
              WHERE id_produit = ? AND entreprise_id = ?`,
-            [nom, categorie_id || null, unite || 'piece', photo_url || null, Number(prix_ht), Number(taux_tva) || 16, Number(seuil_alerte) || 5, id, entreprise_id]
+            [nom, categorie_id || null, unite || 'piece', photo_url || null, Number(prix_ht), Number(prix_achat) || 0, Number(taux_tva) || 16, Number(seuil_alerte) || 5, id, entreprise_id]
         );
 
         if (result.affectedRows === 0) {

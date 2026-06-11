@@ -22,7 +22,8 @@ const generateToken = (user) => {
 };
 
 export const login = async (req, res) => {
-    const { email, password } = req.body;
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const password = String(req.body.password || '').trim();
 
     if (!email || !password) {
         return res.status(400).json({

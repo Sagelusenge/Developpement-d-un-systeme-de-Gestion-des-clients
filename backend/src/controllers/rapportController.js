@@ -65,16 +65,23 @@ export const getStockInventaire = async (req, res) => {
     const entreprise_id = req.user.entreprise_id;
     try {
         const [rows] = await pool.query(
-            `SELECT id_produit, reference_produit, nom, prix_ht, quantite_stock,
-                    seuil_alerte, (quantite_stock * prix_ht) AS valeur_stock_ht,
+            `SELECT p.id_produit, p.reference_produit, p.nom, p.unite,
+                    p.prix_ht AS prix_vente_unitaire,
+                    p.prix_achat AS prix_achat_moyen,
+                    p.quantite_stock,
+                    p.seuil_alerte,
+                    (p.quantite_stock * p.prix_achat) AS valeur_stock_achat,
+                    (p.quantite_stock * p.prix_ht) AS valeur_stock_vente,
+                    c.nom AS categorie_nom,
                     CASE
-                        WHEN quantite_stock <= 0 THEN 'RUPTURE'
-                        WHEN quantite_stock <= seuil_alerte THEN 'REAPPROVISIONNER'
+                        WHEN p.quantite_stock <= 0 THEN 'RUPTURE'
+                        WHEN p.quantite_stock <= p.seuil_alerte THEN 'REAPPROVISIONNER'
                         ELSE 'OK'
                     END AS statut
-             FROM produits
-             WHERE entreprise_id = ?
-             ORDER BY nom ASC`,
+             FROM produits p
+             LEFT JOIN categorie_produit c ON c.id_categorie = p.categorie_id
+             WHERE p.entreprise_id = ?
+             ORDER BY p.nom ASC`,
             [entreprise_id]
         );
         res.json({ success: true, data: rows });
