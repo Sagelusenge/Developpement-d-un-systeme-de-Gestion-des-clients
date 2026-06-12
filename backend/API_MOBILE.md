@@ -1185,6 +1185,7 @@ Reponse 200:
     "ventes_ht_mois": 3880,
     "cout_achat_mois": 2500,
     "resultat_mois": 1380,
+    "argent_recu_mois": 4500.5,
     "total_creances": 1200,
     "total_valeur_stock": 25000.50,
     "clients_variation_pct": 3.2,
@@ -1193,6 +1194,15 @@ Reponse 200:
   }
 }
 ```
+
+Notes de calcul:
+
+- `ca_mois_en_cours`: total TTC des factures du mois.
+- `argent_recu_mois`: paiements encaisses pendant le mois.
+- `ventes_ht_mois`: total HT des lignes vendues pendant le mois.
+- `cout_achat_mois`: cout d'achat des produits vendus.
+- `resultat_mois`: `ventes_ht_mois - cout_achat_mois`.
+- Une facture totalement payee peut faire que `ca_mois_en_cours` et `argent_recu_mois` soient identiques. Le benefice reste different, car il depend du cout d'achat.
 
 ## Ventes mensuelles
 
@@ -1204,7 +1214,7 @@ GET /dashboard/ventes-mensuelles
 
 Body: aucun.
 
-Reponse 200:
+Reponse 200, sur les 6 derniers mois:
 
 ```json
 {
@@ -1983,4 +1993,3 @@ Ces endpoints sont utilisés pour récupérer les données structurées nécessa
 `GET /api/rapports/livre-caisse` : Journal des encaissements.
 `GET /api/rapports/creances` : Liste des dettes clients.
 `GET /api/rapports/top-acheteurs` : Classement des clients.
-

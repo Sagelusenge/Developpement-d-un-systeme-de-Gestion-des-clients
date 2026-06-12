@@ -437,6 +437,7 @@ function App() {
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const notify = (message) => {
     setToast(message);
@@ -554,6 +555,7 @@ function App() {
 
   useEffect(() => {
     setPlatformSearch('');
+    setMobileMenuOpen(false);
   }, [page]);
 
   const openNotificationTarget = async (notification) => {
@@ -599,8 +601,9 @@ function App() {
   const sidebarTitle = user?.entreprise_nom || user?.raison_sociale || user?.entreprise_id || APP_NAME;
 
   return (
-    <div className="shell">
-      <aside className="sidebar">
+    <div className={`shell ${mobileMenuOpen ? 'menu-open' : ''}`}>
+      {mobileMenuOpen && <button className="sidebar-scrim" type="button" aria-label="Fermer le menu" onClick={() => setMobileMenuOpen(false)} />}
+      <aside className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="brand">
           <div className="brand-mark">C</div>
           <div>
@@ -610,7 +613,7 @@ function App() {
         </div>
         <nav className="nav">
           {navItems.map((item) => (
-            <button key={item.id} className={page === item.id ? 'active' : ''} onClick={() => setPage(item.id)}>
+            <button key={item.id} className={page === item.id ? 'active' : ''} onClick={() => { setPage(item.id); setMobileMenuOpen(false); }}>
               {React.createElement(iconMap[item.id] || Package, { size: 23, strokeWidth: 2.2 })}
               {item.label}
             </button>
@@ -623,6 +626,10 @@ function App() {
       </aside>
       <main className="main">
         <header className="topbar">
+          <button className="menu-button" type="button" onClick={() => setMobileMenuOpen(true)} aria-label="Ouvrir le menu">
+            <Menu size={22} />
+            <span>Menu</span>
+          </button>
           <SearchInput value={platformSearch} onChange={setPlatformSearch} placeholder={searchPlaceholders[page] || 'Rechercher...'} />
           <div className="toolbar">
             <div className="notification-wrap">
@@ -1028,7 +1035,7 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
   const factures = (data.ventes || [])
     .filter((v) => !dashboardTerm || `${v.numero_facture} ${v.client_nom || ''}`.toLowerCase().includes(dashboardTerm))
     .slice(0, 5);
-  const chartMonths = (ventes.length ? ventes.slice(0, 6) : ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Juin'].map((mois) => ({ mois, total: 0 })));
+  const chartMonths = (ventes.length ? ventes : ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Juin'].map((mois) => ({ mois, total: 0 })));
   const maxVente = Math.max(...chartMonths.map((v) => Number(v.total || 0)), 1);
   const paymentRows = (data.extra.repartitionPaiements || []).map((row) => ({
     mode: row.mode_paiement || row.Mode_Paiement || 'autre',
@@ -1067,11 +1074,18 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
   const canPayments = ['manager', 'caissier'].includes(role);
   const stockTotal = (data.produits || []).reduce((sum, produit) => sum + Number(produit.quantite_stock || 0), 0);
   const stockAlerts = alertes.length || (data.produits || []).filter((produit) => produit.statut_stock && produit.statut_stock !== 'OK').length;
+  const monthlyCash = Number(stats.argent_recu_mois ?? paymentTotal);
+  const financeSummary = [
+    { label: 'Ventes HT', value: moneySmart(stats.ventes_ht_mois) },
+    { label: 'Cout achat', value: moneySmart(stats.cout_achat_mois) },
+    { label: 'Benefice brut', value: moneySmart(stats.resultat_mois) }
+  ];
   const dashboardKpis = [
+    canSales && { icon: CreditCard, tone: 'orange', label: 'Ventes facturees (mois)', value: moneySmart(stats.ca_mois_en_cours), page: 'ventes' },
+    canPayments && { icon: WalletCards, tone: 'green', label: 'Argent encaisse (mois)', value: moneySmart(monthlyCash), page: 'paiements' },
+    canSales && { icon: Coins, tone: 'blue', label: 'Cout marchandises vendues', value: moneySmart(stats.cout_achat_mois), page: 'rapports' },
+    canSales && { icon: BarChart3, tone: Number(stats.resultat_mois || 0) >= 0 ? 'green' : 'danger', label: Number(stats.resultat_mois || 0) >= 0 ? 'Benefice brut (mois)' : 'Perte brute (mois)', value: moneySmart(stats.resultat_mois), page: 'rapports', negative: Number(stats.resultat_mois || 0) < 0 },
     canClients && { icon: Users, tone: 'blue', label: 'Total Clients', value: stats.total_clients || data.clients.length || 0, page: 'clients' },
-    canSales && { icon: CreditCard, tone: 'orange', label: 'Ventes du mois', value: moneySmart(stats.ca_mois_en_cours), page: 'ventes' },
-    canSales && { icon: BarChart3, tone: Number(stats.resultat_mois || 0) >= 0 ? 'green' : 'danger', label: Number(stats.resultat_mois || 0) >= 0 ? 'Benefice mois en cours' : 'Perte mois en cours', value: moneySmart(stats.resultat_mois), page: 'rapports', negative: Number(stats.resultat_mois || 0) < 0 },
-    canPayments && { icon: WalletCards, tone: 'green', label: 'Argent recu', value: moneySmart(paymentTotal), page: 'paiements' },
     canStock && { icon: Package, tone: 'blue', label: 'Produits suivis', value: data.produits.length || 0, page: 'produits' },
     canStock && { icon: Box, tone: 'orange', label: 'Stock total', value: stockTotal, page: 'produits' },
     canStock && { icon: Coins, tone: 'blue', label: 'Valeur du stock', value: moneySmart(stats.total_valeur_stock), page: 'produits' },
@@ -1086,6 +1100,23 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
           <KpiCard key={card.label} icon={card.icon} tone={card.tone} label={card.label} value={card.value} trend={card.trend} negative={card.negative} onClick={() => setPage?.(card.page)} />
         ))}
       </div>
+
+      {canSales && (
+        <div className="finance-explainer">
+          <div>
+            <strong>Lecture des chiffres</strong>
+            <span>Les ventes facturees montrent ce qui a ete vendu. L'argent encaisse montre ce qui est deja paye. Le benefice brut suit ta logique: prix de vente HT moins prix d'achat, multiplie par la quantite vendue.</span>
+          </div>
+          <div className="finance-equation">
+            {financeSummary.map((item) => (
+              <article key={item.label}>
+                <small>{item.label}</small>
+                <b>{item.value}</b>
+              </article>
+            ))}
+          </div>
+        </div>
+      )}
 
       {(canSales || canPayments) && (
         <div className="grid manager-mid">
@@ -1159,16 +1190,22 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
               {Number(stats.resultat_mois || 0) >= 0 ? 'Benefice mois en cours' : 'Perte mois en cours'} {moneySmart(stats.resultat_mois)}
             </span>
           </div>
+          <div className="result-summary-grid">
+            <article><span>Ventes HT</span><strong>{moneySmart(stats.ventes_ht_mois)}</strong></article>
+            <article><span>Cout achat</span><strong>{moneySmart(stats.cout_achat_mois)}</strong></article>
+            <article><span>Resultat</span><strong className={Number(stats.resultat_mois || 0) >= 0 ? 'profit' : 'loss'}>{moneySmart(stats.resultat_mois)}</strong></article>
+          </div>
           <div className="result-bars">
-            {(resultatRows.length ? resultatRows.slice(0, 12) : chartMonths.map((row) => ({ mois: row.mois, resultat: 0 }))).map((row) => {
+            {(resultatRows.length ? resultatRows : chartMonths.map((row) => ({ mois: row.mois, resultat: 0, ventes_ht: 0, cout_achat: 0 }))).map((row) => {
               const values = (resultatRows.length ? resultatRows : [{ resultat: 1 }]).map((item) => Math.abs(Number(item.resultat || 0)));
               const maxResult = Math.max(...values, 1);
               const value = Number(row.resultat || 0);
-              const height = Math.max(8, Math.abs(value) / maxResult * 120);
+              const width = Math.max(4, Math.abs(value) / maxResult * 100);
               return (
                 <button className={`result-bar ${value < 0 ? 'loss' : 'profit'}`} key={row.mois} type="button" title={`${row.mois}: ${moneySmart(value)}`}>
-                  <i style={{ height }} />
-                  <span>{row.mois}</span>
+                  <span className="result-month">{row.mois}</span>
+                  <span className="result-bar-track"><i className="result-bar-fill" style={{ width: `${width}%` }} /></span>
+                  <strong>{moneySmart(value)}</strong>
                 </button>
               );
             })}
@@ -2035,7 +2072,7 @@ function filterRowsByPeriod(rows, period, dateKeys = ['date_vente']) {
 function Rapports({ data, searchQuery = '', user }) {
   const source = data.extra;
   const term = searchQuery.trim().toLowerCase();
-  const [period, setPeriod] = useState('journalier');
+  const [period, setPeriod] = useState('mensuel');
   const [dateRange, setDateRange] = useState({ debut: '', fin: '' });
   const role = user?.role || 'manager';
   const canSalesReports = ['manager', 'caissier'].includes(role);
@@ -2103,6 +2140,9 @@ function Rapports({ data, searchQuery = '', user }) {
               </>
             )}
           </div>
+        </div>
+        <div className="notice compact">
+          Les rapports affichent le mois par defaut pour montrer les factures, le livre de caisse et le journal meme quand il n'y a pas d'operation aujourd'hui. Change la periode si tu veux une sortie journaliere ou personnalisee.
         </div>
         <div className="report-cards">
           <Stat label="Periode" value={periodText} />
@@ -2452,6 +2492,9 @@ function Fournisseurs({ api, notify, data, submit, searchQuery = '' }) {
             <SearchInput value={query} onChange={setQuery} placeholder="Rechercher fournisseur" />
             <button className="btn small" type="button" onClick={() => setCreating(true)}><Plus size={16} /> Ajouter fournisseur</button>
           </div>
+        </div>
+        <div className="notice compact">
+          Le fournisseur garde seulement l'identite et le contact. Le prix d'achat se met pendant l'approvisionnement, parce qu'il peut changer a chaque livraison.
         </div>
         <Table headers={['Nom', 'Telephone', 'Email', 'Achats', 'Approvisionnements', 'Actions']} rows={fournisseurs.map((f) => [
           f.nom,

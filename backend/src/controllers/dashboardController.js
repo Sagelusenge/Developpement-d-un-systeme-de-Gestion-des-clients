@@ -9,6 +9,20 @@ const percentChange = (current, previous) => {
     return Number((((now - before) / before) * 100).toFixed(1));
 };
 
+const monthLabels = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aou', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const lastMonths = (count = 6) => {
+    const now = new Date();
+    return Array.from({ length: count }, (_, index) => {
+        const date = new Date(now.getFullYear(), now.getMonth() - (count - 1 - index), 1);
+        const month = date.getMonth() + 1;
+        return {
+            key: `${date.getFullYear()}-${String(month).padStart(2, '0')}`,
+            label: monthLabels[month - 1]
+        };
+    });
+};
+
 export const getStats = async (req, res) => {
     const entreprise_id = req.user.entreprise_id;
 
@@ -41,12 +55,24 @@ export const getStats = async (req, res) => {
                  WHERE v.entreprise_id = ?
                    AND MONTH(v.date_vente) = MONTH(CURDATE())
                    AND YEAR(v.date_vente) = YEAR(CURDATE())) AS resultat_mois,
-                (SELECT IFNULL(SUM(v.montant_ttc), 0) - IFNULL(SUM(p.montant), 0)
-                 FROM ventes v
-                 LEFT JOIN paiement p ON v.id_ventes = p.vente_id
-                 WHERE v.entreprise_id = ?) AS total_creances,
+                (SELECT IFNULL(SUM(p.montant), 0)
+                 FROM paiement p
+                 JOIN ventes v ON v.id_ventes = p.vente_id
+                 WHERE v.entreprise_id = ?
+                   AND MONTH(p.date_paiement) = MONTH(CURDATE())
+                   AND YEAR(p.date_paiement) = YEAR(CURDATE())) AS argent_recu_mois,
+                (SELECT IFNULL(SUM(t.montant_ttc - t.montant_paye), 0)
+                 FROM (
+                    SELECT v.id_ventes,
+                           v.montant_ttc,
+                           IFNULL(SUM(p.montant), 0) AS montant_paye
+                    FROM ventes v
+                    LEFT JOIN paiement p ON v.id_ventes = p.vente_id
+                    WHERE v.entreprise_id = ?
+                    GROUP BY v.id_ventes, v.montant_ttc
+                 ) t) AS total_creances,
                 (SELECT IFNULL(SUM(quantite_stock * IFNULL(prix_achat, 0)), 0) FROM produits WHERE entreprise_id = ?) AS total_valeur_stock`,
-                [entreprise_id, entreprise_id, entreprise_id, entreprise_id, entreprise_id, entreprise_id, entreprise_id, entreprise_id]
+                [entreprise_id, entreprise_id, entreprise_id, entreprise_id, entreprise_id, entreprise_id, entreprise_id, entreprise_id, entreprise_id]
                 );
 
         const [[comparaison]] = await pool.query(
@@ -79,19 +105,18 @@ export const getVentesMensuelles = async (req, res) => {
     try {
         const [rows] = await pool.query(
             `SELECT
-                MONTH(date_vente) AS mois,
-                MONTHNAME(date_vente) AS nom_mois,
+                DATE_FORMAT(date_vente, '%Y-%m') AS mois_key,
                 SUM(montant_ttc) AS total
              FROM ventes
-             WHERE entreprise_id = ? AND YEAR(date_vente) = YEAR(CURDATE())
-             GROUP BY MONTH(date_vente)
-             ORDER BY MONTH(date_vente)`,
+             WHERE entreprise_id = ?
+               AND date_vente >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 5 MONTH), '%Y-%m-01')
+             GROUP BY DATE_FORMAT(date_vente, '%Y-%m')
+             ORDER BY mois_key`,
             [entreprise_id]
         );
 
-        const moisLabels = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aou', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const data = moisLabels.map((label, index) => {
-            const found = rows.find((row) => row.mois === index + 1);
+        const data = lastMonths(6).map(({ key, label }) => {
+            const found = rows.find((row) => row.mois_key === key);
             return { mois: label, total: found ? parseFloat(found.total) : 0 };
         });
 
@@ -150,22 +175,22 @@ export const getResultatMensuel = async (req, res) => {
     try {
         const [rows] = await pool.query(
             `SELECT
-                MONTH(v.date_vente) AS mois,
+                DATE_FORMAT(v.date_vente, '%Y-%m') AS mois_key,
                 SUM(lv.quantite * lv.prix_unitaire_ht) AS ventes_ht,
                 SUM(lv.quantite * ${lineCostSql}) AS cout_achat,
                 SUM(lv.quantite * (lv.prix_unitaire_ht - ${lineCostSql})) AS resultat
              FROM ventes v
              JOIN lignes_ventes lv ON lv.vente_id = v.id_ventes
              JOIN produits p ON p.id_produit = lv.produit_id
-             WHERE v.entreprise_id = ? AND YEAR(v.date_vente) = YEAR(CURDATE())
-             GROUP BY MONTH(v.date_vente)
-             ORDER BY MONTH(v.date_vente)`,
+             WHERE v.entreprise_id = ?
+               AND v.date_vente >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 5 MONTH), '%Y-%m-01')
+             GROUP BY DATE_FORMAT(v.date_vente, '%Y-%m')
+             ORDER BY mois_key`,
             [entreprise_id]
         );
 
-        const moisLabels = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aou', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const data = moisLabels.map((label, index) => {
-            const found = rows.find((row) => row.mois === index + 1);
+        const data = lastMonths(6).map(({ key, label }) => {
+            const found = rows.find((row) => row.mois_key === key);
             return {
                 mois: label,
                 ventes_ht: Number(found?.ventes_ht || 0),
