@@ -46,6 +46,7 @@ import '../styles.css';
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 const APP_NAME = 'Quincaillerie Centrale';
 const APP_TAGLINE = 'Gestion commerciale interne';
+const LOGO_URL = '/qc-logo.png';
 
 const formatDate = (value) => {
   if (!value) return '-';
@@ -235,6 +236,18 @@ function RowActions({ onEdit, onPrint, onDelete, onToggle, toggleLabel }) {
   );
 }
 
+function QcLoader({ label = 'Chargement' }) {
+  return (
+    <div className="qc-loader-panel" role="status" aria-live="polite">
+      <div className="qc-loader-orbit">
+        <img src={LOGO_URL} alt="" />
+        <span />
+      </div>
+      <strong>{label}</strong>
+    </div>
+  );
+}
+
 function escapePrint(value) {
   return String(value ?? '-')
     .replace(/&/g, '&amp;')
@@ -296,7 +309,8 @@ function printLayout({ title, badge, sections = [], table, note, paper = 'ticket
           .page{margin:0 auto;max-width:920px}
           .print-head{align-items:flex-start;border-bottom:3px solid #002761;display:flex;justify-content:space-between;margin-bottom:24px;padding-bottom:14px}
           .brand{align-items:center;display:flex;gap:12px}
-          .print-logo{align-items:center;background:#ffae2b;border-radius:7px;color:#002761;display:grid;font-size:22px;font-weight:900;height:46px;justify-items:center;width:46px}
+          .print-logo{align-items:center;border:1px solid #d9e0ec;border-radius:8px;display:grid;height:58px;justify-items:center;overflow:hidden;width:58px}
+          .print-logo img{display:block;height:100%;object-fit:contain;width:100%}
           h1{color:#002761;font-size:25px;margin:0;text-transform:uppercase}
           .company{font-size:13px;line-height:1.7;margin-top:8px}
           .doc-title{font-size:20px;font-weight:900;text-align:right;text-transform:uppercase}
@@ -322,7 +336,7 @@ function printLayout({ title, badge, sections = [], table, note, paper = 'ticket
               .page{max-width:72mm;width:72mm}
               .print-head{display:block;margin-bottom:10px;padding-bottom:8px}
               .brand{gap:6px}
-              .print-logo{border-radius:5px;font-size:15px;height:28px;width:28px}
+              .print-logo{border-radius:5px;height:32px;width:32px}
               h1{font-size:17px;line-height:1.2;word-break:break-word}
               .company{font-size:10px;line-height:1.4;margin-top:6px}
               .doc-title{font-size:14px;margin-top:8px;text-align:left}
@@ -357,7 +371,7 @@ function printLayout({ title, badge, sections = [], table, note, paper = 'ticket
         <main class="page">
           <header class="print-head">
             <div>
-              <div class="brand"><div class="print-logo">C</div><h1>${escapePrint(identity.company)}</h1></div>
+              <div class="brand"><div class="print-logo"><img src="${LOGO_URL}" alt=""></div><h1>${escapePrint(identity.company)}</h1></div>
               <div class="company">${escapePrint(line)}<br>${escapePrint(identity.contact || APP_NAME)}</div>
             </div>
             <div>
@@ -380,7 +394,7 @@ function printLayout({ title, badge, sections = [], table, note, paper = 'ticket
   `);
   win.document.close();
   win.focus();
-  win.print();
+  window.setTimeout(() => win.print(), 250);
 }
 
 function printDocument(title, rows, options = {}) {
@@ -536,7 +550,7 @@ function App() {
     return [
       { id: 'dashboard', label: tr(lang, 'dashboard'), roles: ['manager', 'caissier', 'magasinier'] },
       { id: 'clients', label: tr(lang, 'clients'), roles: ['manager', 'caissier'] },
-      { id: 'ventes', label: 'Factures', roles: ['manager', 'caissier'] },
+      { id: 'ventes', label: 'Facture/Vente', roles: ['manager', 'caissier'] },
       { id: 'paiements', label: tr(lang, 'paiements'), roles: ['manager', 'caissier'] },
       { id: 'categories', label: tr(lang, 'categories'), roles: ['manager', 'magasinier'] },
       { id: 'fournisseurs', label: tr(lang, 'fournisseurs'), roles: ['manager', 'magasinier'] },
@@ -585,7 +599,7 @@ function App() {
     dashboard: [tr(lang, 'dashboard'), "Bienvenue, voici l'activite de votre entreprise aujourd'hui."],
     clients: ['Clients', 'Fiche client 360 et historique commercial.'],
     produits: ['Produits et stock', 'Catalogue, alertes et reapprovisionnement.'],
-    ventes: ['Factures', 'Ventes, details et reste a payer.'],
+    ventes: ['Facture/Vente', 'Ventes, details et reste a payer.'],
     paiements: ['Paiements', 'Argent recu et rapport de caisse.'],
     utilisateurs: ['Utilisateurs', 'Comptes, roles et acces de votre equipe.'],
     mails: ['Emails', 'Envoyer des notifications et messages clients.'],
@@ -605,9 +619,9 @@ function App() {
       {mobileMenuOpen && <button className="sidebar-scrim" type="button" aria-label="Fermer le menu" onClick={() => setMobileMenuOpen(false)} />}
       <aside className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="brand">
-          <div className="brand-mark">C</div>
+          <div className="brand-mark logo-mark"><img src={LOGO_URL} alt="" /></div>
           <div>
-            <strong>{sidebarTitle}</strong>
+            <strong title={sidebarTitle}>{sidebarTitle}</strong>
             <span>{APP_TAGLINE}</span>
           </div>
         </div>
@@ -755,7 +769,7 @@ function Login({ onLogin, notify, toast }) {
       <section className="login-panel">
         <div className="login-box">
           <div className="login-card-brand">
-            <Briefcase size={36} />
+            <img className="login-logo" src={LOGO_URL} alt="" />
             <div>
               <strong>{APP_NAME}</strong>
               <span>{APP_TAGLINE}</span>
@@ -1005,7 +1019,7 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
     }
   };
 
-  if (loading) return <div className="panel">Chargement...</div>;
+  if (loading) return <QcLoader label="Chargement des donnees" />;
   if (error) return <p className="notice">{error}</p>;
 
   const props = { api, notify, data, submit, lang, user, searchQuery, setPage };
@@ -1888,7 +1902,7 @@ function Ventes({ api, notify, data, submit, searchQuery = '' }) {
     <div className="grid">
       <div className="panel">
         <div className="panel-heading client-toolbar">
-          <h3>Factures</h3>
+          <h3>Facture/Vente</h3>
           <div className="actions">
             <SearchInput value={query} onChange={setQuery} placeholder="Rechercher facture" />
             <select className="compact-filter" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
@@ -2130,7 +2144,7 @@ function Rapports({ data, searchQuery = '', user }) {
         </div>
       </div>
       {canSalesReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Dettes clients</h3><button className="btn print" onClick={() => printRows(`Dettes clients - ${periodText}`, ['Facture', 'Client', 'Du', 'Paye', 'Reste'], creances.map((r) => [r.numero_facture, r.client_nom, moneySmart(r.montant_du), moneySmart(r.montant_paye), moneySmart(r.reste_a_payer)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Facture', 'Client', 'Du', 'Paye', 'Reste']} rows={creances.map((r) => [r.numero_facture, r.client_nom, moneySmart(r.montant_du), moneySmart(r.montant_paye), moneySmart(r.reste_a_payer)])} /></div>}
-      {canSalesReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Factures</h3><button className="btn print" onClick={() => printRows('Factures', ['Facture', 'Client', 'Montant', 'Reste'], factures.map((r) => [r.numero_facture, `${r.client_nom} ${r.client_postnom || ''}`, moneySmart(r.montant_ttc), moneySmart(r.reste_a_payer)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Facture', 'Client', 'Montant', 'Reste']} rows={factures.map((r) => [r.numero_facture, `${r.client_nom} ${r.client_postnom || ''}`, moneySmart(r.montant_ttc), moneySmart(r.reste_a_payer)])} /></div>}
+      {canSalesReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Facture/Vente</h3><button className="btn print" onClick={() => printRows('Facture/Vente', ['Facture', 'Client', 'Montant', 'Reste'], factures.map((r) => [r.numero_facture, `${r.client_nom} ${r.client_postnom || ''}`, moneySmart(r.montant_ttc), moneySmart(r.reste_a_payer)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Facture', 'Client', 'Montant', 'Reste']} rows={factures.map((r) => [r.numero_facture, `${r.client_nom} ${r.client_postnom || ''}`, moneySmart(r.montant_ttc), moneySmart(r.reste_a_payer)])} /></div>}
       {canCashReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Livre de caisse</h3><button className="btn print" onClick={() => printRows(`Livre de caisse - ${periodText}`, ['Date', 'Facture', 'Client', 'Mode', 'Montant'], livreCaisse.map((r) => [formatDate(r.date_paiement), r.numero_facture, r.client_nom, r.mode_paiement, moneySmart(r.montant)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Date', 'Facture', 'Client', 'Mode', 'Montant']} rows={livreCaisse.map((r) => [formatDate(r.date_paiement), r.numero_facture, r.client_nom, r.mode_paiement, moneySmart(r.montant)])} /></div>}
       {canSalesReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Bilan</h3><button className="btn print" onClick={() => printRows(`Bilan - ${periodText}`, ['Ventes HT', 'Cout achat', 'Resultat', 'Factures'], [[moneySmart(bilan.ventes_ht), moneySmart(bilan.cout_achat), moneySmart(bilan.resultat), bilan.total_factures || 0]])}><Printer size={18} /> Imprimer</button></div><Table headers={['Ventes HT', 'Cout achat', 'Resultat', 'Factures']} rows={[[moneySmart(bilan.ventes_ht), moneySmart(bilan.cout_achat), <Badge>{Number(bilan.resultat || 0) >= 0 ? moneySmart(bilan.resultat) : moneySmart(bilan.resultat)}</Badge>, bilan.total_factures || 0]]} /></div>}
       {canSalesReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Journal</h3><button className="btn print" onClick={() => printRows(`Journal - ${periodText}`, ['Date', 'Reference', 'Libelle', 'Entree', 'Sortie'], journal.map((r) => [formatDate(r.date_operation), r.reference, r.libelle, moneySmart(r.entree), moneySmart(r.sortie)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Date', 'Reference', 'Libelle', 'Entree', 'Sortie']} rows={journal.map((r) => [formatDate(r.date_operation), r.reference, r.libelle, moneySmart(r.entree), moneySmart(r.sortie)])} /></div>}
@@ -2171,7 +2185,7 @@ function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
     clients: 'Clients',
     produits: 'Produits',
     categories: 'Categories',
-    ventes: 'Factures',
+    ventes: 'Facture/Vente',
     paiements: 'Paiements',
     utilisateurs: 'Utilisateurs',
     auth: 'Compte',
