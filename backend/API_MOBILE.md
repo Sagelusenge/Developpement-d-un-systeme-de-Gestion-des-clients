@@ -642,7 +642,6 @@ Body:
 
 ```json
 {
-  "reference_produit": "CIM-42",
   "nom": "Ciment gris 42.5",
   "categorie_id": "CAT-DEMO-CIMENT",
   "unite": "sac",
@@ -655,7 +654,7 @@ Body:
 ```
 
 Notes:
-- `reference_produit` est optionnelle. Si elle est vide, le backend genere une reference.
+- `reference_produit` n'est pas envoyee dans le body. Le backend genere toujours la reference automatiquement.
 - `categorie_id` peut etre `null` ou chaine vide.
 - `unite` vaut `piece` par defaut.
 

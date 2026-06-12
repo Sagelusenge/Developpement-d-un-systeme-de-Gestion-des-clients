@@ -61,7 +61,7 @@ export const getMouvementsStock = async (req, res) => {
 
 // POST /api/produits
 export const createProduit = async (req, res) => {
-    const { reference_produit, nom, categorie_id, photo_url, prix_ht, prix_achat, taux_tva, quantite_stock, seuil_alerte, unite } = req.body;
+    const { nom, categorie_id, photo_url, prix_ht, prix_achat, taux_tva, quantite_stock, seuil_alerte, unite } = req.body;
     const entreprise_id = req.user.entreprise_id;
 
     if (!nom || Number(prix_ht) <= 0) {
@@ -75,7 +75,7 @@ export const createProduit = async (req, res) => {
     try {
         await connection.beginTransaction();
         const idProduit = await nextId(connection, 'produits', 'PRD', 5);
-        const reference = sanitizeReference(reference_produit) || buildProductReference(nom);
+        const reference = buildProductReference(nom);
         await connection.query(
             `INSERT INTO produits
              (id_produit, reference_produit, nom, categorie_id, unite, photo_url, prix_ht, prix_achat, taux_tva, quantite_stock, seuil_alerte, entreprise_id)

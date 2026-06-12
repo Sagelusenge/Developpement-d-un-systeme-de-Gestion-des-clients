@@ -1075,11 +1075,6 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
   const stockTotal = (data.produits || []).reduce((sum, produit) => sum + Number(produit.quantite_stock || 0), 0);
   const stockAlerts = alertes.length || (data.produits || []).filter((produit) => produit.statut_stock && produit.statut_stock !== 'OK').length;
   const monthlyCash = Number(stats.argent_recu_mois ?? paymentTotal);
-  const financeSummary = [
-    { label: 'Ventes HT', value: moneySmart(stats.ventes_ht_mois) },
-    { label: 'Cout achat', value: moneySmart(stats.cout_achat_mois) },
-    { label: 'Benefice brut', value: moneySmart(stats.resultat_mois) }
-  ];
   const dashboardKpis = [
     canSales && { icon: CreditCard, tone: 'orange', label: 'Ventes facturees (mois)', value: moneySmart(stats.ca_mois_en_cours), page: 'ventes' },
     canPayments && { icon: WalletCards, tone: 'green', label: 'Argent encaisse (mois)', value: moneySmart(monthlyCash), page: 'paiements' },
@@ -1100,23 +1095,6 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
           <KpiCard key={card.label} icon={card.icon} tone={card.tone} label={card.label} value={card.value} trend={card.trend} negative={card.negative} onClick={() => setPage?.(card.page)} />
         ))}
       </div>
-
-      {canSales && (
-        <div className="finance-explainer">
-          <div>
-            <strong>Lecture des chiffres</strong>
-            <span>Les ventes facturees montrent ce qui a ete vendu. L'argent encaisse montre ce qui est deja paye. Le benefice brut suit ta logique: prix de vente HT moins prix d'achat, multiplie par la quantite vendue.</span>
-          </div>
-          <div className="finance-equation">
-            {financeSummary.map((item) => (
-              <article key={item.label}>
-                <small>{item.label}</small>
-                <b>{item.value}</b>
-              </article>
-            ))}
-          </div>
-        </div>
-      )}
 
       {(canSales || canPayments) && (
         <div className="grid manager-mid">
@@ -1791,23 +1769,22 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
         <Modal title="Nouveau produit" onClose={() => setCreating(false)}>
           <Form onSubmit={() => submit(async () => { await api('/produits', { method: 'POST', body: JSON.stringify(form) }); setForm(emptyProductForm); setCreating(false); notify('Produit cree'); })}>
             <div className="form-row">
-              <Input label="Reference auto" value={form.reference_produit} onChange={(reference_produit) => setForm({ ...form, reference_produit })} placeholder="Laisser vide pour generer" />
               <Input label="Designation" value={form.nom} onChange={(nom) => setForm({ ...form, nom })} required />
+              <Select label="Categorie" value={form.categorie_id} onChange={(categorie_id) => setForm({ ...form, categorie_id })} options={categoryOptions} required={false} />
             </div>
             <div className="form-row">
-              <Select label="Categorie" value={form.categorie_id} onChange={(categorie_id) => setForm({ ...form, categorie_id })} options={categoryOptions} required={false} />
               <Select label="Unite" value={form.unite} onChange={(unite) => setForm({ ...form, unite })} options={unitOptions} />
+              <Input label="Prix d'achat unitaire (CMP)" type="number" step="0.01" value={form.prix_achat} onChange={(prix_achat) => setForm({ ...form, prix_achat })} placeholder="Prix d'achat initial" />
             </div>
             <PhotoInput label="Photo du produit" value={form.photo_url} onChange={(photo_url) => setForm({ ...form, photo_url })} />
             <div className="form-row">
-              <Input label="Prix d'achat unitaire (CMP)" type="number" step="0.01" value={form.prix_achat} onChange={(prix_achat) => setForm({ ...form, prix_achat })} placeholder="Prix d'achat initial" />
               <Input label="Prix de vente HT" type="number" value={form.prix_ht} onChange={(prix_ht) => setForm({ ...form, prix_ht })} required />
+              <Input label="TVA %" type="number" value={form.taux_tva} onChange={(taux_tva) => setForm({ ...form, taux_tva })} />
             </div>
             <div className="form-row">
-              <Input label="TVA %" type="number" value={form.taux_tva} onChange={(taux_tva) => setForm({ ...form, taux_tva })} />
               <Input label="Stock initial" type="number" value={form.quantite_stock} onChange={(quantite_stock) => setForm({ ...form, quantite_stock })} />
+              <Input label="Seuil alerte" type="number" value={form.seuil_alerte} onChange={(seuil_alerte) => setForm({ ...form, seuil_alerte })} />
             </div>
-            <Input label="Seuil alerte" type="number" value={form.seuil_alerte} onChange={(seuil_alerte) => setForm({ ...form, seuil_alerte })} />
             <button className="btn modal-submit">Ajouter <ArrowRight size={20} /></button>
           </Form>
         </Modal>
@@ -2140,9 +2117,6 @@ function Rapports({ data, searchQuery = '', user }) {
               </>
             )}
           </div>
-        </div>
-        <div className="notice compact">
-          Les rapports affichent le mois par defaut pour montrer les factures, le livre de caisse et le journal meme quand il n'y a pas d'operation aujourd'hui. Change la periode si tu veux une sortie journaliere ou personnalisee.
         </div>
         <div className="report-cards">
           <Stat label="Periode" value={periodText} />
@@ -2606,7 +2580,6 @@ function Categories({ api, notify, data, submit, searchQuery = '' }) {
       {creating && (
         <Modal title="Nouvelle categorie" onClose={() => setCreating(false)}>
           <Form onSubmit={save}>
-            <div className="notice compact">La reference sera creee automatiquement.</div>
             <Input label="Nom" value={form.nom} onChange={(nom) => setForm({ ...form, nom })} required />
             <Input label="Description" value={form.description} onChange={(description) => setForm({ ...form, description })} />
             <PhotoInput label="Photo de la categorie" value={form.photo_url} onChange={(photo_url) => setForm({ ...form, photo_url })} />
@@ -2617,10 +2590,6 @@ function Categories({ api, notify, data, submit, searchQuery = '' }) {
       {editing && (
         <Modal title="Modifier categorie" onClose={() => setEditing(null)}>
           <Form onSubmit={saveEdit}>
-            <div className="debt-preview">
-              <span>Reference automatique</span>
-              <strong>{editing.reference_categorie || `CAT-${editing.id_categorie}`}</strong>
-            </div>
             <Input label="Nom" value={editing.nom || ''} onChange={(nom) => setEditing({ ...editing, nom })} required />
             <Input label="Description" value={editing.description || ''} onChange={(description) => setEditing({ ...editing, description })} />
             <PhotoInput label="Photo de la categorie" value={editing.photo_url || ''} onChange={(photo_url) => setEditing({ ...editing, photo_url })} />

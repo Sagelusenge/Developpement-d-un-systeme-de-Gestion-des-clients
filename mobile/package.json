@@ -1,0 +1,23 @@
+{
+  "name": "quincaillerie-centrale-mobile",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "@expo/vector-icons": "^15.0.2",
+    "expo": "~56.0.11",
+    "expo-font": "~56.0.6",
+    "expo-print": "~56.0.4",
+    "expo-status-bar": "~56.0.4",
+    "react": "19.2.3",
+    "react-native": "0.85.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "apk": "eas build --platform android --profile preview",
+    "apk:local": "eas build --platform android --profile preview --local"
+  },
+  "private": true
+}

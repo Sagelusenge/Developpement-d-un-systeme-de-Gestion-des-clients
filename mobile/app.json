@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Quincaillerie Centrale",
+    "slug": "quincaillerie-centrale-mobile",
+    "owner": "sagelusenge",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "cd.quincailleriecentrale.crm",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "INTERNET"
+      ]
+    },
+    "extra": {
+      "apiUrl": "https://developpement-d-un-systeme-de-gestion.onrender.com/api",
+      "eas": {
+        "projectId": "45e296b3-cd7b-4daf-a538-3158a136ae69"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font"
+    ]
+  }
+}
