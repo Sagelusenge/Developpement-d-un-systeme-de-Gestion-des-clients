@@ -436,6 +436,7 @@ function printTableDocument(title, headers, rows, options = {}) {
 }
 
 function App() {
+  const [booting, setBooting] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('crm_token') || '');
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('crm_user') || 'null'));
   const [authType, setAuthType] = useState(localStorage.getItem('crm_auth_type') || 'user');
@@ -452,6 +453,11 @@ function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setBooting(false), 650);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const notify = (message) => {
     setToast(message);
@@ -590,6 +596,10 @@ function App() {
     }
     setSelectedNotification(notification);
   };
+
+  if (booting) {
+    return <main className="app-boot"><QcLoader label="Ouverture de Quincaillerie Centrale" /></main>;
+  }
 
   if (!token) {
     return <Login authType={authType} setAuthType={setAuthType} onLogin={login} notify={notify} toast={toast} lang={lang} />;
@@ -766,32 +776,8 @@ function Login({ onLogin, notify, toast }) {
 
   return (
     <main className="login-page">
-      <section className="login-showcase" aria-label="Presentation Quincaillerie Centrale">
-        <div className="login-showcase-brand">
-          <img src={LOGO_URL} alt="" />
-          <strong>{APP_NAME}</strong>
-        </div>
-        <div className="login-showcase-copy">
-          <span className="showcase-pill">Stock • Facture • Caisse</span>
-          <h1>"Gerez votre quincaillerie avec precision, rapidite et confiance."</h1>
-          <p>Une plateforme interne pour suivre les produits, les clients, les ventes, les paiements et les rapports en temps reel.</p>
-        </div>
-        <div className="showcase-card verified">
-          <span>Stocks</span>
-          <strong>Verifies</strong>
-        </div>
-        <div className="showcase-card fast">
-          <span>Suivi</span>
-          <strong>Rapide</strong>
-        </div>
-        <footer>© 2026 Quincaillerie Centrale</footer>
-      </section>
       <section className="login-panel">
         <div className="login-box">
-          <a className="login-back-link" href="#dashboard" onClick={(event) => event.preventDefault()}>
-            <ArrowRight size={18} />
-            Espace securise
-          </a>
           <div className="login-card-brand">
             <img className="login-logo" src={LOGO_URL} alt="" />
             <div>

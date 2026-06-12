@@ -5755,4 +5755,172 @@ button:disabled {
   }
 }
 
+/* Restore compact centered login with QC logo */
+.app-boot {
+  align-items: center;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 174, 43, 0.14), transparent 28%),
+    linear-gradient(135deg, #001342 0%, #002761 48%, #f7f9fc 48%, #ffffff 100%);
+  display: grid;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.login-page {
+  align-items: center;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(255, 174, 43, 0.14), transparent 24%),
+    linear-gradient(135deg, #001342 0%, #002761 46%, #f7f9fc 46%, #ffffff 100%);
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  min-height: 100vh;
+  overflow: auto;
+  padding: clamp(18px, 5vw, 48px);
+}
+
+.login-showcase,
+.login-back-link {
+  display: none;
+}
+
+.login-panel {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  display: grid;
+  justify-items: center;
+  max-width: none;
+  min-height: auto;
+  padding: 0;
+  width: 100%;
+}
+
+.login-box {
+  animation: qcSlideIn 460ms ease both;
+  background: #fff;
+  border: 1px solid rgba(0, 39, 97, 0.18);
+  border-radius: 12px;
+  box-shadow: 0 28px 80px rgba(0, 19, 66, 0.18);
+  max-width: 540px;
+  padding: clamp(26px, 4vw, 42px);
+  width: min(540px, 100%);
+}
+
+.login-card-brand {
+  align-items: center;
+  border-bottom: 1px solid #d9dce5;
+  display: flex;
+  gap: 14px;
+  justify-content: flex-start;
+  margin-bottom: 28px;
+  padding-bottom: 22px;
+  text-align: left;
+}
+
+.login-logo {
+  background: #fff;
+  border: 1px solid #d9e0ec;
+  border-radius: 12px;
+  display: block;
+  flex: 0 0 auto;
+  height: 78px;
+  object-fit: contain;
+  padding: 6px;
+  width: 78px;
+}
+
+.login-card-brand strong {
+  color: #001342;
+  display: block;
+  font-size: clamp(23px, 4vw, 30px);
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.login-card-brand span {
+  color: #6f7480;
+  display: block;
+  font-size: 13px;
+  font-weight: 800;
+  margin-top: 3px;
+}
+
+.login-box h2 {
+  color: #1c1f29;
+  font-size: 28px;
+  font-weight: 900;
+  margin: 0 0 10px;
+  text-align: center;
+}
+
+.login-box p {
+  color: #2f3441;
+  font-size: 19px;
+  line-height: 1.35;
+  margin: 0 0 34px;
+  text-align: center;
+}
+
+.login-box .form {
+  gap: 26px;
+}
+
+.login-box label {
+  color: #151820;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.input-shell {
+  background: #fff;
+  border: 1px solid #c7ceda;
+  border-radius: 10px;
+  min-height: 52px;
+  padding: 0 12px;
+}
+
+.input-shell input {
+  background: transparent;
+  border: 0;
+  color: #1f2937;
+  font-size: 17px;
+  min-height: 50px;
+  padding: 0 8px;
+}
+
+.forgot-inline {
+  color: #002761;
+  font-size: 15px;
+  font-weight: 800;
+  margin-top: 8px;
+  place-self: end;
+}
+
+.login-submit {
+  background: #002761;
+  border-radius: 10px;
+  box-shadow: none;
+  font-size: 17px;
+  min-height: 54px;
+}
+
+.login-submit:hover {
+  background: #001342;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 560px) {
+  .login-card-brand {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .login-logo {
+    height: 68px;
+    width: 68px;
+  }
+}
+
 
