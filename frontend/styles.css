@@ -4895,8 +4895,9 @@ button:disabled {
   .topbar,
   .shell:not(.admin-shell) .topbar,
   .admin-topbar {
-    align-items: stretch;
-    flex-direction: column;
+    align-items: center;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
     margin-inline: -12px;
     min-height: 0;
     padding: 12px;
@@ -4913,13 +4914,48 @@ button:disabled {
     font-weight: 900;
     gap: 8px;
     justify-content: center;
-    min-height: 42px;
-    padding: 9px 12px;
+    min-height: 38px;
+    padding: 8px 11px;
+    width: auto;
+  }
+
+  .topbar > .search-field,
+  .shell:not(.admin-shell) .topbar > .search-field {
+    grid-column: 1 / -1;
+    grid-row: 2;
     width: 100%;
   }
 
+  .toolbar {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    justify-content: flex-end;
+    margin-left: 0;
+    width: auto;
+  }
+
+  .toolbar .icon-button {
+    flex: 0 0 auto;
+  }
+
+  .toolbar .user-card {
+    align-items: center;
+    border-left: 0;
+    flex: 0 0 auto;
+    flex-direction: row;
+    gap: 0;
+    min-width: 0;
+    padding-left: 0;
+    width: auto;
+  }
+
+  .toolbar .user-card > div {
+    display: none;
+  }
+
   .topbar-left,
-  .toolbar,
   .user-card,
   .panel-heading,
   .panel-heading .actions,
@@ -5048,7 +5084,12 @@ button:disabled {
   }
 
   .menu-button span {
-    display: inline;
+    display: none;
+  }
+
+  .menu-button {
+    min-width: 40px;
+    padding-inline: 9px;
   }
 }
 

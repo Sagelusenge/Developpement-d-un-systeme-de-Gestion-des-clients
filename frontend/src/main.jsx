@@ -92,6 +92,31 @@ const searchPlaceholders = {
   mails: 'Rechercher un email ou destinataire...',
 };
 
+const fallbackProductPhotos = [
+  'https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?auto=format&fit=crop&w=700&q=80',
+  'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&w=700&q=80',
+  'https://images.unsplash.com/photo-1609205807107-e8ec2120f9de?auto=format&fit=crop&w=700&q=80',
+  'https://images.unsplash.com/photo-1590479773265-7464e5d48118?auto=format&fit=crop&w=700&q=80',
+  'https://images.unsplash.com/photo-1581783898377-1c85bf937427?auto=format&fit=crop&w=700&q=80',
+  'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&w=700&q=80'
+];
+
+const fallbackCategoryPhotos = [
+  'https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?auto=format&fit=crop&w=700&q=80',
+  'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&w=700&q=80',
+  'https://images.unsplash.com/photo-1609205807107-e8ec2120f9de?auto=format&fit=crop&w=700&q=80',
+  'https://images.unsplash.com/photo-1581783898377-1c85bf937427?auto=format&fit=crop&w=700&q=80'
+];
+
+const fallbackPhoto = (items, key, index = 0) => {
+  const text = String(key || '').toLowerCase();
+  const score = Array.from(text).reduce((sum, char) => sum + char.charCodeAt(0), index);
+  return items[Math.abs(score) % items.length];
+};
+
+const productPhotoUrl = (product, index = 0) => product?.photo_url || fallbackPhoto(fallbackProductPhotos, `${product?.nom || ''} ${product?.categorie_nom || ''}`, index);
+const categoryPhotoUrl = (category, index = 0) => category?.photo_url || fallbackPhoto(fallbackCategoryPhotos, category?.nom, index);
+
 const imageForIndex = (index) => [
   'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=500&q=80',
   'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=500&q=80',
@@ -556,11 +581,11 @@ function App() {
     return [
       { id: 'dashboard', label: tr(lang, 'dashboard'), roles: ['manager', 'caissier', 'magasinier'] },
       { id: 'clients', label: tr(lang, 'clients'), roles: ['manager', 'caissier'] },
-      { id: 'ventes', label: 'Facture/Vente', roles: ['manager', 'caissier'] },
+      { id: 'ventes', label: 'Ventes', roles: ['manager', 'caissier'] },
       { id: 'paiements', label: tr(lang, 'paiements'), roles: ['manager', 'caissier'] },
       { id: 'categories', label: tr(lang, 'categories'), roles: ['manager', 'magasinier'] },
       { id: 'fournisseurs', label: tr(lang, 'fournisseurs'), roles: ['manager', 'magasinier'] },
-      { id: 'produits', label: 'Produits & Stocks', roles: ['manager', 'caissier', 'magasinier'] },
+      { id: 'produits', label: 'Produits et stock', roles: ['manager', 'caissier', 'magasinier'] },
       { id: 'rapports', label: tr(lang, 'rapports'), roles: ['manager', 'caissier', 'magasinier'] },
       { id: 'utilisateurs', label: tr(lang, 'utilisateurs'), roles: ['manager'] },
       { id: 'mails', label: tr(lang, 'mails'), roles: ['manager'] }
@@ -608,15 +633,15 @@ function App() {
   const titles = {
     dashboard: [tr(lang, 'dashboard'), "Bienvenue, voici l'activite de votre entreprise aujourd'hui."],
     clients: ['Clients', 'Fiche client 360 et historique commercial.'],
-    produits: ['Produits et stock', 'Catalogue, alertes et reapprovisionnement.'],
-    ventes: ['Facture/Vente', 'Ventes, details et reste a payer.'],
+    produits: ['Produits et stock', 'Catalogue, alertes et entrees de stock.'],
+    ventes: ['Ventes', 'Factures, details et reste a payer.'],
     paiements: ['Paiements', 'Argent recu et rapport de caisse.'],
     utilisateurs: ['Utilisateurs', 'Comptes, roles et acces de votre equipe.'],
     mails: ['Emails', 'Envoyer des notifications et messages clients.'],
     categories: ['Categories', 'Classification simple des produits et services.'],
     fournisseurs: ['Fournisseurs', 'Contacts et historique des approvisionnements.'],
     rapports: user?.role === 'magasinier'
-      ? ['Rapports produits', 'Inventaire, stock et approvisionnements.']
+      ? ['Rapports produits', 'Inventaire, stock et entrees de stock.']
       : user?.role === 'caissier'
         ? ['Rapports caisse', 'Factures, dettes et paiements recus.']
         : ['Rapports', 'Factures, creances, stock et meilleurs clients.'],
@@ -707,7 +732,7 @@ function App() {
           </div>
         </Modal>
       )}
-      {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+      {showHelp && <HelpModal page={page} role={user?.role || user?.type || 'manager'} onClose={() => setShowHelp(false)} />}
       {showProfile && <ProfileModal api={api} notify={notify} user={user} onUserUpdate={(updatedUser) => {
         const nextUser = { ...user, ...updatedUser };
         setUser(nextUser);
@@ -894,14 +919,44 @@ function PasswordSettings({ api, notify, user, targetEmail, onClose }) {
   );
 }
 
-function HelpModal({ onClose }) {
+function HelpModal({ page, role, onClose }) {
+  const common = {
+    dashboard: ['Tableau de bord', "Voir les indicateurs autorises pour votre poste et ouvrir rapidement les pages utiles."],
+    produits: ['Produits et stock', "Consulter le stock, ajouter un produit si votre role le permet et enregistrer les entrees de stock."],
+    categories: ['Categories', "Classer les produits pour retrouver rapidement les articles en magasin."],
+    fournisseurs: ['Fournisseurs', "Gerer uniquement les coordonnees des fournisseurs et suivre les entrees de stock."],
+    rapportsStock: ['Rapports produits', "Consulter l'inventaire, les mouvements de stock et les entrees de stock."],
+    clients: ['Clients', "Ajouter les clients, consulter leur historique et imprimer une fiche client."],
+    ventes: ['Ventes', "Creer une facture, choisir les produits vendus et imprimer le document client."],
+    paiements: ['Paiements', "Enregistrer l'argent recu sur les factures et suivre les restes a payer."],
+    rapportsCaisse: ['Rapports caisse', "Voir les factures, dettes clients, paiements recus et le livre de caisse."],
+    utilisateurs: ['Utilisateurs', "Creer les comptes de l'equipe, modifier les roles et reinitialiser les acces."],
+    mails: ['Emails', "Envoyer des messages aux clients ou des notifications internes a l'equipe."],
+    rapportsManager: ['Rapports', "Analyser les ventes, creances, stock, resultats et meilleurs clients."]
+  };
+
+  const byRole = {
+    magasinier: [common.dashboard, common.produits, common.categories, common.fournisseurs, common.rapportsStock],
+    caissier: [common.dashboard, common.clients, common.ventes, common.paiements, common.rapportsCaisse],
+    manager: [common.dashboard, common.clients, common.ventes, common.paiements, common.produits, common.fournisseurs, common.rapportsManager, common.utilisateurs, common.mails]
+  };
+
+  const pageAliases = {
+    rapports: role === 'magasinier' ? 'rapportsStock' : role === 'caissier' ? 'rapportsCaisse' : 'rapportsManager'
+  };
+  const currentKey = pageAliases[page] || page;
+  const currentHelp = common[currentKey];
+  const roleHelp = byRole[role] || byRole.manager;
+  const items = currentHelp
+    ? [currentHelp, ...roleHelp.filter(([title]) => title !== currentHelp[0])]
+    : roleHelp;
+
   return (
     <Modal title="Aide rapide" onClose={onClose}>
       <div className="help-grid">
-        <article><strong>Tableau de bord</strong><span>Voir les ventes, le resultat, les paiements et les alertes stock.</span></article>
-        <article><strong>Factures</strong><span>Enregistrer une vente directe avec un prix de vente par produit.</span></article>
-        <article><strong>Stock</strong><span>Ajouter des produits et approvisionner en choisissant un fournisseur et un prix d'achat.</span></article>
-        <article><strong>Rapports</strong><span>Filtrer par dates, imprimer les bilans, journaux et le livre de caisse.</span></article>
+        {items.map(([title, description]) => (
+          <article key={title}><strong>{title}</strong><span>{description}</span></article>
+        ))}
       </div>
     </Modal>
   );
@@ -1100,10 +1155,10 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
   const stockAlerts = alertes.length || (data.produits || []).filter((produit) => produit.statut_stock && produit.statut_stock !== 'OK').length;
   const monthlyCash = Number(stats.argent_recu_mois ?? paymentTotal);
   const dashboardKpis = [
-    canSales && { icon: CreditCard, tone: 'orange', label: 'Ventes facturees (mois)', value: moneySmart(stats.ca_mois_en_cours), page: 'ventes' },
-    canPayments && { icon: WalletCards, tone: 'green', label: 'Argent encaisse (mois)', value: moneySmart(monthlyCash), page: 'paiements' },
-    canSales && { icon: Coins, tone: 'blue', label: 'Cout marchandises vendues', value: moneySmart(stats.cout_achat_mois), page: 'rapports' },
-    canSales && { icon: BarChart3, tone: Number(stats.resultat_mois || 0) >= 0 ? 'green' : 'danger', label: Number(stats.resultat_mois || 0) >= 0 ? 'Benefice brut (mois)' : 'Perte brute (mois)', value: moneySmart(stats.resultat_mois), page: 'rapports', negative: Number(stats.resultat_mois || 0) < 0 },
+    canSales && { icon: CreditCard, tone: 'orange', label: 'Total vendu ce mois', value: moneySmart(stats.ca_mois_en_cours), page: 'ventes' },
+    canPayments && { icon: WalletCards, tone: 'green', label: 'Argent deja recu', value: moneySmart(monthlyCash), page: 'paiements' },
+    canSales && { icon: Coins, tone: 'blue', label: 'Cout des produits vendus', value: moneySmart(stats.cout_achat_mois), page: 'rapports' },
+    canSales && { icon: BarChart3, tone: Number(stats.resultat_mois || 0) >= 0 ? 'green' : 'danger', label: Number(stats.resultat_mois || 0) >= 0 ? 'Gain du mois' : 'Perte du mois', value: moneySmart(stats.resultat_mois), page: 'rapports', negative: Number(stats.resultat_mois || 0) < 0 },
     canClients && { icon: Users, tone: 'blue', label: 'Total Clients', value: stats.total_clients || data.clients.length || 0, page: 'clients' },
     canStock && { icon: Package, tone: 'blue', label: 'Produits suivis', value: data.produits.length || 0, page: 'produits' },
     canStock && { icon: Box, tone: 'orange', label: 'Stock total', value: stockTotal, page: 'produits' },
@@ -1119,6 +1174,21 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
           <KpiCard key={card.label} icon={card.icon} tone={card.tone} label={card.label} value={card.value} trend={card.trend} negative={card.negative} onClick={() => setPage?.(card.page)} />
         ))}
       </div>
+      {canSales && (
+        <div className="finance-explainer">
+          <div>
+            <strong>D'ou viennent ces montants ?</strong>
+            <span>Total vendu ce mois = total TTC des factures creees ce mois-ci.</span>
+            <span>Argent deja recu = paiements deja enregistres ce mois-ci.</span>
+            <span>Cout des produits vendus = quantite vendue x prix d'achat du produit.</span>
+          </div>
+          <div>
+            <strong>Calcul simple</strong>
+            <span>Gain du mois = ventes hors taxe - cout des produits vendus.</span>
+            <span>Une facture peut etre creee sans etre totalement payee, donc le total vendu et l'argent recu peuvent etre differents.</span>
+          </div>
+        </div>
+      )}
 
       {(canSales || canPayments) && (
         <div className="grid manager-mid">
@@ -1747,7 +1817,7 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
                 <article className="product-rank-card" key={p.id_produit}>
                   <b>#{(currentPage - 1) * productsPerPage + index + 1}</b>
                   <div className="product-rank-visual">
-                    {p.photo_url ? <img src={p.photo_url} alt="" /> : <div className="photo-placeholder">{p.nom?.slice(0, 2).toUpperCase() || 'PR'}</div>}
+                    <img src={productPhotoUrl(p, index)} alt="" />
                   </div>
                   <strong>{p.nom}</strong>
                   <p>{p.categorie_nom || 'Sans categorie'} - Ref. {p.reference_produit}</p>
@@ -1800,7 +1870,7 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
               <Select label="Unite" value={form.unite} onChange={(unite) => setForm({ ...form, unite })} options={unitOptions} />
               <Input label="Prix d'achat unitaire (CMP)" type="number" step="0.01" value={form.prix_achat} onChange={(prix_achat) => setForm({ ...form, prix_achat })} placeholder="Prix d'achat initial" />
             </div>
-            <PhotoInput label="Photo du produit" value={form.photo_url} onChange={(photo_url) => setForm({ ...form, photo_url })} />
+            <PhotoInput label="URL de la photo du produit" value={form.photo_url} onChange={(photo_url) => setForm({ ...form, photo_url })} />
             <div className="form-row">
               <Input label="Prix de vente HT" type="number" value={form.prix_ht} onChange={(prix_ht) => setForm({ ...form, prix_ht })} required />
               <Input label="TVA %" type="number" value={form.taux_tva} onChange={(taux_tva) => setForm({ ...form, taux_tva })} />
@@ -1842,7 +1912,7 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
               <Select label="Categorie" value={editing.categorie_id || ''} onChange={(categorie_id) => setEditing({ ...editing, categorie_id })} options={categoryOptions} required={false} />
               <Select label="Unite" value={editing.unite || 'piece'} onChange={(unite) => setEditing({ ...editing, unite })} options={unitOptions} />
             </div>
-            <PhotoInput label="Photo du produit" value={editing.photo_url || ''} onChange={(photo_url) => setEditing({ ...editing, photo_url })} />
+            <PhotoInput label="URL de la photo du produit" value={editing.photo_url || ''} onChange={(photo_url) => setEditing({ ...editing, photo_url })} />
             <div className="form-row">
               <Input label="Prix d'achat (CMP)" type="number" step="0.01" value={editing.prix_achat || ''} onChange={(prix_achat) => setEditing({ ...editing, prix_achat })} />
               <Input label="Prix de vente HT" type="number" value={editing.prix_ht || ''} onChange={(prix_ht) => setEditing({ ...editing, prix_ht })} required />
@@ -1912,9 +1982,9 @@ function Ventes({ api, notify, data, submit, searchQuery = '' }) {
     <div className="grid">
       <div className="panel">
         <div className="panel-heading client-toolbar">
-          <h3>Facture/Vente</h3>
+          <h3>Ventes</h3>
           <div className="actions">
-            <SearchInput value={query} onChange={setQuery} placeholder="Rechercher facture" />
+            <SearchInput value={query} onChange={setQuery} placeholder="Rechercher facture ou client" />
             <select className="compact-filter" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
               <option value="tous">Tous</option>
               <option value="paye">Payees</option>
@@ -1949,7 +2019,7 @@ function Ventes({ api, notify, data, submit, searchQuery = '' }) {
             setCreating(false);
             notify('Facture creee');
           })}>
-            <Select label="Client" value={form.client_id} onChange={(client_id) => setForm({ ...form, client_id })} options={data.clients.map((c) => [c.id_client, `${c.nom} ${c.postnom || ''}`])} />
+            <SearchableSelect label="Client" value={form.client_id} onChange={(client_id) => setForm({ ...form, client_id })} options={data.clients.map((c) => [c.id_client, `${c.nom} ${c.postnom || ''} ${c.telephone || ''}`])} placeholder="Rechercher client, postnom ou telephone" />
             <LineEditor lignes={form.lignes} setLignes={(lignes) => setForm({ ...form, lignes })} produits={data.produits} />
             <button className="btn modal-submit">Facturer <ArrowRight size={20} /></button>
           </Form>
@@ -1958,7 +2028,7 @@ function Ventes({ api, notify, data, submit, searchQuery = '' }) {
       {editing && (
         <Modal title="Modifier facture" onClose={() => setEditing(null)}>
           <Form onSubmit={saveEdit}>
-            <Select label="Client" value={editing.client_id} onChange={(client_id) => setEditing({ ...editing, client_id })} options={data.clients.map((c) => [c.id_client, `${c.nom} ${c.postnom || ''}`])} />
+            <SearchableSelect label="Client" value={editing.client_id} onChange={(client_id) => setEditing({ ...editing, client_id })} options={data.clients.map((c) => [c.id_client, `${c.nom} ${c.postnom || ''} ${c.telephone || ''}`])} placeholder="Rechercher client, postnom ou telephone" />
             <LineEditor lignes={editing.lignes} setLignes={(lignes) => setEditing({ ...editing, lignes })} produits={data.produits} />
             <button className="btn">Mettre a jour</button>
           </Form>
@@ -2154,7 +2224,7 @@ function Rapports({ data, searchQuery = '', user }) {
         </div>
       </div>
       {canSalesReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Dettes clients</h3><button className="btn print" onClick={() => printRows(`Dettes clients - ${periodText}`, ['Facture', 'Client', 'Du', 'Paye', 'Reste'], creances.map((r) => [r.numero_facture, r.client_nom, moneySmart(r.montant_du), moneySmart(r.montant_paye), moneySmart(r.reste_a_payer)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Facture', 'Client', 'Du', 'Paye', 'Reste']} rows={creances.map((r) => [r.numero_facture, r.client_nom, moneySmart(r.montant_du), moneySmart(r.montant_paye), moneySmart(r.reste_a_payer)])} /></div>}
-      {canSalesReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Facture/Vente</h3><button className="btn print" onClick={() => printRows('Facture/Vente', ['Facture', 'Client', 'Montant', 'Reste'], factures.map((r) => [r.numero_facture, `${r.client_nom} ${r.client_postnom || ''}`, moneySmart(r.montant_ttc), moneySmart(r.reste_a_payer)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Facture', 'Client', 'Montant', 'Reste']} rows={factures.map((r) => [r.numero_facture, `${r.client_nom} ${r.client_postnom || ''}`, moneySmart(r.montant_ttc), moneySmart(r.reste_a_payer)])} /></div>}
+      {canSalesReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Ventes</h3><button className="btn print" onClick={() => printRows('Ventes', ['Facture', 'Client', 'Montant', 'Reste'], factures.map((r) => [r.numero_facture, `${r.client_nom} ${r.client_postnom || ''}`, moneySmart(r.montant_ttc), moneySmart(r.reste_a_payer)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Facture', 'Client', 'Montant', 'Reste']} rows={factures.map((r) => [r.numero_facture, `${r.client_nom} ${r.client_postnom || ''}`, moneySmart(r.montant_ttc), moneySmart(r.reste_a_payer)])} /></div>}
       {canCashReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Livre de caisse</h3><button className="btn print" onClick={() => printRows(`Livre de caisse - ${periodText}`, ['Date', 'Facture', 'Client', 'Mode', 'Montant'], livreCaisse.map((r) => [formatDate(r.date_paiement), r.numero_facture, r.client_nom, r.mode_paiement, moneySmart(r.montant)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Date', 'Facture', 'Client', 'Mode', 'Montant']} rows={livreCaisse.map((r) => [formatDate(r.date_paiement), r.numero_facture, r.client_nom, r.mode_paiement, moneySmart(r.montant)])} /></div>}
       {canSalesReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Bilan</h3><button className="btn print" onClick={() => printRows(`Bilan - ${periodText}`, ['Ventes HT', 'Cout achat', 'Resultat', 'Factures'], [[moneySmart(bilan.ventes_ht), moneySmart(bilan.cout_achat), moneySmart(bilan.resultat), bilan.total_factures || 0]])}><Printer size={18} /> Imprimer</button></div><Table headers={['Ventes HT', 'Cout achat', 'Resultat', 'Factures']} rows={[[moneySmart(bilan.ventes_ht), moneySmart(bilan.cout_achat), <Badge>{Number(bilan.resultat || 0) >= 0 ? moneySmart(bilan.resultat) : moneySmart(bilan.resultat)}</Badge>, bilan.total_factures || 0]]} /></div>}
       {canSalesReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Journal</h3><button className="btn print" onClick={() => printRows(`Journal - ${periodText}`, ['Date', 'Reference', 'Libelle', 'Entree', 'Sortie'], journal.map((r) => [formatDate(r.date_operation), r.reference, r.libelle, moneySmart(r.entree), moneySmart(r.sortie)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Date', 'Reference', 'Libelle', 'Entree', 'Sortie']} rows={journal.map((r) => [formatDate(r.date_operation), r.reference, r.libelle, moneySmart(r.entree), moneySmart(r.sortie)])} /></div>}
@@ -2195,7 +2265,7 @@ function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
     clients: 'Clients',
     produits: 'Produits',
     categories: 'Categories',
-    ventes: 'Facture/Vente',
+    ventes: 'Ventes',
     paiements: 'Paiements',
     utilisateurs: 'Utilisateurs',
     auth: 'Compte',
@@ -2491,18 +2561,14 @@ function Fournisseurs({ api, notify, data, submit, searchQuery = '' }) {
             <button className="btn small" type="button" onClick={() => setCreating(true)}><Plus size={16} /> Ajouter fournisseur</button>
           </div>
         </div>
-        <div className="notice compact">
-          Le fournisseur garde seulement l'identite et le contact. Le prix d'achat se met pendant l'approvisionnement, parce qu'il peut changer a chaque livraison.
-        </div>
-        <Table headers={['Nom', 'Telephone', 'Email', 'Achats', 'Approvisionnements', 'Actions']} rows={fournisseurs.map((f) => [
+        <Table headers={['Nom', 'Telephone', 'Email', 'Approvisionnements', 'Actions']} rows={fournisseurs.map((f) => [
           f.nom,
           f.telephone || '-',
           f.email || '-',
-          moneySmart(f.total_achats),
           f.total_approvisionnements || 0,
           <RowActions
             onEdit={() => setEditing(f)}
-            onPrint={() => printDocument('Fournisseur', [['Nom', f.nom], ['Telephone', f.telephone || '-'], ['Email', f.email || '-'], ['Achats', moneySmart(f.total_achats)]], { paper: 'page' })}
+            onPrint={() => printDocument('Fournisseur', [['Nom', f.nom], ['Telephone', f.telephone || '-'], ['Email', f.email || '-'], ['Approvisionnements', f.total_approvisionnements || 0]], { paper: 'page' })}
             onDelete={() => remove(f)}
           />
         ])} />
@@ -2588,7 +2654,7 @@ function Categories({ api, notify, data, submit, searchQuery = '' }) {
                 <article className="category-rank-card" key={c.id_categorie}>
                   <b>#{index + 1}</b>
                   <div className="category-rank-visual">
-                    {c.photo_url ? <img src={c.photo_url} alt="" /> : <div className="photo-placeholder">{c.nom?.slice(0, 2).toUpperCase() || 'CA'}</div>}
+                    <img src={categoryPhotoUrl(c, index)} alt="" />
                   </div>
                   <strong>{c.nom}</strong>
                   <em>Ref. {c.reference_categorie || c.id_categorie}</em>
@@ -2606,7 +2672,7 @@ function Categories({ api, notify, data, submit, searchQuery = '' }) {
           <Form onSubmit={save}>
             <Input label="Nom" value={form.nom} onChange={(nom) => setForm({ ...form, nom })} required />
             <Input label="Description" value={form.description} onChange={(description) => setForm({ ...form, description })} />
-            <PhotoInput label="Photo de la categorie" value={form.photo_url} onChange={(photo_url) => setForm({ ...form, photo_url })} />
+            <PhotoInput label="URL de la photo de la categorie" value={form.photo_url} onChange={(photo_url) => setForm({ ...form, photo_url })} />
             <button className="btn modal-submit">Enregistrer <ArrowRight size={20} /></button>
           </Form>
         </Modal>
@@ -2616,7 +2682,7 @@ function Categories({ api, notify, data, submit, searchQuery = '' }) {
           <Form onSubmit={saveEdit}>
             <Input label="Nom" value={editing.nom || ''} onChange={(nom) => setEditing({ ...editing, nom })} required />
             <Input label="Description" value={editing.description || ''} onChange={(description) => setEditing({ ...editing, description })} />
-            <PhotoInput label="Photo de la categorie" value={editing.photo_url || ''} onChange={(photo_url) => setEditing({ ...editing, photo_url })} />
+            <PhotoInput label="URL de la photo de la categorie" value={editing.photo_url || ''} onChange={(photo_url) => setEditing({ ...editing, photo_url })} />
             <button className="btn">Mettre a jour</button>
           </Form>
         </Modal>
@@ -2659,7 +2725,7 @@ function PhotoInput({ label, value, onChange }) {
   return (
     <label>{label}
       <div className="photo-input">
-        <input type="url" value={value || ''} onChange={(e) => onChange(e.target.value)} placeholder="Coller une URL ou importer une image" />
+        <input type="url" value={value || ''} onChange={(e) => onChange(e.target.value)} placeholder="Coller le lien de la photo" />
         <input type="file" accept="image/*" onChange={loadFile} />
         {value && (
           <div className="photo-preview">
