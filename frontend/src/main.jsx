@@ -1770,8 +1770,7 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
       <div className="panel product-market">
         <div className="panel-heading product-toolbar product-market-heading">
           <div>
-            <h3>Meilleures ventes du catalogue</h3>
-            <p>Produits classes selon le stock et les ventes de votre entreprise.</p>
+            <h3>Produits</h3>
           </div>
           <div className="actions">
             <SearchInput value={query} onChange={setQuery} placeholder="Rechercher produit ou categorie" />
@@ -1785,7 +1784,6 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
             {canManageProducts && <button className="btn secondary small" type="button" onClick={() => setStocking(true)}><Package size={16} /> Approvisionnement</button>}
           </div>
         </div>
-        {!canManageProducts && <div className="notice">Votre role permet de consulter les produits, sans ajout ni modification.</div>}
         <div className="product-market-layout">
           <aside className="category-market-nav">
             <strong>Categories</strong>
@@ -2028,11 +2026,32 @@ function Paiements({ api, notify, data, submit, searchQuery = '' }) {
   const [creating, setCreating] = useState(false);
   const [query, setQuery] = useState('');
   const [invoiceQuery, setInvoiceQuery] = useState('');
+  const [period, setPeriod] = useState('journalier');
+  const [dateRange, setDateRange] = useState({ debut: '', fin: '' });
   const filteredFactures = factures.filter((v) => `${v.numero_facture} ${v.client_nom || ''} ${v.reste_a_payer || ''}`.toLowerCase().includes(invoiceQuery.toLowerCase()));
   const selectedFacture = filteredFactures.find((v) => v.id_ventes === (form.vente_id || filteredFactures[0]?.id_ventes)) || factures.find((v) => v.id_ventes === form.vente_id);
   const mobileMoneyRequired = form.mode_paiement === 'mobile_money';
   const term = `${searchQuery} ${query}`.trim().toLowerCase();
-  const caisseRows = (data.extra.caisse || []).filter((r) => `${r.Date} ${r.Mode_Paiement} ${r.Total_Encaisse}`.toLowerCase().includes(term));
+  const byPeriod = (rows) => {
+    if (period !== 'personnalise') return filterRowsByPeriod(rows, period, ['Date']);
+    if (!dateRange.debut && !dateRange.fin) return rows;
+    const start = dateRange.debut ? new Date(`${dateRange.debut}T00:00:00`) : null;
+    const end = dateRange.fin ? new Date(`${dateRange.fin}T23:59:59`) : null;
+    return rows.filter((row) => {
+      const date = new Date(row.Date);
+      if (Number.isNaN(date.getTime())) return false;
+      if (start && date < start) return false;
+      if (end && date > end) return false;
+      return true;
+    });
+  };
+  const periodText = period === 'personnalise'
+    ? `${dateRange.debut || 'debut'} au ${dateRange.fin || 'fin'}`
+    : periodLabel(period);
+  const caisseRows = byPeriod(data.extra.caisse || [])
+    .filter((r) => `${r.Date} ${r.Mode_Paiement} ${r.Total_Encaisse}`.toLowerCase().includes(term));
+  const caisseTotal = caisseRows.reduce((sum, row) => sum + Number(row.Total_Encaisse || 0), 0);
+  const transactionsTotal = caisseRows.reduce((sum, row) => sum + Number(row.Nombre_Transactions || 0), 0);
   const savePayment = () => {
     if (mobileMoneyRequired && (!form.reference_externe.trim() || !form.telephone_payeur.trim())) {
       notify('Reference et numero obligatoires pour Mobile Money');
@@ -2051,9 +2070,24 @@ function Paiements({ api, notify, data, submit, searchQuery = '' }) {
     <div className="grid">
       <div className="panel">
         <div className="panel-heading client-toolbar">
-          <h3>Caisse du jour</h3>
+          <div>
+            <h3>Caisse {periodText.toLowerCase()}</h3>
+            <p>{transactionsTotal} transaction{transactionsTotal > 1 ? 's' : ''} - {moneySmart(caisseTotal)}</p>
+          </div>
           <div className="actions">
             <SearchInput value={query} onChange={setQuery} placeholder="Rechercher paiement" />
+            <select className="compact-filter" value={period} onChange={(event) => setPeriod(event.target.value)}>
+              <option value="journalier">Aujourd'hui</option>
+              <option value="hebdomadaire">Cette semaine</option>
+              <option value="mensuel">Ce mois</option>
+              <option value="personnalise">Du ... au ...</option>
+            </select>
+            {period === 'personnalise' && (
+              <>
+                <input className="date-filter" type="date" value={dateRange.debut} onChange={(event) => setDateRange({ ...dateRange, debut: event.target.value })} />
+                <input className="date-filter" type="date" value={dateRange.fin} onChange={(event) => setDateRange({ ...dateRange, fin: event.target.value })} />
+              </>
+            )}
             <button className="btn small" type="button" onClick={() => setCreating(true)}><Plus size={16} /> Nouveau paiement</button>
           </div>
         </div>

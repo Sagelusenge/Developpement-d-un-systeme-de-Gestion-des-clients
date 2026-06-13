@@ -4,8 +4,7 @@ export const getFournisseurs = async (req, res) => {
     try {
         const [rows] = await pool.query(
             `SELECT f.*,
-                    COUNT(m.id_mouvement) AS total_approvisionnements,
-                    IFNULL(SUM(m.quantite * IFNULL(m.prix_achat_unitaire, 0)), 0) AS total_achats
+                    COUNT(m.id_mouvement) AS total_approvisionnements
              FROM fournisseurs f
              LEFT JOIN mouvements_stock m ON m.fournisseur_id = f.id_fournisseur
              WHERE f.entreprise_id = ?
