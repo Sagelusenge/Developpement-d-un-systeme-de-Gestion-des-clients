@@ -675,7 +675,7 @@ function App() {
       </aside>
       <main className="main">
         <header className="topbar">
-          <button className="menu-button" type="button" onClick={() => setMobileMenuOpen(true)} aria-label="Ouvrir le menu">
+          <button className="menu-button" type="button" onClick={() => setMobileMenuOpen((open) => !open)} aria-label={mobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}>
             <Menu size={22} />
             <span>Menu</span>
           </button>
@@ -1174,22 +1174,6 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
           <KpiCard key={card.label} icon={card.icon} tone={card.tone} label={card.label} value={card.value} trend={card.trend} negative={card.negative} onClick={() => setPage?.(card.page)} />
         ))}
       </div>
-      {canSales && (
-        <div className="finance-explainer">
-          <div>
-            <strong>D'ou viennent ces montants ?</strong>
-            <span>Total vendu ce mois = total TTC des factures creees ce mois-ci.</span>
-            <span>Argent deja recu = paiements deja enregistres ce mois-ci.</span>
-            <span>Cout des produits vendus = quantite vendue x prix d'achat du produit.</span>
-          </div>
-          <div>
-            <strong>Calcul simple</strong>
-            <span>Gain du mois = ventes hors taxe - cout des produits vendus.</span>
-            <span>Une facture peut etre creee sans etre totalement payee, donc le total vendu et l'argent recu peuvent etre differents.</span>
-          </div>
-        </div>
-      )}
-
       {(canSales || canPayments) && (
         <div className="grid manager-mid">
           {canSales && (
