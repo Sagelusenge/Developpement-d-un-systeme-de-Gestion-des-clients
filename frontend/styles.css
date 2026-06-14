@@ -6842,4 +6842,56 @@ button:disabled {
   }
 }
 
+/* Restore the old desktop header balance: profile must stay fully visible. */
+@media (min-width: 1181px) {
+  .topbar,
+  .shell:not(.admin-shell) .topbar,
+  .admin-topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    max-width: none;
+    overflow: visible;
+    width: auto;
+  }
+
+  .topbar > .search-field,
+  .shell:not(.admin-shell) .topbar > .search-field,
+  .admin-topbar > .search-field {
+    grid-column: 1;
+    justify-self: start;
+    max-width: 620px;
+    min-width: min(560px, 42vw);
+    width: 100%;
+  }
+
+  .toolbar {
+    grid-column: 2;
+    justify-self: end;
+    min-width: max-content;
+    overflow: visible;
+  }
+
+  .toolbar .user-card,
+  .user-card {
+    flex: 0 0 auto;
+    max-width: none;
+    min-width: 250px;
+    overflow: visible;
+  }
+
+  .user-card > div {
+    min-width: 0;
+  }
+
+  .user-card strong,
+  .user-card span {
+    max-width: 190px;
+  }
+
+  .avatar,
+  .profile-button {
+    flex: 0 0 auto;
+  }
+}
+
 
