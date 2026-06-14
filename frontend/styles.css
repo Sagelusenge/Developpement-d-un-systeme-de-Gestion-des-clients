@@ -6584,4 +6584,95 @@ button:disabled {
   }
 }
 
+/* Final direct-sale modal guard: no horizontal scrollbar, no forced centering. */
+.quote-modal {
+  overflow-x: hidden;
+}
+
+.quote-modal,
+.quote-modal label,
+.quote-modal input,
+.quote-modal select,
+.quote-modal .quote-product-picker,
+.quote-modal .quote-product-picker span,
+.quote-modal .quote-line-item,
+.quote-modal .quote-line-item > div:first-child,
+.quote-modal .line-qty,
+.quote-modal .line-result {
+  text-align: left;
+}
+
+.quote-modal label,
+.quote-modal .line-qty label {
+  align-items: stretch;
+  justify-items: stretch;
+}
+
+.quote-modal input,
+.quote-modal select {
+  text-align: left;
+  text-align-last: auto;
+}
+
+.quote-modal .quote-product-picker {
+  align-items: end;
+}
+
+.quote-modal .quote-product-picker span {
+  text-align: center;
+}
+
+.quote-modal .quote-line-list {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.quote-modal .quote-line-item {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.quote-modal .line-qty {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.quote-modal .line-result {
+  justify-items: start;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .quote-modal .quote-line-item {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .quote-modal .line-qty {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    width: 100%;
+  }
+
+  .quote-modal .line-result {
+    width: 100%;
+  }
+
+  .quote-modal .line-qty .action.delete {
+    justify-self: start;
+    width: 42px;
+  }
+}
+
+@media (max-width: 560px) {
+  .quote-modal {
+    padding: 16px 12px;
+  }
+
+  .quote-modal .quote-product-picker,
+  .quote-modal .line-qty {
+    grid-template-columns: 1fr;
+  }
+}
+
 
