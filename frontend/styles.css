@@ -6783,7 +6783,7 @@ button:disabled {
 }
 
 .page-dashboard .main > .manager-dashboard {
-  max-width: 1280px;
+  max-width: 1160px;
 }
 
 .manager-dashboard,
@@ -6802,13 +6802,36 @@ button:disabled {
   width: 100%;
 }
 
+.page-dashboard .manager-dashboard {
+  gap: 24px;
+}
+
+.page-dashboard .manager-kpis {
+  gap: 18px;
+}
+
+.page-dashboard .manager-mid {
+  gap: 24px;
+  grid-template-columns: minmax(0, 1.9fr) minmax(300px, 0.8fr);
+}
+
+.page-dashboard .manager-kpis .kpi-card {
+  min-height: 170px;
+  padding: 22px;
+}
+
+.page-dashboard .manager-chart-panel,
+.page-dashboard .payment-panel {
+  min-height: 390px;
+}
+
 @media (min-width: 1500px) {
   .main > :not(.topbar) {
-    max-width: 1320px;
+    max-width: 1220px;
   }
 
   .page-dashboard .main > .manager-dashboard {
-    max-width: 1320px;
+    max-width: 1160px;
   }
 }
 
