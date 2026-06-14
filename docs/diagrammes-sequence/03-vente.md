@@ -1,6 +1,6 @@
 # Prompt draw.io - Vente / Facture
 
-Crée un diagramme de séquence UML propre et lisible intitulé "Vente et calcul bénéfice/perte - Quincaillerie Centrale".
+Crée un diagramme de séquence UML propre et lisible intitulé "Vente et calcul gain/perte - Quincaillerie Centrale".
 
 Acteurs et composants:
 - Caissier
@@ -15,8 +15,8 @@ Scénario:
 3. Le caissier sélectionne un client.
 4. Le caissier ajoute un ou plusieurs produits.
 5. Pour chaque ligne, le caissier saisit quantité et prix de vente unitaire.
-6. Le Frontend Web affiche le total ligne et le bénéfice estimé:
-   `bénéfice = (prix_vente_unitaire - prix_achat_unitaire) * quantité`.
+6. Le Frontend Web affiche le total ligne et le gain estimé:
+   `gain = (prix_vente_unitaire - prix_achat_unitaire) * quantité`.
 7. Le Frontend Web envoie `POST /api/ventes`.
 8. Le Middleware JWT vérifie le token et le rôle manager/caissier.
 9. Le Backend API vérifie le client.

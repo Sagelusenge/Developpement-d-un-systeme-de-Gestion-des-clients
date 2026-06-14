@@ -1243,7 +1243,7 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
           <div className="panel-heading">
             <h3>Resultat mensuel</h3>
             <span className={`panel-pill ${Number(stats.resultat_mois || 0) >= 0 ? 'ok' : 'danger'}`}>
-              {Number(stats.resultat_mois || 0) >= 0 ? 'Benefice mois en cours' : 'Perte mois en cours'} {moneySmart(stats.resultat_mois)}
+              {Number(stats.resultat_mois || 0) >= 0 ? 'Gain du mois' : 'Perte du mois'} {moneySmart(stats.resultat_mois)}
             </span>
           </div>
           <div className="result-summary-grid">
@@ -1562,7 +1562,7 @@ function LineEditor({ lignes, setLignes, produits }) {
                 <span>Total</span>
                 <strong>{moneySmart(totalLigne)}</strong>
                 <small className={resultatLigne >= 0 ? 'profit' : 'loss'}>
-                  {resultatLigne >= 0 ? 'Benefice' : 'Perte'} {moneySmart(resultatLigne)}
+                  {resultatLigne >= 0 ? 'Gain' : 'Perte'} {moneySmart(resultatLigne)}
                   <span className="unit-profit"> ({moneySmart(prixVente - prixAchat)} x {quantite})</span>
                 </small>
               </div>
@@ -2237,7 +2237,7 @@ function Rapports({ data, searchQuery = '', user }) {
           {canCashReports && <Stat label="Lignes caisse" value={caisse.length} />}
           {canStockReports && <Stat label="Produits en stock" value={stock.length} />}
           {canStockReports && <Stat label="Valeur stock (Achat)" value={moneySmart(stockValue)} />}
-          {canSalesReports && <Stat label={Number(bilan.resultat || 0) >= 0 ? 'Benefice' : 'Perte'} value={moneySmart(bilan.resultat)} />}
+          {canSalesReports && <Stat label={Number(bilan.resultat || 0) >= 0 ? 'Gain' : 'Perte'} value={moneySmart(bilan.resultat)} />}
           {canStockReports && <Stat label="A surveiller" value={stockRisks} />}
         </div>
       </div>

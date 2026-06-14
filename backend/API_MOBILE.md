@@ -1,4 +1,4 @@
-# Documentation API Mobile - Quincaillerie Centrale
+﻿# Documentation API Mobile - Quincaillerie Centrale
 
 Ce document sert de guide complet pour developper l'application mobile.
 
@@ -777,8 +777,7 @@ Reponse 200:
       "email": "contact@fournisseur.cd",
       "adresse": "Lubumbashi",
       "created_at": "2026-06-11T10:00:00.000Z",
-      "total_approvisionnements": 4,
-      "total_achats": 1200
+      "total_approvisionnements": 4
     }
   ]
 }
@@ -1201,7 +1200,7 @@ Notes de calcul:
 - `ventes_ht_mois`: total HT des lignes vendues pendant le mois.
 - `cout_achat_mois`: cout d'achat des produits vendus.
 - `resultat_mois`: `ventes_ht_mois - cout_achat_mois`.
-- Une facture totalement payee peut faire que `ca_mois_en_cours` et `argent_recu_mois` soient identiques. Le benefice reste different, car il depend du cout d'achat.
+- Une facture totalement payee peut faire que `ca_mois_en_cours` et `argent_recu_mois` soient identiques. Le gain reste different, car il depend du cout d'achat.
 
 ## Ventes mensuelles
 
@@ -1978,17 +1977,18 @@ POST   /mail/notify-team
 
 ---
 
-# 🖨️ Impression
+# ðŸ–¨ï¸ Impression
 
-Ces endpoints sont utilisés pour récupérer les données structurées nécessaires à la génération de factures (PDF) ou de rapports imprimables.
+Ces endpoints sont utilisÃ©s pour rÃ©cupÃ©rer les donnÃ©es structurÃ©es nÃ©cessaires Ã  la gÃ©nÃ©ration de factures (PDF) ou de rapports imprimables.
 
 ## Impression d'une facture
-`GET /api/ventes/:id` : Renvoie les détails complets (Client, Articles, Totaux, Paiements).
+`GET /api/ventes/:id` : Renvoie les dÃ©tails complets (Client, Articles, Totaux, Paiements).
 
 ## Impression d'un rapport
-`GET /api/rapports/stock-inventaire` : État du stock avec quantités et valeurs.
-`GET /api/rapports/bilan` : Résumé financier (Ventes, Achats, Bénéfice).
-`GET /api/rapports/journal` : Journal des opérations.
+`GET /api/rapports/stock-inventaire` : Ã‰tat du stock avec quantitÃ©s et valeurs.
+`GET /api/rapports/bilan` : RÃ©sumÃ© financier (Ventes, Achats, BÃ©nÃ©fice).
+`GET /api/rapports/journal` : Journal des opÃ©rations.
 `GET /api/rapports/livre-caisse` : Journal des encaissements.
 `GET /api/rapports/creances` : Liste des dettes clients.
 `GET /api/rapports/top-acheteurs` : Classement des clients.
+
