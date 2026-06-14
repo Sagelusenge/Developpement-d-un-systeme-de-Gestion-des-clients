@@ -6773,4 +6773,50 @@ button:disabled {
   }
 }
 
+/* Final content centering: keep pages balanced inside the main area. */
+.main > :not(.topbar) {
+  box-sizing: border-box;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 1280px;
+  width: 100%;
+}
+
+.page-dashboard .main > .manager-dashboard {
+  max-width: 1280px;
+}
+
+.manager-dashboard,
+.manager-kpis,
+.manager-mid,
+.manager-bottom,
+.report-page,
+.product-market,
+.category-market {
+  min-width: 0;
+}
+
+.manager-kpis,
+.manager-mid,
+.manager-bottom {
+  width: 100%;
+}
+
+@media (min-width: 1500px) {
+  .main > :not(.topbar) {
+    max-width: 1320px;
+  }
+
+  .page-dashboard .main > .manager-dashboard {
+    max-width: 1320px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .main > :not(.topbar),
+  .page-dashboard .main > .manager-dashboard {
+    max-width: 100%;
+  }
+}
+
 
