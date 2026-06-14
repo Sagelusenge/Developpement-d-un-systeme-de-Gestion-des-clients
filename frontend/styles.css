@@ -5179,6 +5179,284 @@ button:disabled {
   }
 }
 
+/* Delivery responsive fixes: these rules intentionally win over older mobile passes. */
+@media (max-width: 1120px) {
+  .table-wrap {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-wrap table {
+    min-width: 760px;
+  }
+}
+
+@media (max-width: 900px) {
+  html,
+  body,
+  #app {
+    overflow-x: hidden;
+  }
+
+  .sidebar,
+  .shell:not(.admin-shell) .sidebar,
+  .admin-shell .sidebar {
+    bottom: 0;
+    box-shadow: 18px 0 44px rgba(5, 13, 32, 0.26);
+    height: auto;
+    left: 0;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 18px 16px;
+    position: fixed;
+    right: 0;
+    top: 120px;
+    transform: translateX(-105%);
+    transition: transform 220ms ease;
+    width: 100%;
+    z-index: 90;
+  }
+
+  .page-dashboard .sidebar,
+  .page-dashboard.shell:not(.admin-shell) .sidebar,
+  .page-dashboard.admin-shell .sidebar {
+    top: 62px;
+  }
+
+  .sidebar.mobile-open,
+  .shell:not(.admin-shell) .sidebar.mobile-open,
+  .admin-shell .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-scrim {
+    top: 120px;
+  }
+
+  .page-dashboard .sidebar-scrim {
+    top: 62px;
+  }
+
+  .nav,
+  .shell:not(.admin-shell) .nav {
+    display: grid;
+    grid-template-columns: 1fr;
+    overflow: visible;
+  }
+
+  .nav button,
+  .nav-logout,
+  .shell:not(.admin-shell) .nav button,
+  .shell:not(.admin-shell) .nav-logout {
+    width: 100%;
+  }
+
+  .menu-open .menu-button {
+    left: auto;
+    position: fixed;
+    right: 14px;
+    top: 132px;
+    transform: none;
+    z-index: 120;
+  }
+
+  .page-dashboard.menu-open .menu-button {
+    top: 74px;
+  }
+
+  .topbar,
+  .shell:not(.admin-shell) .topbar,
+  .admin-topbar {
+    align-items: center;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    position: sticky;
+  }
+
+  .toolbar {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    width: auto;
+  }
+
+  .toolbar .user-card {
+    align-items: center;
+    flex-direction: row;
+    justify-content: flex-end;
+    width: auto;
+  }
+
+  .toolbar .user-card > div {
+    display: none;
+  }
+
+  .panel-heading,
+  .panel-heading .actions,
+  .client-toolbar,
+  .product-toolbar,
+  .product-toolbar .actions,
+  .category-market-heading,
+  .category-market-heading .actions {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .table-wrap {
+    border-radius: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-wrap table {
+    border-collapse: collapse;
+    display: table;
+    min-width: 760px;
+    width: 100%;
+  }
+
+  .table-wrap thead {
+    display: table-header-group;
+  }
+
+  .table-wrap tbody {
+    display: table-row-group;
+  }
+
+  .table-wrap tr {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    display: table-row;
+    margin: 0;
+    overflow: visible;
+  }
+
+  .table-wrap th,
+  .table-wrap td {
+    border-bottom: 1px solid var(--line);
+    display: table-cell;
+    font-size: 14px;
+    min-width: 0;
+    padding: 12px 14px;
+    vertical-align: middle;
+    width: auto;
+  }
+
+  .table-wrap td::before {
+    content: none;
+    display: none;
+  }
+
+  .product-rank-list,
+  .category-rank-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .product-rank-card,
+  .category-rank-card {
+    min-width: 0;
+  }
+
+  .product-rank-visual {
+    aspect-ratio: 4 / 3;
+    height: auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .product-rank-visual img {
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
+  }
+
+  .quote-modal {
+    max-width: min(100%, 920px);
+  }
+
+  .quote-modal .modal-title,
+  .quote-modal h2 {
+    text-align: center;
+  }
+
+  .quote-line-item {
+    align-items: center;
+    grid-template-columns: minmax(180px, 1fr) minmax(360px, 1.25fr);
+  }
+
+  .line-qty {
+    align-items: end;
+    grid-template-columns: minmax(96px, 0.6fr) minmax(150px, 1fr) minmax(100px, 0.7fr) auto;
+  }
+
+  .line-qty label,
+  .line-qty input {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .modal-backdrop {
+    align-items: flex-start;
+    overflow: auto;
+    padding: 10px;
+  }
+
+  .quote-modal {
+    margin-inline: auto;
+    max-width: 100%;
+    padding: 18px 14px;
+  }
+
+  .quote-product-picker {
+    grid-template-columns: 1fr;
+  }
+
+  .quote-line-list {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .quote-line-item {
+    grid-template-columns: minmax(190px, 0.9fr) minmax(420px, 1.5fr);
+    min-width: 650px;
+  }
+
+  .product-rank-list,
+  .category-rank-list {
+    gap: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .product-rank-card,
+  .category-rank-card {
+    padding: 10px;
+  }
+
+  .product-rank-card strong,
+  .category-rank-card strong {
+    font-size: 13px;
+  }
+
+  .product-rank-card p {
+    font-size: 11px;
+  }
+
+  .toast {
+    bottom: auto;
+    left: 12px;
+    max-width: calc(100vw - 24px);
+    right: 12px;
+    top: 12px;
+    z-index: 2000;
+  }
+}
+
 .finance-explainer {
   align-items: stretch;
   background: #f8fafc;

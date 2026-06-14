@@ -1056,9 +1056,9 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
         tasks.push(api('/rapports/factures').then((r) => { next.extra.factures = r.data || []; }).catch(() => {}));
         tasks.push(api('/rapports/creances').then((r) => { next.extra.creances = r.data || []; }).catch(() => {}));
         tasks.push(api('/rapports/stock-inventaire').then((r) => { next.extra.stock = r.data || []; }).catch(() => {}));
+        tasks.push(api('/produits/mouvements-recents').then((r) => { next.extra.mouvementsStock = r.data || []; }).catch(() => {}));
         tasks.push(api('/rapports/top-acheteurs').then((r) => { next.extra.top = r.data || []; }).catch(() => {}));
         tasks.push(api('/paiements/rapport-caisse').then((r) => { next.extra.caisse = r.data || []; }).catch(() => {}));
-        tasks.push(api('/rapports/bilan').then((r) => { next.extra.bilan = r.data || {}; }).catch(() => {}));
         tasks.push(api('/rapports/journal').then((r) => { next.extra.journal = r.data || []; }).catch(() => {}));
         tasks.push(api('/rapports/livre-caisse').then((r) => { next.extra.livreCaisse = r.data || []; }).catch(() => {}));
       }
@@ -1479,15 +1479,14 @@ function LineEditor({ lignes, setLignes, produits }) {
   }, [lignes, produits]);
 
   const updateQuantity = (produit_id, quantite) => {
-    const safeQuantity = Math.max(1, Number(quantite || 1));
+    const safeQuantity = quantite === '' ? '' : Math.max(1, Number(quantite || 1));
     setLignes(normalizeLines(activeLines.map((ligne) => (
       ligne.produit_id === produit_id ? { ...ligne, quantite: safeQuantity } : ligne
     ))));
   };
   const updatePrice = (produit_id, prix) => {
-    const safePrice = Number(prix);
     setLignes(normalizeLines(activeLines.map((ligne) => (
-      ligne.produit_id === produit_id ? { ...ligne, prix: Number.isFinite(safePrice) ? safePrice : '' } : ligne
+      ligne.produit_id === produit_id ? { ...ligne, prix } : ligne
     ))));
   };
   const remove = (produit_id) => setLignes(normalizeLines(activeLines.filter((ligne) => ligne.produit_id !== produit_id)));
@@ -1544,6 +1543,7 @@ function LineEditor({ lignes, setLignes, produits }) {
       {activeLines.length ? activeLines.map((ligne, index) => {
         const selectedProduct = produits.find((p) => p.id_produit === ligne.produit_id);
         const prixVente = salePriceForLine(ligne, selectedProduct);
+        const prixInputValue = ligne.prix ?? selectedProduct?.prix_ht ?? '';
         const quantite = Math.max(1, Number(ligne.quantite || 1));
         const prixAchat = Number(selectedProduct?.prix_achat || 0);
         const totalLigne = prixVente * quantite;
@@ -1557,7 +1557,7 @@ function LineEditor({ lignes, setLignes, produits }) {
             </div>
             <div className="line-qty">
               <Input label="Quantite" type="number" min="1" value={ligne.quantite} onChange={(quantite) => updateQuantity(ligne.produit_id, quantite)} />
-              <Input label="Prix vente unitaire" type="number" min="0" step="0.01" value={prixVente} onChange={(prix) => updatePrice(ligne.produit_id, prix)} />
+              <Input label="Prix vente unitaire" type="number" min="0" step="0.01" value={prixInputValue} onChange={(prix) => updatePrice(ligne.produit_id, prix)} />
               <div className="line-result">
                 <span>Total</span>
                 <strong>{moneySmart(totalLigne)}</strong>
@@ -2195,7 +2195,8 @@ function Rapports({ data, searchQuery = '', user }) {
   const caisse = byPeriod(source.caisse || [], ['Date']).filter((r) => !term || `${r.Date} ${r.Mode_Paiement} ${r.Total_Encaisse}`.toLowerCase().includes(term));
   const journal = byPeriod(source.journal || [], ['date_operation']).filter((r) => !term || `${r.reference} ${r.libelle || ''} ${r.type_operation || ''}`.toLowerCase().includes(term));
   const livreCaisse = byPeriod(source.livreCaisse || [], ['date_paiement']).filter((r) => !term || `${r.numero_facture} ${r.client_nom || ''} ${r.mode_paiement || ''}`.toLowerCase().includes(term));
-  const bilan = source.bilan || {};
+  const mouvementsStock = byPeriod(source.mouvementsStock || [], ['date_mouvement'])
+    .filter((r) => !term || `${r.produit_nom || ''} ${r.reference_produit || ''} ${r.type_mouvement || ''} ${r.fournisseur_nom || ''}`.toLowerCase().includes(term));
   const stockValue = stock.reduce((sum, row) => sum + Number(row.valeur_stock_achat || 0), 0);
   const stockRisks = stock.filter((row) => String(row.statut || '').toUpperCase() !== 'OK').length;
   const reportTitle = role === 'magasinier' ? 'Rapports produits' : role === 'caissier' ? 'Rapports caisse' : 'Rapports';
@@ -2237,14 +2238,12 @@ function Rapports({ data, searchQuery = '', user }) {
           {canCashReports && <Stat label="Lignes caisse" value={caisse.length} />}
           {canStockReports && <Stat label="Produits en stock" value={stock.length} />}
           {canStockReports && <Stat label="Valeur stock (Achat)" value={moneySmart(stockValue)} />}
-          {canSalesReports && <Stat label={Number(bilan.resultat || 0) >= 0 ? 'Gain' : 'Perte'} value={moneySmart(bilan.resultat)} />}
           {canStockReports && <Stat label="A surveiller" value={stockRisks} />}
         </div>
       </div>
       {canSalesReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Dettes clients</h3><button className="btn print" onClick={() => printRows(`Dettes clients - ${periodText}`, ['Facture', 'Client', 'Du', 'Paye', 'Reste'], creances.map((r) => [r.numero_facture, r.client_nom, moneySmart(r.montant_du), moneySmart(r.montant_paye), moneySmart(r.reste_a_payer)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Facture', 'Client', 'Du', 'Paye', 'Reste']} rows={creances.map((r) => [r.numero_facture, r.client_nom, moneySmart(r.montant_du), moneySmart(r.montant_paye), moneySmart(r.reste_a_payer)])} /></div>}
       {canSalesReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Ventes</h3><button className="btn print" onClick={() => printRows('Ventes', ['Facture', 'Client', 'Montant', 'Reste'], factures.map((r) => [r.numero_facture, `${r.client_nom} ${r.client_postnom || ''}`, moneySmart(r.montant_ttc), moneySmart(r.reste_a_payer)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Facture', 'Client', 'Montant', 'Reste']} rows={factures.map((r) => [r.numero_facture, `${r.client_nom} ${r.client_postnom || ''}`, moneySmart(r.montant_ttc), moneySmart(r.reste_a_payer)])} /></div>}
       {canCashReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Livre de caisse</h3><button className="btn print" onClick={() => printRows(`Livre de caisse - ${periodText}`, ['Date', 'Facture', 'Client', 'Mode', 'Montant'], livreCaisse.map((r) => [formatDate(r.date_paiement), r.numero_facture, r.client_nom, r.mode_paiement, moneySmart(r.montant)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Date', 'Facture', 'Client', 'Mode', 'Montant']} rows={livreCaisse.map((r) => [formatDate(r.date_paiement), r.numero_facture, r.client_nom, r.mode_paiement, moneySmart(r.montant)])} /></div>}
-      {canSalesReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Bilan</h3><button className="btn print" onClick={() => printRows(`Bilan - ${periodText}`, ['Ventes HT', 'Cout achat', 'Resultat', 'Factures'], [[moneySmart(bilan.ventes_ht), moneySmart(bilan.cout_achat), moneySmart(bilan.resultat), bilan.total_factures || 0]])}><Printer size={18} /> Imprimer</button></div><Table headers={['Ventes HT', 'Cout achat', 'Resultat', 'Factures']} rows={[[moneySmart(bilan.ventes_ht), moneySmart(bilan.cout_achat), <Badge>{Number(bilan.resultat || 0) >= 0 ? moneySmart(bilan.resultat) : moneySmart(bilan.resultat)}</Badge>, bilan.total_factures || 0]]} /></div>}
       {canSalesReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Journal</h3><button className="btn print" onClick={() => printRows(`Journal - ${periodText}`, ['Date', 'Reference', 'Libelle', 'Entree', 'Sortie'], journal.map((r) => [formatDate(r.date_operation), r.reference, r.libelle, moneySmart(r.entree), moneySmart(r.sortie)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Date', 'Reference', 'Libelle', 'Entree', 'Sortie']} rows={journal.map((r) => [formatDate(r.date_operation), r.reference, r.libelle, moneySmart(r.entree), moneySmart(r.sortie)])} /></div>}
       <div className="grid report-detail-grid">
         {canStockReports && <div className="panel report-table-panel inventory-panel">
@@ -2253,6 +2252,13 @@ function Rapports({ data, searchQuery = '', user }) {
             <button className="btn print" onClick={() => printTableDocument('Fiche de stock', ['Produit', 'Stock', 'P. Achat (CMP)', 'Valeur (Achat)', 'Statut'], stock.map((r) => [r.nom, `${r.quantite_stock} ${r.unite || ''}`, moneySmart(r.prix_achat_moyen), moneySmart(r.valeur_stock_achat), r.statut]), { badge: 'INVENTAIRE', period: 'Inventaire courant', tableTitle: 'Etat du stock detaille' })}><Printer size={18} /> Imprimer</button>
           </div>
           <Table headers={['Produit', 'Stock', 'P. Achat (CMP)', 'Valeur (Achat)', 'Statut']} rows={stock.map((r) => [r.nom, `${r.quantite_stock} ${r.unite || ''}`, moneySmart(r.prix_achat_moyen), moneySmart(r.valeur_stock_achat), <Badge>{r.statut}</Badge>])} />
+        </div>}
+        {canStockReports && <div className="panel report-table-panel stock-movement-panel">
+          <div className="panel-heading">
+            <h3>Etat des mouvements stock</h3>
+            <button className="btn print" onClick={() => printRows(`Mouvements stock - ${periodText}`, ['Date', 'Produit', 'Type', 'Qte', 'PU achat', 'Total achat', 'Fournisseur'], mouvementsStock.map((r) => [formatDate(r.date_mouvement), r.produit_nom, r.type_mouvement === 'entree' ? 'Entree' : 'Sortie', r.quantite, moneySmart(r.prix_achat_unitaire), moneySmart(r.prix_achat_total), r.fournisseur_nom || '-']))}><Printer size={18} /> Imprimer</button>
+          </div>
+          <Table headers={['Date', 'Produit', 'Type', 'Qte', 'PU achat', 'Total achat', 'Fournisseur']} rows={mouvementsStock.map((r) => [formatDate(r.date_mouvement), r.produit_nom, <Badge>{r.type_mouvement === 'entree' ? 'Entree' : 'Sortie'}</Badge>, r.quantite, r.prix_achat_unitaire !== null && r.prix_achat_unitaire !== undefined ? moneySmart(r.prix_achat_unitaire) : '-', r.prix_achat_total !== null && r.prix_achat_total !== undefined ? moneySmart(r.prix_achat_total) : '-', r.fournisseur_nom || '-'])} />
         </div>}
         {canSalesReports && <div className="panel">
           <div className="panel-heading">
