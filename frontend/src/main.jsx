@@ -2009,7 +2009,7 @@ function Ventes({ api, notify, data, submit, searchQuery = '' }) {
         </Modal>
       )}
       {editing && (
-        <Modal title="Modifier facture" onClose={() => setEditing(null)}>
+        <Modal title="Modifier facture" onClose={() => setEditing(null)} className="quote-modal">
           <Form onSubmit={saveEdit}>
             <SearchableSelect label="Client" value={editing.client_id} onChange={(client_id) => setEditing({ ...editing, client_id })} options={data.clients.map((c) => [c.id_client, `${c.nom} ${c.postnom || ''} ${c.telephone || ''}`])} placeholder="Rechercher client, postnom ou telephone" />
             <LineEditor lignes={editing.lignes} setLignes={(lignes) => setEditing({ ...editing, lignes })} produits={data.produits} />
