@@ -162,6 +162,50 @@ button {
   padding: 0 28px 34px;
 }
 
+/* Desktop stability: sidebar must never scroll away, content starts after it. */
+@media (min-width: 1181px) {
+  .shell:not(.admin-shell) {
+    display: block;
+    min-height: 100vh;
+    width: 100%;
+  }
+
+  .shell:not(.admin-shell) .sidebar {
+    bottom: 0;
+    height: 100vh;
+    left: 0;
+    min-height: 100vh;
+    overflow-y: auto;
+    position: fixed;
+    top: 0;
+    width: 236px;
+    z-index: 30;
+  }
+
+  .shell:not(.admin-shell) .main {
+    margin-left: 236px;
+    min-height: 100vh;
+    width: calc(100% - 236px);
+  }
+
+  .shell:not(.admin-shell) .topbar {
+    left: 236px;
+    margin-left: -18px;
+    margin-right: -18px;
+    right: 0;
+    width: auto;
+  }
+
+  .shell:not(.admin-shell) .panel,
+  .shell:not(.admin-shell) .content-heading,
+  .shell:not(.admin-shell) .manager-dashboard,
+  .shell:not(.admin-shell) .report-page,
+  .shell:not(.admin-shell) .product-market,
+  .shell:not(.admin-shell) .category-market {
+    max-width: 100%;
+  }
+}
+
 .topbar {
   align-items: center;
   background: rgba(13, 21, 36, 0.92);
@@ -7044,6 +7088,60 @@ button:disabled {
   th,
   td {
     padding: 14px 16px;
+  }
+}
+
+/* Final desktop fix: fixed sidebar and normal content position. */
+@media (min-width: 1181px) {
+  .shell:not(.admin-shell) {
+    display: block;
+    min-height: 100vh;
+    width: 100%;
+  }
+
+  .shell:not(.admin-shell) .sidebar {
+    bottom: 0;
+    height: 100vh;
+    left: 0;
+    min-height: 100vh;
+    overflow-y: auto;
+    position: fixed;
+    top: 0;
+    transform: none;
+    width: 236px;
+    z-index: 30;
+  }
+
+  .shell:not(.admin-shell) .main {
+    margin-left: 236px;
+    min-height: 100vh;
+    overflow-x: visible;
+    padding-top: 63px;
+    padding-left: 18px;
+    padding-right: 18px;
+    width: calc(100% - 236px);
+  }
+
+  .shell:not(.admin-shell) .topbar {
+    left: 236px;
+    margin: 0;
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: auto;
+    z-index: 20;
+  }
+
+  .shell:not(.admin-shell) .content-heading,
+  .shell:not(.admin-shell) .panel,
+  .shell:not(.admin-shell) .manager-dashboard,
+  .shell:not(.admin-shell) .report-page,
+  .shell:not(.admin-shell) .product-market,
+  .shell:not(.admin-shell) .category-market {
+    margin-left: 0;
+    margin-right: 0;
+    max-width: none;
+    width: 100%;
   }
 }
 
