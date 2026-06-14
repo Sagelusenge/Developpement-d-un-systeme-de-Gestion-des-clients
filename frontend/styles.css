@@ -5465,13 +5465,33 @@ button:disabled {
   }
 
   .quote-line-list {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow-x: visible;
   }
 
   .quote-line-item {
-    grid-template-columns: minmax(190px, 0.9fr) minmax(420px, 1.5fr);
-    min-width: 650px;
+    gap: 14px;
+    grid-template-columns: 1fr;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .quote-line-item > div:first-child {
+    width: 100%;
+  }
+
+  .quote-modal .line-qty {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .quote-modal .line-result {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .quote-modal .line-qty .action.delete {
+    justify-self: center;
+    width: 42px;
   }
 
   .product-rank-list,
