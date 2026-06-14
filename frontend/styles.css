@@ -158,6 +158,7 @@ button {
 
 .main {
   min-width: 0;
+  overflow-x: hidden;
   padding: 0 28px 34px;
 }
 
@@ -175,6 +176,9 @@ button {
   top: 0;
   z-index: 10;
   backdrop-filter: blur(14px);
+  box-sizing: border-box;
+  max-width: calc(100vw - 280px);
+  overflow: hidden;
 }
 
 body.theme-light .topbar {
@@ -223,8 +227,10 @@ body.theme-light .topbar {
 .toolbar {
   align-items: center;
   display: flex;
+  flex: 0 0 auto;
   gap: 12px;
   margin-left: auto;
+  min-width: 0;
 }
 
 .notification-wrap {
@@ -349,11 +355,16 @@ body.theme-light .topbar {
 .user-card {
   align-items: center;
   border-left: 1px solid var(--line);
+  flex: 0 1 260px;
   display: flex;
   gap: 14px;
-  min-width: 240px;
+  min-width: 0;
   padding-left: 20px;
   text-align: right;
+}
+
+.user-card > div {
+  min-width: 0;
 }
 
 .user-card strong {
@@ -361,7 +372,7 @@ body.theme-light .topbar {
   display: block;
   font-size: 15px;
   font-weight: 900;
-  max-width: 210px;
+  max-width: 190px;
   overflow: hidden;
   text-overflow: ellipsis;
   text-transform: uppercase;
@@ -373,6 +384,10 @@ body.theme-light .topbar {
   display: block;
   font-size: 15px;
   margin-top: 6px;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .avatar {
@@ -6667,6 +6682,89 @@ button:disabled {
 @media (max-width: 560px) {
   .quote-modal {
     padding: 16px 12px;
+  }
+
+  .quote-modal .quote-product-picker,
+  .quote-modal .line-qty {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Final layout safety for header and sale popups. */
+.topbar {
+  min-width: 0;
+}
+
+.topbar > .search-field {
+  flex: 1 1 520px;
+  max-width: min(620px, 42vw);
+  min-width: 180px;
+}
+
+.toolbar {
+  min-width: max-content;
+}
+
+.toolbar .user-card {
+  max-width: 280px;
+}
+
+.modal {
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.quote-modal {
+  box-sizing: border-box;
+  max-width: min(920px, calc(100vw - 24px));
+  width: min(920px, calc(100vw - 24px));
+}
+
+.quote-modal form,
+.quote-modal .form,
+.quote-modal .line-editor,
+.quote-modal .quote-product-picker,
+.quote-modal .quote-line-list,
+.quote-modal .quote-line-item,
+.quote-modal .line-qty {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.quote-modal .quote-line-item {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.quote-modal .line-qty {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.quote-modal .line-result {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.quote-modal .modal-submit,
+.quote-modal .btn {
+  max-width: 100%;
+}
+
+@media (max-width: 1180px) {
+  .topbar {
+    max-width: 100vw;
+  }
+
+  .topbar > .search-field {
+    max-width: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .quote-modal {
+    max-width: calc(100vw - 16px);
+    padding: 18px 14px;
+    width: calc(100vw - 16px);
   }
 
   .quote-modal .quote-product-picker,
