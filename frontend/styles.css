@@ -782,6 +782,53 @@ tr:last-child td {
   max-width: 840px;
 }
 
+.quote-modal,
+.quote-modal label,
+.quote-modal input,
+.quote-modal select,
+.quote-modal .quote-product-picker,
+.quote-modal .quote-product-picker span,
+.quote-modal .quote-line-item,
+.quote-modal .quote-line-item > div:first-child,
+.quote-modal .line-qty,
+.quote-modal .line-result {
+  text-align: center;
+}
+
+.quote-modal label {
+  align-items: center;
+}
+
+.quote-modal input,
+.quote-modal select {
+  text-align: center;
+  text-align-last: center;
+}
+
+.quote-modal .quote-product-picker {
+  align-items: center;
+}
+
+.quote-modal .quote-line-item {
+  align-items: center;
+}
+
+.quote-modal .quote-line-item > div:first-child {
+  justify-items: center;
+}
+
+.quote-modal .line-qty {
+  align-items: center;
+}
+
+.quote-modal .line-qty label {
+  justify-items: center;
+}
+
+.quote-modal .line-result {
+  justify-items: center;
+}
+
 .quote-form {
   display: grid;
   gap: 14px;
