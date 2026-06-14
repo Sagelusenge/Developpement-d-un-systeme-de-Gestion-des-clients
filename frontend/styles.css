@@ -6894,4 +6894,157 @@ button:disabled {
   }
 }
 
+/* Global delivery reset: restore the compact CRM layout on desktop. */
+@media (min-width: 1181px) {
+  html,
+  body,
+  #root {
+    max-width: 100%;
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  .shell,
+  .shell:not(.admin-shell) {
+    display: grid;
+    grid-template-columns: 236px minmax(0, 1fr);
+    width: 100%;
+  }
+
+  .shell:not(.admin-shell) .sidebar {
+    width: 236px;
+  }
+
+  .main,
+  .shell:not(.admin-shell) .main,
+  .admin-shell .main {
+    min-width: 0;
+    overflow-x: hidden;
+    padding: 0 18px 24px;
+  }
+
+  .main > :not(.topbar),
+  .page-dashboard .main > .manager-dashboard {
+    margin-left: 0;
+    margin-right: 0;
+    max-width: none;
+    width: 100%;
+  }
+
+  .topbar,
+  .shell:not(.admin-shell) .topbar,
+  .admin-topbar {
+    align-items: center;
+    display: grid;
+    gap: 14px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    margin: 0 -18px;
+    max-width: none;
+    min-height: 58px;
+    overflow: visible;
+    padding: 10px 18px;
+    width: auto;
+  }
+
+  .topbar > .search-field,
+  .shell:not(.admin-shell) .topbar > .search-field,
+  .admin-topbar > .search-field {
+    grid-column: 1;
+    justify-self: start;
+    max-width: 480px;
+    min-width: 280px;
+    width: min(480px, 42vw);
+  }
+
+  .toolbar {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    grid-column: 2;
+    justify-content: flex-end;
+    justify-self: end;
+    margin-left: 0;
+    min-width: max-content;
+    overflow: visible;
+  }
+
+  .toolbar .icon-button {
+    flex: 0 0 40px;
+    height: 40px;
+    min-width: 40px;
+    width: 40px;
+  }
+
+  .toolbar .user-card,
+  .user-card {
+    flex: 0 0 auto;
+    gap: 10px;
+    max-width: none;
+    min-width: 190px;
+    overflow: visible;
+    padding-left: 14px;
+  }
+
+  .user-card strong,
+  .user-card span {
+    display: block;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .manager-dashboard {
+    gap: 18px;
+    padding-top: 18px;
+  }
+
+  .manager-kpis {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .manager-mid {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: minmax(0, 2.1fr) minmax(280px, 0.9fr);
+  }
+
+  .manager-bottom {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 1fr);
+  }
+
+  .page-dashboard .manager-kpis .kpi-card,
+  .manager-kpis .kpi-card {
+    min-height: 122px;
+    padding: 16px;
+  }
+
+  .page-dashboard .manager-chart-panel,
+  .page-dashboard .payment-panel,
+  .manager-chart-panel,
+  .payment-panel {
+    min-height: 390px;
+    padding: 20px;
+  }
+
+  .table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  table {
+    min-width: 720px;
+    width: 100%;
+  }
+
+  th,
+  td {
+    padding: 14px 16px;
+  }
+}
+
 
