@@ -5277,20 +5277,20 @@ button:disabled {
     left: 0;
     min-height: 0;
     overflow-y: auto;
-    padding: 104px 16px 18px;
+    padding: 24px 14px 18px;
     position: fixed;
     right: auto;
     top: 0;
     transform: translateX(-105%);
     transition: transform 220ms ease;
-    width: min(82vw, 380px);
+    width: min(82vw, 232px);
     z-index: 90;
   }
 
   .page-dashboard .sidebar,
   .page-dashboard.shell:not(.admin-shell) .sidebar,
   .page-dashboard.admin-shell .sidebar {
-    padding-top: 82px;
+    padding-top: 24px;
     top: 0;
   }
 
@@ -5323,15 +5323,18 @@ button:disabled {
   }
 
   .menu-open .menu-button {
-    position: relative;
-    right: auto;
-    top: auto;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid #cfd6e4;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.18);
+    left: min(82vw, 232px);
+    position: fixed;
+    top: 16px;
     transform: none;
     z-index: 120;
   }
 
   .page-dashboard.menu-open .menu-button {
-    top: auto;
+    top: 16px;
   }
 
   .topbar,
