@@ -3318,26 +3318,28 @@ button.kpi-card {
   }
 
   .shell:not(.admin-shell) {
-    grid-template-columns: 1fr;
+    display: grid;
+    grid-template-columns: 236px minmax(0, 1fr);
   }
 
   .shell:not(.admin-shell) .sidebar {
-    border-bottom: 1px solid #213653;
-    border-right: 0;
-    height: auto;
-    min-height: 0;
-    padding: 16px;
-    position: static;
+    border-bottom: 0;
+    border-right: 1px solid #213653;
+    height: 100vh;
+    min-height: 100vh;
+    padding: 24px 0 18px;
+    position: sticky;
+    top: 0;
   }
 
   .shell:not(.admin-shell) .brand {
-    margin-bottom: 14px;
-    padding: 0;
+    margin-bottom: 20px;
+    padding: 0 18px 18px;
   }
 
   .shell:not(.admin-shell) .brand strong {
     font-size: 22px;
-    max-width: none;
+    max-width: 170px;
   }
 
   .nav {
@@ -3346,20 +3348,20 @@ button.kpi-card {
 
   .shell:not(.admin-shell) .nav {
     display: grid;
-    gap: 8px;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    grid-template-columns: 1fr;
   }
 
   .shell:not(.admin-shell) .nav button,
   .shell:not(.admin-shell) .nav-logout {
-    border-left: 0;
-    border-radius: 8px;
-    min-height: 46px;
-    padding: 10px 12px;
+    border-left: 5px solid transparent;
+    border-radius: 0;
+    min-height: 48px;
+    padding: 10px 18px;
   }
 
   .shell:not(.admin-shell) .nav button.active {
-    border-left: 0;
+    border-left-color: #ffa51f;
   }
 
   .shell:not(.admin-shell) .main {
@@ -4843,6 +4845,10 @@ button:disabled {
     z-index: 80;
   }
 
+  .page-dashboard .sidebar-scrim {
+    top: 62px;
+  }
+
   .menu-open .sidebar-scrim {
     opacity: 1;
     pointer-events: auto;
@@ -4865,6 +4871,12 @@ button:disabled {
     transition: transform 220ms ease;
     width: min(82vw, 320px);
     z-index: 90;
+  }
+
+  .page-dashboard .sidebar,
+  .page-dashboard.shell:not(.admin-shell) .sidebar,
+  .page-dashboard.admin-shell .sidebar {
+    top: 62px;
   }
 
   .sidebar.mobile-open,
@@ -4919,6 +4931,12 @@ button:disabled {
     z-index: 100;
   }
 
+  .topbar.dashboard-topbar,
+  .shell:not(.admin-shell) .topbar.dashboard-topbar {
+    min-height: 62px;
+    padding-bottom: 10px;
+  }
+
   .menu-button {
     align-items: center;
     background: transparent;
@@ -4931,6 +4949,21 @@ button:disabled {
     min-height: 40px;
     padding: 8px;
     width: auto;
+  }
+
+  .menu-open .menu-button {
+    background: #fff;
+    border: 1px solid #d9deea;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.18);
+    left: min(82vw, 320px);
+    position: fixed;
+    top: 132px;
+    transform: translateX(8px);
+    z-index: 120;
+  }
+
+  .page-dashboard.menu-open .menu-button {
+    top: 74px;
   }
 
   .topbar > .search-field,
@@ -5135,6 +5168,10 @@ button:disabled {
   .menu-button {
     min-width: 40px;
     padding-inline: 9px;
+  }
+
+  .menu-open .menu-button {
+    left: min(88vw, 300px);
   }
 
   .toolbar .user-card strong {

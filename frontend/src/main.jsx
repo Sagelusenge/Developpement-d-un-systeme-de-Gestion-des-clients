@@ -650,7 +650,7 @@ function App() {
   const sidebarTitle = user?.entreprise_nom || user?.raison_sociale || user?.entreprise_id || APP_NAME;
 
   return (
-    <div className={`shell ${mobileMenuOpen ? 'menu-open' : ''}`}>
+    <div className={`shell page-${page} ${mobileMenuOpen ? 'menu-open' : ''}`}>
       {mobileMenuOpen && <button className="sidebar-scrim" type="button" aria-label="Fermer le menu" onClick={() => setMobileMenuOpen(false)} />}
       <aside className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="brand">
@@ -674,12 +674,12 @@ function App() {
         </nav>
       </aside>
       <main className="main">
-        <header className="topbar">
+        <header className={`topbar ${page === 'dashboard' ? 'dashboard-topbar' : ''}`}>
           <button className="menu-button" type="button" onClick={() => setMobileMenuOpen((open) => !open)} aria-label={mobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}>
             <Menu size={22} />
             <span>Menu</span>
           </button>
-          <SearchInput value={platformSearch} onChange={setPlatformSearch} placeholder={searchPlaceholders[page] || 'Rechercher...'} />
+          {page !== 'dashboard' && <SearchInput value={platformSearch} onChange={setPlatformSearch} placeholder={searchPlaceholders[page] || 'Rechercher...'} />}
           <div className="toolbar">
             <div className="notification-wrap">
               <button className="icon-button ghost-icon" title="Notifications" type="button" onClick={() => setShowNotifications(!showNotifications)}>
