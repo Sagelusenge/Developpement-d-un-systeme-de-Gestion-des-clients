@@ -5237,6 +5237,28 @@ button:disabled {
   .table-wrap table {
     min-width: 760px;
   }
+
+  .product-market-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .category-market-nav {
+    border-bottom: 1px solid #d8dce5;
+    border-right: 0;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 0 0 12px;
+  }
+
+  .category-market-nav strong,
+  .category-market-nav span {
+    flex: 0 0 auto;
+  }
+
+  .product-rank-list {
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  }
 }
 
 @media (max-width: 900px) {
@@ -5251,24 +5273,25 @@ button:disabled {
   .admin-shell .sidebar {
     bottom: 0;
     box-shadow: 18px 0 44px rgba(5, 13, 32, 0.26);
-    height: auto;
+    height: 100dvh;
     left: 0;
     min-height: 0;
     overflow-y: auto;
-    padding: 18px 16px;
+    padding: 104px 16px 18px;
     position: fixed;
-    right: 0;
-    top: 120px;
+    right: auto;
+    top: 0;
     transform: translateX(-105%);
     transition: transform 220ms ease;
-    width: 100%;
+    width: min(82vw, 380px);
     z-index: 90;
   }
 
   .page-dashboard .sidebar,
   .page-dashboard.shell:not(.admin-shell) .sidebar,
   .page-dashboard.admin-shell .sidebar {
-    top: 62px;
+    padding-top: 82px;
+    top: 0;
   }
 
   .sidebar.mobile-open,
@@ -5278,11 +5301,11 @@ button:disabled {
   }
 
   .sidebar-scrim {
-    top: 120px;
+    top: 0;
   }
 
   .page-dashboard .sidebar-scrim {
-    top: 62px;
+    top: 0;
   }
 
   .nav,
@@ -5300,16 +5323,15 @@ button:disabled {
   }
 
   .menu-open .menu-button {
-    left: auto;
-    position: fixed;
-    right: 14px;
-    top: 132px;
+    position: relative;
+    right: auto;
+    top: auto;
     transform: none;
     z-index: 120;
   }
 
   .page-dashboard.menu-open .menu-button {
-    top: 74px;
+    top: auto;
   }
 
   .topbar,
@@ -5319,6 +5341,14 @@ button:disabled {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     position: sticky;
+  }
+
+  .menu-button {
+    height: 42px;
+    min-height: 42px;
+    min-width: 42px;
+    padding: 0;
+    width: 42px;
   }
 
   .toolbar {
@@ -5401,12 +5431,15 @@ button:disabled {
 
   .product-rank-list,
   .category-rank-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   }
 
   .product-rank-card,
   .category-rank-card {
+    align-content: start;
     min-width: 0;
+    overflow: hidden;
+    text-align: center;
   }
 
   .product-rank-visual {
@@ -5420,6 +5453,28 @@ button:disabled {
     height: 100%;
     object-fit: cover;
     width: 100%;
+  }
+
+  .product-rank-card strong,
+  .product-rank-card p {
+    overflow-wrap: anywhere;
+    padding-inline: 12px;
+    text-align: center;
+  }
+
+  .product-rank-card p {
+    min-height: 0;
+  }
+
+  .product-rank-meta {
+    justify-content: center;
+    padding-inline: 12px;
+    text-align: center;
+  }
+
+  .product-rank-card .actions {
+    justify-content: center;
+    padding-inline: 12px;
   }
 
   .quote-modal {

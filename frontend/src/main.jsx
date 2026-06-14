@@ -677,7 +677,6 @@ function App() {
         <header className={`topbar ${page === 'dashboard' ? 'dashboard-topbar' : ''}`}>
           <button className="menu-button" type="button" onClick={() => setMobileMenuOpen((open) => !open)} aria-label={mobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}>
             <Menu size={22} />
-            <span>Menu</span>
           </button>
           {page !== 'dashboard' && <SearchInput value={platformSearch} onChange={setPlatformSearch} placeholder={searchPlaceholders[page] || 'Rechercher...'} />}
           <div className="toolbar">
@@ -1817,11 +1816,11 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
               ))}
             </div>
             <div className="product-pagination">
-              <button className="btn secondary small" type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={currentPage <= 1}>
+              <button className="btn secondary small" type="button" onClick={() => { setPage((value) => Math.max(1, value - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }} disabled={currentPage <= 1}>
                 <ChevronLeft size={16} /> Precedent
               </button>
               <strong>{produits.length} produit{produits.length > 1 ? 's' : ''}</strong>
-              <button className="btn secondary small" type="button" onClick={() => setPage((value) => Math.min(totalPages, value + 1))} disabled={currentPage >= totalPages}>
+              <button className="btn secondary small" type="button" onClick={() => { setPage((value) => Math.min(totalPages, value + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }} disabled={currentPage >= totalPages}>
                 Suivant <ChevronRight size={16} />
               </button>
             </div>
