@@ -5912,7 +5912,12 @@ button:disabled {
 }
 
 .page-loader-shell .qc-loader-panel {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
   margin: 0;
+  max-width: none;
+  padding: 0;
 }
 
 @keyframes qcSpin {

@@ -107,6 +107,17 @@ Les rapports donnent des etats imprimables:
 
 Le rapport "Bilan" a ete retire de l'interface pour eviter la confusion avec les calculs simples du tableau de bord.
 
+### Ou sont generes les rapports et les PDF ?
+
+Les rapports ne sont pas stockes comme fichiers PDF permanents dans le projet. Les donnees restent dans MySQL, puis l'application genere les etats a la demande.
+
+- Donnees backend: `backend/src/controllers/rapportController.js`
+- Routes backend: `backend/src/routes/rapportRoutes.js`
+- Appels frontend: `frontend/src/main.jsx`, dans le composant `Page` et le composant `Rapports`
+- Mise en page imprimable/PDF: `frontend/src/main.jsx`, fonctions `printLayout`, `printDocument`, `printTableDocument` et `printRows`
+
+Quand l'utilisateur clique sur "Imprimer", le frontend ouvre une page d'impression. Le fichier PDF est cree seulement si l'utilisateur choisit "Enregistrer en PDF" dans la boite d'impression du navigateur.
+
 ## Calculs importants
 
 ### Total vendu ce mois
