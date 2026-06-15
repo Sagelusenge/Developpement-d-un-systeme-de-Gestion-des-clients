@@ -1083,7 +1083,7 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
     }
   };
 
-  if (loading) return <QcLoader label="Chargement des donnees" />;
+  if (loading) return <div className="page-loader-shell"><QcLoader label="Chargement des donnees" /></div>;
   if (error) return <p className="notice">{error}</p>;
 
   const props = { api, notify, data, submit, lang, user, searchQuery, setPage };

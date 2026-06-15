@@ -5903,6 +5903,18 @@ button:disabled {
   font-weight: 900;
 }
 
+.page-loader-shell {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: calc(100vh - 140px);
+  width: 100%;
+}
+
+.page-loader-shell .qc-loader-panel {
+  margin: 0;
+}
+
 @keyframes qcSpin {
   to {
     transform: rotate(360deg);
