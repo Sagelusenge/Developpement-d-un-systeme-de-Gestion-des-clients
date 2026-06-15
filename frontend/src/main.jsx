@@ -2614,7 +2614,23 @@ function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
     try {
       let sentMessage = '';
       await submit(async () => {
-        const response = await api(isTeamNotification ? '/mail/notify-team' : '/mail/send', { method: 'POST', body: JSON.stringify(form) });
+        const controller = new AbortController();
+        const timer = window.setTimeout(() => controller.abort(), 18000);
+        let response;
+        try {
+          response = await api(isTeamNotification ? '/mail/notify-team' : '/mail/send', {
+            method: 'POST',
+            body: JSON.stringify(form),
+            signal: controller.signal
+          });
+        } catch (error) {
+          if (error.name === 'AbortError') {
+            throw new Error("L'envoi prend trop de temps. Verifiez la configuration email dans Render ou reessayez.");
+          }
+          throw error;
+        } finally {
+          window.clearTimeout(timer);
+        }
         sentMessage = response.message || (isTeamNotification ? 'Notification equipe envoyee' : 'Email envoye');
       });
       setForm({ to: '', subject: '', message: '' });
