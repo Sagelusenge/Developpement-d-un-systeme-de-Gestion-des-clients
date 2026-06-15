@@ -477,6 +477,7 @@ function App() {
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -567,6 +568,7 @@ function App() {
   };
 
   const logout = () => {
+    setShowLogoutConfirm(false);
     localStorage.removeItem('crm_token');
     localStorage.removeItem('crm_user');
     localStorage.removeItem('crm_auth_type');
@@ -667,7 +669,7 @@ function App() {
               {item.label}
             </button>
           ))}
-          <button className="nav-logout" type="button" onClick={logout}>
+          <button className="nav-logout" type="button" onClick={() => setShowLogoutConfirm(true)}>
             <LogOut size={23} />
             {tr(lang, 'logout')}
           </button>
@@ -737,6 +739,19 @@ function App() {
         setUser(nextUser);
         localStorage.setItem('crm_user', JSON.stringify(nextUser));
       }} onClose={() => setShowProfile(false)} />}
+      {showLogoutConfirm && (
+        <Modal title="Confirmer la deconnexion" onClose={() => setShowLogoutConfirm(false)} className="confirm-modal">
+          <div className="confirm-delete">
+            <AlertTriangle size={42} />
+            <h4>Voulez-vous vraiment vous deconnecter ?</h4>
+            <p>Si vous confirmez, vous serez ramene a l'ecran de connexion.</p>
+            <div className="confirm-actions">
+              <button className="btn secondary" type="button" onClick={() => setShowLogoutConfirm(false)}>Non</button>
+              <button className="btn danger" type="button" onClick={logout}>Oui</button>
+            </div>
+          </div>
+        </Modal>
+      )}
       {toast && <div className="toast">{toast}</div>}
     </div>
   );
