@@ -782,10 +782,12 @@ function App() {
 
 function Login({ onLogin, notify, toast }) {
   const [form, setForm] = useState({ email: '', password: '' });
-  const [forgotMotif, setForgotMotif] = useState('');
   const [showForgot, setShowForgot] = useState(false);
+  const [resetStep, setResetStep] = useState('email');
+  const [resetForm, setResetForm] = useState({ email: '', code: '', new_password: '', confirm_password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const passwordRef = useRef(null);
 
   const submit = async (event) => {
@@ -814,27 +816,179 @@ function Login({ onLogin, notify, toast }) {
     });
   };
 
-  const forgot = async (event) => {
+  const openForgotScreen = () => {
+    setResetForm((current) => ({ ...current, email: current.email || form.email }));
+    setResetStep('email');
+    setShowForgot(true);
+  };
+
+  const closeForgotScreen = () => {
+    setShowForgot(false);
+    setResetStep('email');
+    setResetForm({ email: '', code: '', new_password: '', confirm_password: '' });
+  };
+
+  const requestResetCode = async (event) => {
     event.preventDefault();
-    if (!form.email) {
-      notify("Saisissez d'abord votre adresse e-mail de connexion.");
+    const email = String(resetForm.email || '').trim().toLowerCase();
+    if (!email) {
+      notify('Saisissez votre adresse e-mail.');
       return;
     }
+    if (resetLoading) return;
+    setResetLoading(true);
     try {
       const response = await fetch(`${API_URL}/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: form.email, motif: forgotMotif })
+        body: JSON.stringify({ email })
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.message || 'Demande impossible');
       notify(body.message);
-      setShowForgot(false);
-      setForgotMotif('');
+      setResetForm((current) => ({ ...current, email }));
+      setResetStep('code');
     } catch (error) {
       notify(error.message);
+    } finally {
+      setResetLoading(false);
     }
   };
+
+  const verifyCode = async (event) => {
+    event.preventDefault();
+    const code = String(resetForm.code || '').trim();
+    if (!/^\d{6}$/.test(code)) {
+      notify('Entrez le code a 6 chiffres.');
+      return;
+    }
+    if (resetLoading) return;
+    setResetLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/auth/verify-reset-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetForm.email, code })
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.message || 'Code refuse');
+      notify(body.message);
+      setResetStep('password');
+    } catch (error) {
+      notify(error.message);
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const confirmNewPassword = async (event) => {
+    event.preventDefault();
+    if (resetForm.new_password !== resetForm.confirm_password) {
+      notify('Les deux mots de passe ne correspondent pas.');
+      return;
+    }
+    if (String(resetForm.new_password || '').length < 6) {
+      notify('Le mot de passe doit contenir au moins 6 caracteres.');
+      return;
+    }
+    if (resetLoading) return;
+    setResetLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(resetForm)
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.message || 'Reinitialisation refusee');
+      notify(body.message);
+      setForm((current) => ({ ...current, email: resetForm.email, password: '' }));
+      closeForgotScreen();
+    } catch (error) {
+      notify(error.message);
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  if (showForgot) {
+    return (
+      <main className="login-page reset-page">
+        <section className="login-panel reset-panel">
+          <div className="login-box reset-card">
+            <button className="reset-back" type="button" onClick={closeForgotScreen}>
+              <ChevronLeft size={20} /> Retour
+            </button>
+            <div className="login-card-brand">
+              <img className="login-logo" src={LOGO_URL} alt="" />
+              <div>
+                <strong>{APP_NAME}</strong>
+                <span>Reinitialisation du mot de passe</span>
+              </div>
+            </div>
+            <h2>Mot de passe oublie</h2>
+            <p>
+              {resetStep === 'email' && 'Entrez votre email de connexion. Vous recevrez un code a 6 chiffres.'}
+              {resetStep === 'code' && 'Entrez le code recu par email pour confirmer votre identite.'}
+              {resetStep === 'password' && 'Choisissez votre nouveau mot de passe.'}
+            </p>
+
+            {resetStep === 'email' && (
+              <form className="form" onSubmit={requestResetCode}>
+                <label>Adresse e-mail
+                  <span className="input-shell">
+                    <Mail size={22} />
+                    <input type="email" value={resetForm.email} onChange={(e) => setResetForm({ ...resetForm, email: e.target.value })} placeholder="nom@entreprise.com" required />
+                  </span>
+                </label>
+                <button className="btn login-submit" disabled={resetLoading}>
+                  {resetLoading ? 'Envoi...' : 'Envoyer le code'} <ArrowRight size={20} />
+                </button>
+              </form>
+            )}
+
+            {resetStep === 'code' && (
+              <form className="form" onSubmit={verifyCode}>
+                <label>Code de verification
+                  <span className="input-shell reset-code-shell">
+                    <LockKeyhole size={22} />
+                    <input inputMode="numeric" maxLength={6} value={resetForm.code} onChange={(e) => setResetForm({ ...resetForm, code: e.target.value.replace(/\D/g, '').slice(0, 6) })} placeholder="000000" required />
+                  </span>
+                </label>
+                <div className="reset-actions">
+                  <button className="btn secondary" type="button" disabled={resetLoading} onClick={requestResetCode}>Renvoyer</button>
+                  <button className="btn login-submit" disabled={resetLoading}>
+                    {resetLoading ? 'Verification...' : 'Verifier'} <ArrowRight size={20} />
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {resetStep === 'password' && (
+              <form className="form" onSubmit={confirmNewPassword}>
+                <label>Nouveau mot de passe
+                  <span className="input-shell">
+                    <LockKeyhole size={22} />
+                    <input type="password" value={resetForm.new_password} onChange={(e) => setResetForm({ ...resetForm, new_password: e.target.value })} placeholder="Nouveau mot de passe" required />
+                  </span>
+                </label>
+                <label>Confirmer le mot de passe
+                  <span className="input-shell">
+                    <LockKeyhole size={22} />
+                    <input type="password" value={resetForm.confirm_password} onChange={(e) => setResetForm({ ...resetForm, confirm_password: e.target.value })} placeholder="Retapez le mot de passe" required />
+                  </span>
+                </label>
+                <button className="btn login-submit" disabled={resetLoading}>
+                  {resetLoading ? 'Enregistrement...' : 'Changer le mot de passe'} <ArrowRight size={20} />
+                </button>
+              </form>
+            )}
+          </div>
+        </section>
+        {toast && <div className="toast">{toast}</div>}
+      </main>
+    );
+  }
 
   return (
     <main className="login-page">
@@ -867,21 +1021,12 @@ function Login({ onLogin, notify, toast }) {
                   <Eye size={22} />
                 </button>
               </span>
-              <button className="forgot-inline" type="button" onClick={() => setShowForgot(!showForgot)}>Mot de passe oublie ?</button>
+              <button className="forgot-inline" type="button" onClick={openForgotScreen}>Mot de passe oublie ?</button>
             </label>
             <button className="btn login-submit" disabled={loading}>
               {loading ? 'Connexion...' : 'Se connecter'} <LogIn size={20} />
             </button>
           </form>
-          {showForgot && (
-            <form className="forgot-box" onSubmit={forgot}>
-              <p className="muted">La demande sera envoyee avec l'adresse saisie ci-dessus.</p>
-              <label>Motif de la demande
-                <textarea value={forgotMotif} onChange={(e) => setForgotMotif(e.target.value)} placeholder="Ex: je n'arrive plus a acceder a mon compte" />
-              </label>
-              <button className="btn secondary">Envoyer la demande</button>
-            </form>
-          )}
         </div>
       </section>
       {toast && <div className="toast">{toast}</div>}

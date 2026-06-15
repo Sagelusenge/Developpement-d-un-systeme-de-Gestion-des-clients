@@ -5,6 +5,7 @@ const hiddenFields = new Set([
     'password',
     'new_password',
     'old_password',
+    'code',
     'photo',
     'photo_url',
     'image',
@@ -68,6 +69,8 @@ export const logActivity = async ({ req, statusCode }) => {
     const originalUrl = req.originalUrl || req.url || '';
     if (originalUrl.includes('/api/auth/login')) return;
     if (originalUrl.includes('/api/auth/forgot-password')) return;
+    if (originalUrl.includes('/api/auth/verify-reset-code')) return;
+    if (originalUrl.includes('/api/auth/reset-password')) return;
     if (originalUrl.includes('/api/notifications/')) return;
 
     const { module, entityId } = getEntityFromPath(originalUrl.split('?')[0]);

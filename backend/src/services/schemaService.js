@@ -176,6 +176,21 @@ export const ensureRuntimeSchema = async (pool) => {
     `);
 
     await pool.query(`
+        CREATE TABLE IF NOT EXISTS password_reset_codes (
+            id_reset INT AUTO_INCREMENT PRIMARY KEY,
+            user_id VARCHAR(50) NOT NULL,
+            email VARCHAR(150) NOT NULL,
+            code_hash VARCHAR(64) NOT NULL,
+            expires_at DATETIME NOT NULL,
+            used_at DATETIME NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_password_reset_email (email, created_at),
+            INDEX idx_password_reset_user (user_id, used_at),
+            FOREIGN KEY (user_id) REFERENCES utilisateur(id_utilisateur) ON DELETE CASCADE
+        )
+    `);
+
+    await pool.query(`
         CREATE TABLE IF NOT EXISTS user_activity_logs (
             id_log INT AUTO_INCREMENT PRIMARY KEY,
             entreprise_id VARCHAR(50) NOT NULL,
@@ -224,6 +239,13 @@ export const ensureRuntimeSchema = async (pool) => {
     await addColumnIfMissing('mail_messages', 'message', 'TEXT NULL');
     await addColumnIfMissing('mail_messages', 'status', "VARCHAR(40) NOT NULL DEFAULT 'envoye'");
     await addColumnIfMissing('mail_messages', 'created_at', 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
+
+    await addColumnIfMissing('password_reset_codes', 'user_id', 'VARCHAR(50) NOT NULL');
+    await addColumnIfMissing('password_reset_codes', 'email', "VARCHAR(150) NOT NULL DEFAULT ''");
+    await addColumnIfMissing('password_reset_codes', 'code_hash', "VARCHAR(64) NOT NULL DEFAULT ''");
+    await addColumnIfMissing('password_reset_codes', 'expires_at', 'DATETIME NOT NULL');
+    await addColumnIfMissing('password_reset_codes', 'used_at', 'DATETIME NULL');
+    await addColumnIfMissing('password_reset_codes', 'created_at', 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
 
     await addColumnIfMissing('utilisateur', 'telephone', 'VARCHAR(30) NULL');
 

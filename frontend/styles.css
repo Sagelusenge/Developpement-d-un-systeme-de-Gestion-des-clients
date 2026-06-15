@@ -7795,3 +7795,69 @@ button:disabled {
     grid-template-columns: minmax(0, 1.8fr) minmax(320px, 0.9fr);
   }
 }
+
+/* Final password reset overrides kept after legacy login blocks. */
+.login-page.reset-page {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  overflow: auto;
+  padding: 24px;
+}
+
+.reset-page .reset-panel {
+  display: flex;
+  justify-content: center;
+  max-width: 620px;
+  min-height: auto;
+  padding: 0;
+  width: min(620px, 100%);
+}
+
+.reset-page .reset-card {
+  max-width: 620px;
+  width: 100%;
+}
+
+.reset-page .reset-back {
+  align-items: center;
+  align-self: flex-start;
+  background: #eef4ff;
+  border: 1px solid #c7d6ef;
+  border-radius: 12px;
+  color: #002761;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 900;
+  gap: 6px;
+  min-height: 42px;
+  padding: 0 14px;
+}
+
+.reset-page .reset-code-shell input {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 8px;
+}
+
+.reset-page .reset-actions {
+  align-items: stretch;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(140px, 0.4fr) 1fr;
+}
+
+.reset-page .reset-actions .login-submit {
+  min-height: 58px;
+}
+
+@media (max-width: 640px) {
+  .login-page.reset-page {
+    padding: 14px;
+  }
+
+  .reset-page .reset-actions {
+    grid-template-columns: 1fr;
+  }
+}

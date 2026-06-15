@@ -4,7 +4,6 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
 import { sendMail } from '../services/mailService.js';
-import { notifyEnterpriseAdmins } from '../services/notificationService.js';
 
 const generateToken = (user) => {
     return jwt.sign(
@@ -21,8 +20,35 @@ const generateToken = (user) => {
     );
 };
 
+const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
+
+const createResetCode = () => String(crypto.randomInt(100000, 1000000));
+
+const hashResetCode = (email, code) => crypto
+    .createHash('sha256')
+    .update(`${normalizeEmail(email)}:${String(code || '').trim()}:${process.env.JWT_SECRET || 'crm-pme-reset'}`)
+    .digest('hex');
+
+const findValidResetCode = async ({ email, code }) => {
+    const [rows] = await pool.query(
+        `SELECT prc.id_reset, prc.user_id, prc.email, u.nom
+         FROM password_reset_codes prc
+         JOIN utilisateur u ON u.id_utilisateur = prc.user_id
+         WHERE prc.email = ?
+           AND prc.code_hash = ?
+           AND prc.used_at IS NULL
+           AND prc.expires_at >= NOW()
+           AND u.actif = 1
+         ORDER BY prc.created_at DESC
+         LIMIT 1`,
+        [normalizeEmail(email), hashResetCode(email, code)]
+    );
+
+    return rows[0] || null;
+};
+
 export const login = async (req, res) => {
-    const email = String(req.body.email || '').trim().toLowerCase();
+    const email = normalizeEmail(req.body.email);
     const password = String(req.body.password || '').trim();
 
     if (!email || !password) {
@@ -236,7 +262,7 @@ export const resetRequestedPassword = async (req, res) => {
 };
 
 export const forgotPassword = async (req, res) => {
-    const { email, motif } = req.body;
+    const email = normalizeEmail(req.body.email);
 
     if (!email) {
         return res.status(400).json({ success: false, message: 'Email requis' });
@@ -247,23 +273,111 @@ export const forgotPassword = async (req, res) => {
             `SELECT u.id_utilisateur, u.nom, u.email, u.role, u.entreprise_id, e.raison_sociale
              FROM utilisateur u
              JOIN entreprise e ON e.id_entreprise = u.entreprise_id
-             WHERE u.email = ?`,
+             WHERE LOWER(u.email) = ? AND u.actif = 1`,
             [email]
         );
 
         if (users.length === 0) {
-            return res.json({ success: true, message: 'Si cet email existe, une demande de recuperation a ete creee.' });
+            return res.json({ success: true, message: 'Si cet email existe, un code de recuperation a ete envoye.' });
         }
 
         const user = users[0];
-        const reason = motif ? ` Motif: ${motif}` : '';
-        await notifyEnterpriseAdmins({
-            entreprise_id: user.entreprise_id,
-            titre: 'Demande de recuperation de mot de passe',
-            message: `${user.nom} (${user.email}) demande la recuperation de son mot de passe.${reason}`
+        const code = createResetCode();
+        const codeHash = hashResetCode(user.email, code);
+
+        await pool.query(
+            'UPDATE password_reset_codes SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL',
+            [user.id_utilisateur]
+        );
+
+        await pool.query(
+            `INSERT INTO password_reset_codes (user_id, email, code_hash, expires_at)
+             VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 15 MINUTE))`,
+            [user.id_utilisateur, normalizeEmail(user.email), codeHash]
+        );
+
+        const mailResult = await sendMail({
+            to: user.email,
+            subject: 'Code de reinitialisation - Quincaillerie Centrale',
+            text: `Bonjour ${user.nom}, votre code de reinitialisation est ${code}. Il expire dans 15 minutes.`,
+            html: `<p>Bonjour ${user.nom},</p><p>Votre code de reinitialisation est :</p><p style="font-size:28px;font-weight:700;letter-spacing:6px">${code}</p><p>Ce code expire dans 15 minutes. Si vous n'avez pas demande ce code, ignorez cet email.</p>`
         });
 
-        res.json({ success: true, message: 'Demande envoyee au manager.' });
+        if (mailResult?.skipped) {
+            return res.status(503).json({ success: false, message: 'Service email non configure sur le serveur.' });
+        }
+
+        res.json({ success: true, message: 'Code de recuperation envoye par email.' });
+    } catch (error) {
+        console.error('Erreur forgot password:', error.message);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const verifyResetCode = async (req, res) => {
+    const email = normalizeEmail(req.body.email);
+    const code = String(req.body.code || '').trim();
+
+    if (!email || !/^\d{6}$/.test(code)) {
+        return res.status(400).json({ success: false, message: 'Email et code a 6 chiffres requis' });
+    }
+
+    try {
+        const reset = await findValidResetCode({ email, code });
+
+        if (!reset) {
+            return res.status(400).json({ success: false, message: 'Code invalide ou expire' });
+        }
+
+        res.json({ success: true, message: 'Code confirme. Vous pouvez definir un nouveau mot de passe.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const resetPasswordWithCode = async (req, res) => {
+    const email = normalizeEmail(req.body.email);
+    const code = String(req.body.code || '').trim();
+    const newPassword = String(req.body.new_password || '');
+    const confirmPassword = String(req.body.confirm_password || '');
+
+    if (!email || !/^\d{6}$/.test(code)) {
+        return res.status(400).json({ success: false, message: 'Email et code a 6 chiffres requis' });
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ success: false, message: 'Le mot de passe doit contenir au moins 6 caracteres' });
+    }
+
+    if (newPassword !== confirmPassword) {
+        return res.status(400).json({ success: false, message: 'Les deux mots de passe ne correspondent pas' });
+    }
+
+    try {
+        const reset = await findValidResetCode({ email, code });
+
+        if (!reset) {
+            return res.status(400).json({ success: false, message: 'Code invalide ou expire' });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await pool.query(
+            'UPDATE utilisateur SET mot_de_passe = ? WHERE id_utilisateur = ?',
+            [hashedPassword, reset.user_id]
+        );
+        await pool.query(
+            'UPDATE password_reset_codes SET used_at = NOW() WHERE id_reset = ?',
+            [reset.id_reset]
+        );
+
+        sendMail({
+            to: reset.email,
+            subject: 'Mot de passe reinitialise - Quincaillerie Centrale',
+            text: `Bonjour ${reset.nom}, votre mot de passe vient d'etre reinitialise.`,
+            html: `<p>Bonjour ${reset.nom},</p><p>Votre mot de passe vient d'etre reinitialise.</p><p>Si vous n'etes pas a l'origine de cette action, contactez rapidement votre manager.</p>`
+        }).catch((error) => console.error('Erreur email confirmation reset:', error.message));
+
+        res.json({ success: true, message: 'Mot de passe reinitialise. Vous pouvez vous connecter.' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
