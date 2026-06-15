@@ -20,7 +20,7 @@ Ce dossier contient le code React de l'interface. Le projet est volontairement c
 Les appels utilisent `API_URL`, construit a partir de:
 
 ```text
-VITE_API_URL
+ici on met le url du frontend
 ```
 
 Si la variable n'est pas definie, l'application utilise l'URL par defaut prevue dans le code.
