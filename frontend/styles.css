@@ -2481,6 +2481,7 @@ button.kpi-card {
 
 .payment-donut {
   align-items: center;
+  animation: donutReveal 1100ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   border-radius: 50%;
   display: grid;
   height: 200px;
@@ -2490,6 +2491,7 @@ button.kpi-card {
 }
 
 .payment-donut strong {
+  animation: countRise 720ms ease both;
   color: #000c3d;
   font-size: 28px;
 }
@@ -3984,6 +3986,32 @@ button:disabled {
   }
   to {
     transform: scaleX(1);
+  }
+}
+
+@keyframes donutReveal {
+  0% {
+    opacity: 0;
+    transform: rotate(-120deg) scale(0.82);
+  }
+  65% {
+    opacity: 1;
+    transform: rotate(12deg) scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+@keyframes countRise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -5625,6 +5653,7 @@ button:disabled {
 
 .finance-equation article,
 .result-summary-grid article {
+  animation: countRise 720ms ease both;
   background: #fff;
   border: 1px solid #dfe6f2;
   border-radius: 8px;
@@ -5902,6 +5931,13 @@ button:disabled {
   font-size: 15px;
   font-weight: 900;
 }
+
+.result-bar:nth-child(1) .result-bar-fill { animation-delay: 80ms; }
+.result-bar:nth-child(2) .result-bar-fill { animation-delay: 150ms; }
+.result-bar:nth-child(3) .result-bar-fill { animation-delay: 220ms; }
+.result-bar:nth-child(4) .result-bar-fill { animation-delay: 290ms; }
+.result-bar:nth-child(5) .result-bar-fill { animation-delay: 360ms; }
+.result-bar:nth-child(6) .result-bar-fill { animation-delay: 430ms; }
 
 .page-loader-shell {
   align-items: center;

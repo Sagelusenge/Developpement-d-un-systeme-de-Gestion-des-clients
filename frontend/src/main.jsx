@@ -72,6 +72,29 @@ const moneySmart = (value) => {
   })} USD`;
 };
 
+function AnimatedNumber({ value, formatter = (amount) => amount, duration = 900 }) {
+  const target = Number(value || 0);
+  const [displayValue, setDisplayValue] = useState(target);
+
+  useEffect(() => {
+    let frame;
+    const startTime = performance.now();
+    const startValue = 0;
+    const animate = (now) => {
+      const progress = Math.min(1, (now - startTime) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayValue(startValue + (target - startValue) * eased);
+      if (progress < 1) frame = requestAnimationFrame(animate);
+    };
+
+    setDisplayValue(startValue);
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [target, duration]);
+
+  return formatter(displayValue);
+}
+
 const getInitials = (value = '') => {
   const base = String(value || '').includes('@') ? String(value).split('@')[0] : String(value || '');
   const parts = base.replace(/[._-]+/g, ' ').trim().split(/\s+/).filter(Boolean);
@@ -1234,7 +1257,7 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
                   style={{ background: `radial-gradient(circle closest-side, #fff 66%, transparent 67%), conic-gradient(${donutParts.length ? donutParts.join(', ') : '#e6e8ee 0% 100%'})` }}
                   title={selectedPayment ? `${selectedPayment.label}: ${money(selectedPayment.total)}` : 'Aucun paiement'}
                 >
-                  <strong>{paymentPercent}%</strong>
+                  <strong><AnimatedNumber value={paymentPercent} formatter={(amount) => `${Math.round(amount)}%`} /></strong>
                   <span>{selectedPayment?.label || 'AUCUN'}</span>
                 </div>
               </div>
@@ -1257,13 +1280,13 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
           <div className="panel-heading">
             <h3>Resultat mensuel</h3>
             <span className={`panel-pill ${Number(stats.resultat_mois || 0) >= 0 ? 'ok' : 'danger'}`}>
-              {Number(stats.resultat_mois || 0) >= 0 ? 'Gain du mois' : 'Perte du mois'} {moneySmart(stats.resultat_mois)}
+              {Number(stats.resultat_mois || 0) >= 0 ? 'Gain du mois' : 'Perte du mois'} <AnimatedNumber value={stats.resultat_mois} formatter={moneySmart} />
             </span>
           </div>
           <div className="result-summary-grid">
-            <article><span>Ventes HT</span><strong>{moneySmart(stats.ventes_ht_mois)}</strong></article>
-            <article><span>Cout achat</span><strong>{moneySmart(stats.cout_achat_mois)}</strong></article>
-            <article><span>Resultat</span><strong className={Number(stats.resultat_mois || 0) >= 0 ? 'profit' : 'loss'}>{moneySmart(stats.resultat_mois)}</strong></article>
+            <article><span>Ventes HT</span><strong><AnimatedNumber value={stats.ventes_ht_mois} formatter={moneySmart} /></strong></article>
+            <article><span>Cout achat</span><strong><AnimatedNumber value={stats.cout_achat_mois} formatter={moneySmart} /></strong></article>
+            <article><span>Resultat</span><strong className={Number(stats.resultat_mois || 0) >= 0 ? 'profit' : 'loss'}><AnimatedNumber value={stats.resultat_mois} formatter={moneySmart} /></strong></article>
           </div>
           <div className="result-bars">
             {(resultatRows.length ? resultatRows : chartMonths.map((row) => ({ mois: row.mois, resultat: 0, ventes_ht: 0, cout_achat: 0 }))).map((row) => {
