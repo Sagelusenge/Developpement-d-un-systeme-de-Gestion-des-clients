@@ -495,8 +495,6 @@ function App() {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [platformSearch, setPlatformSearch] = useState('');
-  const [showPasswordSettings, setShowPasswordSettings] = useState(false);
-  const [passwordTargetEmail, setPasswordTargetEmail] = useState('');
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -630,19 +628,12 @@ function App() {
 
   const openNotificationTarget = async (notification) => {
     setShowNotifications(false);
-    const text = `${notification?.titre || ''} ${notification?.message || ''}`;
-    const targetEmail = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || '';
     if (notification?.id_notification) {
       api(`/notifications/${notification.id_notification}/read`, { method: 'PUT', body: '{}' })
         .then(() => setNotifications((items) => items.map((item) => (
           item.id_notification === notification.id_notification ? { ...item, lu: true } : item
         ))))
         .catch(() => null);
-    }
-    if (/recuperation|mot de passe|password/i.test(text)) {
-      setPasswordTargetEmail(targetEmail);
-      setShowPasswordSettings(true);
-      return;
     }
     setSelectedNotification(notification);
   };
@@ -717,7 +708,7 @@ function App() {
                     <button className="notification-item" key={n.id_notification} type="button" onClick={() => openNotificationTarget(n)}>
                       <b>{n.titre}</b>
                       <span>{n.message}</span>
-                      <small>{/recuperation|mot de passe|password/i.test(`${n.titre} ${n.message}`) ? 'Reconfigurer le mot de passe' : formatDate(n.created_at)}</small>
+                      <small>{formatDate(n.created_at)}</small>
                     </button>
                   ))}
                 </div>
@@ -745,9 +736,6 @@ function App() {
         )}
         <Page page={page} api={api} notify={notify} lang={lang} user={user} searchQuery={platformSearch} setPage={setPage} />
       </main>
-      {showPasswordSettings && (
-        <PasswordSettings api={api} notify={notify} user={user} targetEmail={passwordTargetEmail} onClose={() => { setShowPasswordSettings(false); setPasswordTargetEmail(''); }} />
-      )}
       {selectedNotification && (
         <Modal title={selectedNotification.titre || 'Notification'} onClose={() => setSelectedNotification(null)}>
           <div className="notification-detail">
@@ -1034,73 +1022,6 @@ function Login({ onLogin, notify, toast }) {
   );
 }
 
-function PasswordSettings({ api, notify, user, targetEmail, onClose }) {
-  const [form, setForm] = useState({ new_password: '', confirm_password: '' });
-  const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState(null);
-  const accountEmail = targetEmail || user?.email || '';
-
-  const save = async () => {
-    if (saving) return;
-    setFeedback(null);
-    if (form.new_password !== form.confirm_password) {
-      setFeedback({ type: 'error', message: 'Les mots de passe ne correspondent pas.' });
-      return;
-    }
-    if (String(form.new_password || '').length < 6) {
-      setFeedback({ type: 'error', message: 'Le mot de passe doit contenir au moins 6 caracteres.' });
-      return;
-    }
-    if (!accountEmail) {
-      setFeedback({ type: 'error', message: 'Aucun identifiant detecte pour cette reconfiguration.' });
-      return;
-    }
-
-    setSaving(true);
-    try {
-      let message = '';
-      if (targetEmail && targetEmail !== user?.email) {
-        const response = await api('/auth/reset-request-password', { method: 'POST', body: JSON.stringify({ email: targetEmail, new_password: form.new_password }) });
-        message = response.message || `Mot de passe reinitialise pour ${targetEmail}.`;
-      } else {
-        const response = await api('/auth/change-password', { method: 'POST', body: JSON.stringify(form) });
-        message = response.message || 'Mot de passe mis a jour.';
-      }
-      setFeedback({ type: 'success', message });
-      notify(message);
-      setForm({ new_password: '', confirm_password: '' });
-    } catch (error) {
-      setFeedback({ type: 'error', message: error.message || 'Operation refusee.' });
-      notify(error.message || 'Operation refusee');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <Modal title="Reconfiguration du mot de passe" onClose={onClose}>
-      <Form onSubmit={save}>
-        <div className="debt-preview">
-          <span>Identifiant</span>
-          <strong>{accountEmail || 'Demande sans email detecte'}</strong>
-        </div>
-        <Input label="Nouveau mot de passe" type="password" value={form.new_password} onChange={(new_password) => setForm({ ...form, new_password })} required />
-        <Input label="Confirmer le mot de passe" type="password" value={form.confirm_password} onChange={(confirm_password) => setForm({ ...form, confirm_password })} required />
-        {feedback && (
-          <div className={`form-feedback ${feedback.type}`}>
-            {feedback.type === 'success' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
-            <span>{feedback.message}</span>
-          </div>
-        )}
-        <button className="btn modal-submit" type="submit" disabled={saving}>
-          <LockKeyhole size={18} />
-          {saving ? 'Traitement en cours...' : 'Mettre a jour'}
-        </button>
-      </Form>
-    </Modal>
-  );
-}
-
 function HelpModal({ page, role, onClose }) {
   const common = {
     dashboard: ['Tableau de bord', "Voir les indicateurs autorises pour votre poste et ouvrir rapidement les pages utiles."],
@@ -1263,6 +1184,7 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
       await load();
     } catch (err) {
       notify(err.message);
+      throw err;
     }
   };
 
@@ -2668,9 +2590,44 @@ function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
   const status = data.extra.mailStatus || {};
   const [form, setForm] = useState({ to: '', subject: '', message: '' });
   const [creating, setCreating] = useState(null);
+  const [sending, setSending] = useState(false);
+  const [mailFeedback, setMailFeedback] = useState(null);
   const term = searchQuery.trim().toLowerCase();
   const messages = (data.extra.mailMessages || []).filter((row) => `${row.to_email || ''} ${row.sender_email || ''} ${row.subject || ''} ${row.status || ''}`.toLowerCase().includes(term));
   const isTeamNotification = creating === 'team';
+
+  const openComposer = (type) => {
+    setMailFeedback(null);
+    setCreating(type);
+  };
+
+  const closeComposer = () => {
+    if (sending) return;
+    setMailFeedback(null);
+    setCreating(null);
+  };
+
+  const sendMessage = async () => {
+    if (sending) return;
+    setMailFeedback(null);
+    setSending(true);
+    try {
+      let sentMessage = '';
+      await submit(async () => {
+        const response = await api(isTeamNotification ? '/mail/notify-team' : '/mail/send', { method: 'POST', body: JSON.stringify(form) });
+        sentMessage = response.message || (isTeamNotification ? 'Notification equipe envoyee' : 'Email envoye');
+      });
+      setForm({ to: '', subject: '', message: '' });
+      setCreating(null);
+      notify(sentMessage);
+    } catch (error) {
+      const message = error.message || "Impossible d'envoyer l'email.";
+      setMailFeedback({ type: 'error', message });
+      notify(message);
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <div className="grid">
@@ -2678,8 +2635,8 @@ function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
         <div className="panel-heading client-toolbar">
           <h3>Communications envoyees</h3>
           <div className="actions">
-            <button className="btn secondary small" type="button" onClick={() => setCreating('team')}><Bell size={16} /> Message equipe</button>
-            <button className="btn small" type="button" onClick={() => setCreating('email')}><Plus size={16} /> Nouveau message</button>
+            <button className="btn secondary small" type="button" onClick={() => openComposer('team')}><Bell size={16} /> Message equipe</button>
+            <button className="btn small" type="button" onClick={() => openComposer('email')}><Plus size={16} /> Nouveau message</button>
           </div>
         </div>
         <div className="email-card-list">
@@ -2700,21 +2657,17 @@ function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
         <h3>Configuration email</h3>
         <div className="mail-status">
           <Badge>{status.ready ? 'actif' : 'configuration requise'}</Badge>
-          <p>Expediteur courant: <strong>{user?.email || status.sender || 'Email utilisateur indisponible'}</strong></p>
+          <p>Expediteur SMTP: <strong>{status.sender || 'Email serveur indisponible'}</strong></p>
+          {!status.ready && <p className="mail-warning">Ajoutez EMAIL_USER et EMAIL_PASS dans Render puis redeployez le backend.</p>}
           <p>Les nouveaux utilisateurs et managers recoivent automatiquement un email de bienvenue avec leurs acces temporaires.</p>
         </div>
       </div>
       {creating && (
-        <Modal title={isTeamNotification ? "Message a toute l'equipe" : 'Nouveau message'} onClose={() => setCreating(null)}>
-          <Form onSubmit={() => submit(async () => {
-            const response = await api(isTeamNotification ? '/mail/notify-team' : '/mail/send', { method: 'POST', body: JSON.stringify(form) });
-            setForm({ to: '', subject: '', message: '' });
-            setCreating(null);
-            notify(response.message || (isTeamNotification ? 'Notification equipe envoyee' : 'Email envoye'));
-          })}>
+        <Modal title={isTeamNotification ? "Message a toute l'equipe" : 'Nouveau message'} onClose={closeComposer}>
+          <Form onSubmit={sendMessage}>
             <div className="debt-preview">
               <span>Expediteur</span>
-              <strong>{user?.email || 'Utilisateur en cours'}</strong>
+              <strong>{status.sender || user?.email || 'Email serveur indisponible'}</strong>
             </div>
             {isTeamNotification ? (
               <div className="debt-preview">
@@ -2728,7 +2681,16 @@ function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
             <label>Message
               <textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} required />
             </label>
-            <button className="btn modal-submit">{isTeamNotification ? <Bell size={18} /> : <Mail size={18} />} Envoyer</button>
+            {mailFeedback && (
+              <div className={`form-feedback ${mailFeedback.type}`}>
+                <AlertTriangle size={18} />
+                <span>{mailFeedback.message}</span>
+              </div>
+            )}
+            <button className="btn modal-submit" type="submit" disabled={sending}>
+              {isTeamNotification ? <Bell size={18} /> : <Mail size={18} />}
+              {sending ? 'Envoi en cours...' : 'Envoyer'}
+            </button>
           </Form>
         </Modal>
       )}
@@ -2907,7 +2869,7 @@ function Categories({ api, notify, data, submit, searchQuery = '' }) {
 }
 
 function Form({ children, onSubmit }) {
-  return <form className="form" onSubmit={(event) => { event.preventDefault(); onSubmit(); }}>{children}</form>;
+  return <form className="form" onSubmit={(event) => { event.preventDefault(); Promise.resolve(onSubmit()).catch(() => null); }}>{children}</form>;
 }
 
 function Modal({ title, children, onClose, className = '' }) {

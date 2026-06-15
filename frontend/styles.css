@@ -1554,8 +1554,8 @@ textarea:focus {
 }
 
 .debt-preview {
-  background: #0d1524;
-  border: 1px solid var(--line);
+  background: #f8fafc;
+  border: 1px solid #cfd8e6;
   border-radius: 12px;
   display: grid;
   gap: 4px;
@@ -1568,13 +1568,14 @@ body.theme-light .debt-preview {
 
 .debt-preview span,
 .debt-preview em {
-  color: var(--muted);
+  color: #475569;
   font-style: normal;
 }
 
 .debt-preview strong {
-  color: var(--ink);
+  color: #06133a;
   font-size: 18px;
+  overflow-wrap: anywhere;
 }
 
 .action {

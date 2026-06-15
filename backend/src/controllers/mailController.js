@@ -6,7 +6,7 @@ export const getMailStatus = (req, res) => {
         success: true,
         data: {
             ready: isMailReady(),
-            sender: req.user?.email || process.env.EMAIL_USER || null
+            sender: process.env.EMAIL_USER || null
         }
     });
 };
@@ -30,6 +30,7 @@ export const getMailMessages = async (req, res) => {
 
         res.json({ success: true, data: rows });
     } catch (error) {
+        console.error('Erreur lecture emails:', error.message);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -75,6 +76,7 @@ export const sendCustomMail = async (req, res) => {
 
         res.json({ success: true, message: 'Email envoye', data: result });
     } catch (error) {
+        console.error('Erreur envoi email SMTP:', error.message);
         res.status(500).json({ success: false, message: error.message });
     }
 };
