@@ -1194,8 +1194,8 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
   const dashboardKpis = [
     canSales && { icon: CreditCard, tone: 'orange', label: 'Total vendu ce mois', value: moneySmart(stats.ca_mois_en_cours), page: 'ventes' },
     canPayments && { icon: WalletCards, tone: 'green', label: 'Argent deja recu', value: moneySmart(monthlyCash), page: 'paiements' },
-    canSales && { icon: Coins, tone: 'blue', label: 'Cout des produits vendus', value: moneySmart(stats.cout_achat_mois), page: 'rapports' },
-    canSales && { icon: BarChart3, tone: Number(stats.resultat_mois || 0) >= 0 ? 'green' : 'danger', label: Number(stats.resultat_mois || 0) >= 0 ? 'Gain du mois' : 'Perte du mois', value: moneySmart(stats.resultat_mois), page: 'rapports', negative: Number(stats.resultat_mois || 0) < 0 },
+    canSales && { icon: Coins, tone: 'blue', label: "Cout d'achat des ventes", value: moneySmart(stats.cout_achat_mois), page: 'rapports' },
+    canSales && { icon: BarChart3, tone: Number(stats.resultat_mois || 0) >= 0 ? 'green' : 'danger', label: Number(stats.resultat_mois || 0) >= 0 ? 'Benefice du mois' : 'Perte du mois', value: moneySmart(stats.resultat_mois), page: 'rapports', negative: Number(stats.resultat_mois || 0) < 0 },
     canClients && { icon: Users, tone: 'blue', label: 'Total Clients', value: stats.total_clients || data.clients.length || 0, page: 'clients' },
     canStock && { icon: Package, tone: 'blue', label: 'Produits suivis', value: data.produits.length || 0, page: 'produits' },
     canStock && { icon: Box, tone: 'orange', label: 'Stock total', value: stockTotal, page: 'produits' },
@@ -1280,13 +1280,13 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
           <div className="panel-heading">
             <h3>Resultat mensuel</h3>
             <span className={`panel-pill ${Number(stats.resultat_mois || 0) >= 0 ? 'ok' : 'danger'}`}>
-              {Number(stats.resultat_mois || 0) >= 0 ? 'Gain du mois' : 'Perte du mois'} <AnimatedNumber value={stats.resultat_mois} formatter={moneySmart} />
+              {Number(stats.resultat_mois || 0) >= 0 ? 'Benefice du mois' : 'Perte du mois'} <AnimatedNumber value={stats.resultat_mois} formatter={moneySmart} />
             </span>
           </div>
           <div className="result-summary-grid">
             <article><span>Ventes HT</span><strong><AnimatedNumber value={stats.ventes_ht_mois} formatter={moneySmart} /></strong></article>
             <article><span>Cout achat</span><strong><AnimatedNumber value={stats.cout_achat_mois} formatter={moneySmart} /></strong></article>
-            <article><span>Resultat</span><strong className={Number(stats.resultat_mois || 0) >= 0 ? 'profit' : 'loss'}><AnimatedNumber value={stats.resultat_mois} formatter={moneySmart} /></strong></article>
+            <article><span>Benefice</span><strong className={Number(stats.resultat_mois || 0) >= 0 ? 'profit' : 'loss'}><AnimatedNumber value={stats.resultat_mois} formatter={moneySmart} /></strong></article>
           </div>
           <div className="result-bars">
             {(resultatRows.length ? resultatRows : chartMonths.map((row) => ({ mois: row.mois, resultat: 0, ventes_ht: 0, cout_achat: 0 }))).map((row) => {
@@ -1594,13 +1594,20 @@ function LineEditor({ lignes, setLignes, produits }) {
               <em>Cout moyen {moneySmart(prixAchat)} / catalogue {moneySmart(selectedProduct?.prix_ht || 0)}</em>
             </div>
             <div className="line-qty">
-              <Input label="Quantite" type="number" min="1" value={ligne.quantite} onChange={(quantite) => updateQuantity(ligne.produit_id, quantite)} />
+              <div className="quantity-control">
+                <span>Quantite</span>
+                <div>
+                  <button type="button" onClick={() => updateQuantity(ligne.produit_id, quantite - 1)} aria-label="Diminuer la quantite">-</button>
+                  <input type="number" min="1" value={ligne.quantite} onChange={(event) => updateQuantity(ligne.produit_id, event.target.value)} onFocus={(event) => event.target.select()} />
+                  <button type="button" onClick={() => updateQuantity(ligne.produit_id, quantite + 1)} aria-label="Augmenter la quantite">+</button>
+                </div>
+              </div>
               <Input label="Prix vente unitaire" type="number" min="0" step="0.01" value={prixInputValue} onChange={(prix) => updatePrice(ligne.produit_id, prix)} />
               <div className="line-result">
                 <span>Total</span>
                 <strong>{moneySmart(totalLigne)}</strong>
                 <small className={resultatLigne >= 0 ? 'profit' : 'loss'}>
-                  {resultatLigne >= 0 ? 'Gain' : 'Perte'} {moneySmart(resultatLigne)}
+                  {resultatLigne >= 0 ? 'Benefice' : 'Perte'} {moneySmart(resultatLigne)}
                   <span className="unit-profit"> ({moneySmart(prixVente - prixAchat)} x {quantite})</span>
                 </small>
               </div>

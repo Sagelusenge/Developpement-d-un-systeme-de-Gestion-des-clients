@@ -4273,6 +4273,51 @@ button:disabled {
   color: #c62828;
 }
 
+.quantity-control {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.quantity-control > span {
+  color: #242837;
+  font-weight: 800;
+}
+
+.quantity-control > div {
+  align-items: center;
+  display: grid;
+  grid-template-columns: 38px minmax(58px, 1fr) 38px;
+}
+
+.quantity-control button {
+  align-items: center;
+  background: #edf4ff;
+  border: 1px solid #b9c7dd;
+  color: #002761;
+  display: inline-flex;
+  font-size: 20px;
+  font-weight: 900;
+  height: 50px;
+  justify-content: center;
+}
+
+.quantity-control button:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.quantity-control button:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.quantity-control input {
+  border-left: 0 !important;
+  border-radius: 0 !important;
+  border-right: 0 !important;
+  height: 50px;
+  text-align: center !important;
+}
+
 .result-bar-fill,
 .top-products-chart article,
 .product-rank-card,

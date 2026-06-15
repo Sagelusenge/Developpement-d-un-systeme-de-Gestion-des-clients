@@ -33,7 +33,7 @@ Le tableau de bord donne une vue rapide de l'activite:
 - total vendu ce mois;
 - argent deja recu;
 - cout des produits vendus;
-- gain du mois;
+- benefice du mois;
 - ventes des derniers mois;
 - repartition des paiements;
 - produits les plus vendus;
@@ -128,21 +128,21 @@ Total TTC des factures creees pendant le mois. Il inclut les factures payees et 
 
 Total des paiements reellement enregistres. C'est l'argent qui est deja entre dans la caisse.
 
-### Cout des produits vendus
+### Cout d'achat des ventes
 
 Quantite vendue multipliee par le prix d'achat du produit.
 
-### Gain du mois
+### Benefice du mois
 
 Vente hors taxe moins cout d'achat des produits vendus.
 
 Formule simple:
 
 ```text
-gain = quantite vendue x (prix de vente HT - prix d'achat)
+benefice = quantite vendue x (prix de vente HT - prix d'achat)
 ```
 
-Le gain est un gain commercial theorique lie a la vente. Le paiement montre seulement si l'argent est deja encaisse ou non.
+Le benefice est un resultat commercial theorique lie a la vente. Le paiement montre seulement si l'argent est deja encaisse ou non.
 
 ## Architecture
 
