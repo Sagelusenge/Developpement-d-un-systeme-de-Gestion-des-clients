@@ -1728,7 +1728,8 @@ function QuoteComposer({ form, setForm, clients, produits, submitLabel }) {
 }
 
 function Clients({ api, notify, data, submit, searchQuery = '' }) {
-  const [form, setForm] = useState({ nom: '', postnom: '', telephone: '' });
+  const emptyClientForm = { nom: '', postnom: '', telephone: '' };
+  const [form, setForm] = useState(emptyClientForm);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState(null);
   const [history, setHistory] = useState(null);
@@ -1763,6 +1764,10 @@ function Clients({ api, notify, data, submit, searchQuery = '' }) {
       notify('Client supprime');
     });
   };
+  const closeCreate = () => {
+    setForm(emptyClientForm);
+    setCreating(false);
+  };
   return (
     <div className="grid">
       <div className="panel">
@@ -1777,7 +1782,7 @@ function Clients({ api, notify, data, submit, searchQuery = '' }) {
               <option value="vip">VIP</option>
             </select>
             <button className="btn secondary small" type="button" onClick={() => printTableDocument('Archive clients', ['Nom', 'Telephone', 'Achats', 'CA'], clients.map((c) => [`${c.nom} ${c.postnom || ''}`, c.telephone || '-', c.nombre_achats || 0, moneySmart(c.ca_total)]), { badge: 'ARCHIVE', tableTitle: 'Liste complete des clients', paper: 'page' })}><Printer size={16} /> Archiver</button>
-            <button className="btn small" type="button" onClick={() => setCreating(true)}><Plus size={16} /> Ajouter client</button>
+            <button className="btn small" type="button" onClick={() => { setForm(emptyClientForm); setCreating(true); }}><Plus size={16} /> Ajouter client</button>
           </div>
         </div>
         <Table headers={['Nom', 'Telephone', 'Achats', 'CA', 'Actions']} rows={clients.map((c) => [
@@ -1795,8 +1800,8 @@ function Clients({ api, notify, data, submit, searchQuery = '' }) {
         ])} />
       </div>
       {creating && (
-        <Modal title="Nouveau client" onClose={() => setCreating(false)}>
-          <Form onSubmit={() => submit(async () => { await api('/clients', { method: 'POST', body: JSON.stringify(form) }); setForm({ nom: '', postnom: '', telephone: '' }); setCreating(false); notify('Client cree'); })}>
+        <Modal title="Nouveau client" onClose={closeCreate}>
+          <Form onSubmit={() => submit(async () => { await api('/clients', { method: 'POST', body: JSON.stringify(form) }); closeCreate(); notify('Client cree'); })}>
             <div className="form-row">
               <Input label="Nom" value={form.nom} onChange={(nom) => setForm({ ...form, nom })} required />
               <Input label="Postnom" value={form.postnom} onChange={(postnom) => setForm({ ...form, postnom })} />
@@ -1870,6 +1875,14 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
     setEditing(null);
     notify('Produit mis a jour');
   });
+  const closeCreate = () => {
+    setForm(emptyProductForm);
+    setCreating(false);
+  };
+  const closeStocking = () => {
+    setStock({ id: '', fournisseur_id: '', quantite: 1, prix_achat: '', note: '' });
+    setStocking(false);
+  };
   const remove = (produit) => {
     if (!window.confirm(`Supprimer ${produit.nom} ?`)) return;
     submit(async () => {
@@ -1892,8 +1905,8 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
               <option value="ALERTE">Alerte</option>
               <option value="RUPTURE">Rupture</option>
             </select>
-            {canManageProducts && <button className="btn small" type="button" onClick={() => setCreating(true)}><Plus size={16} /> Ajouter produit</button>}
-            {canManageProducts && <button className="btn secondary small" type="button" onClick={() => setStocking(true)}><Package size={16} /> Approvisionnement</button>}
+            {canManageProducts && <button className="btn small" type="button" onClick={() => { setForm(emptyProductForm); setCreating(true); }}><Plus size={16} /> Ajouter produit</button>}
+            {canManageProducts && <button className="btn secondary small" type="button" onClick={() => { setStock({ id: '', fournisseur_id: '', quantite: 1, prix_achat: '', note: '' }); setStocking(true); }}><Package size={16} /> Approvisionnement</button>}
           </div>
         </div>
         <div className="product-market-layout">
@@ -1955,8 +1968,8 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
         ])} />
       </div>
       {creating && (
-        <Modal title="Nouveau produit" onClose={() => setCreating(false)}>
-          <Form onSubmit={() => submit(async () => { await api('/produits', { method: 'POST', body: JSON.stringify(form) }); setForm(emptyProductForm); setCreating(false); notify('Produit cree'); })}>
+        <Modal title="Nouveau produit" onClose={closeCreate}>
+          <Form onSubmit={() => submit(async () => { await api('/produits', { method: 'POST', body: JSON.stringify(form) }); closeCreate(); notify('Produit cree'); })}>
             <div className="form-row">
               <Input label="Designation" value={form.nom} onChange={(nom) => setForm({ ...form, nom })} required />
               <Select label="Categorie" value={form.categorie_id} onChange={(categorie_id) => setForm({ ...form, categorie_id })} options={categoryOptions} required={false} />
@@ -1979,11 +1992,10 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
         </Modal>
       )}
       {stocking && (
-        <Modal title="Approvisionnement" onClose={() => setStocking(false)}>
+        <Modal title="Approvisionnement" onClose={closeStocking}>
           <Form onSubmit={() => submit(async () => {
             await api(`/produits/${stock.id || data.produits[0]?.id_produit}/approvisionner`, { method: 'POST', body: JSON.stringify(stock) });
-            setStock({ id: '', fournisseur_id: '', quantite: 1, prix_achat: '', note: '' });
-            setStocking(false);
+            closeStocking();
             notify('Stock mis a jour');
           })}>
             <Select label="Produit" value={stock.id} onChange={(id) => setStock({ ...stock, id })} options={data.produits.map((p) => [p.id_produit, p.nom])} />
@@ -2026,7 +2038,8 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
 
 function Ventes({ api, notify, data, submit, searchQuery = '' }) {
   const emptyLine = () => ({ produit_id: '', quantite: 1 });
-  const [form, setForm] = useState({ client_id: '', lignes: [emptyLine()] });
+  const emptySaleForm = () => ({ client_id: '', lignes: [emptyLine()] });
+  const [form, setForm] = useState(emptySaleForm);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState(null);
   const [query, setQuery] = useState('');
@@ -2073,6 +2086,10 @@ function Ventes({ api, notify, data, submit, searchQuery = '' }) {
       notify('Facture supprimee');
     });
   };
+  const closeCreate = () => {
+    setForm(emptySaleForm());
+    setCreating(false);
+  };
   return (
     <div className="grid">
       <div className="panel">
@@ -2086,7 +2103,7 @@ function Ventes({ api, notify, data, submit, searchQuery = '' }) {
               <option value="partiel">Partielles</option>
               <option value="impaye">Impayees</option>
             </select>
-            <button className="btn small" type="button" onClick={() => setCreating(true)}><Plus size={16} /> Nouvelle facture</button>
+            <button className="btn small" type="button" onClick={() => { setForm(emptySaleForm()); setCreating(true); }}><Plus size={16} /> Nouvelle facture</button>
           </div>
         </div>
         <Table headers={['Facture', 'Client', 'Montant', 'Paye', 'Reste', 'Actions']} rows={ventesList.map((v) => [
@@ -2103,7 +2120,7 @@ function Ventes({ api, notify, data, submit, searchQuery = '' }) {
         ])} />
       </div>
       {creating && (
-        <Modal title="Vente directe" onClose={() => setCreating(false)} className="quote-modal">
+        <Modal title="Vente directe" onClose={closeCreate} className="quote-modal">
           <Form onSubmit={() => submit(async () => {
             const articles = form.lignes.filter((ligne) => ligne.produit_id).map((ligne) => ({ produit_id: ligne.produit_id, quantite: Math.max(1, Number(ligne.quantite || 1)), prix: Number(ligne.prix || 0) }));
             if (articles.length === 0) {
@@ -2111,7 +2128,7 @@ function Ventes({ api, notify, data, submit, searchQuery = '' }) {
               return;
             }
             await api('/ventes', { method: 'POST', body: JSON.stringify({ client_id: form.client_id || data.clients[0]?.id_client, articles }) });
-            setCreating(false);
+            closeCreate();
             notify('Facture creee');
           })}>
             <SearchableSelect label="Client" value={form.client_id} onChange={(client_id) => setForm({ ...form, client_id })} options={data.clients.map((c) => [c.id_client, `${c.nom} ${c.postnom || ''} ${c.telephone || ''}`])} placeholder="Rechercher client, postnom ou telephone" />
@@ -2135,7 +2152,8 @@ function Ventes({ api, notify, data, submit, searchQuery = '' }) {
 
 function Paiements({ api, notify, data, submit, searchQuery = '' }) {
   const factures = data.ventes.filter((v) => Number(v.reste_a_payer) > 0);
-  const [form, setForm] = useState({ vente_id: '', montant: '', mode_paiement: 'especes', reference_externe: '', telephone_payeur: '' });
+  const emptyPaymentForm = { vente_id: '', montant: '', mode_paiement: 'especes', reference_externe: '', telephone_payeur: '' };
+  const [form, setForm] = useState(emptyPaymentForm);
   const [creating, setCreating] = useState(false);
   const [query, setQuery] = useState('');
   const [invoiceQuery, setInvoiceQuery] = useState('');
@@ -2175,9 +2193,14 @@ function Paiements({ api, notify, data, submit, searchQuery = '' }) {
         method: 'POST',
         body: JSON.stringify({ ...form, vente_id: form.vente_id || filteredFactures[0]?.id_ventes || factures[0]?.id_ventes })
       });
-      setCreating(false);
+      closeCreate();
       notify('Paiement enregistre');
     });
+  };
+  const closeCreate = () => {
+    setForm(emptyPaymentForm);
+    setInvoiceQuery('');
+    setCreating(false);
   };
   return (
     <div className="grid">
@@ -2201,13 +2224,13 @@ function Paiements({ api, notify, data, submit, searchQuery = '' }) {
                 <input className="date-filter" type="date" value={dateRange.fin} onChange={(event) => setDateRange({ ...dateRange, fin: event.target.value })} />
               </>
             )}
-            <button className="btn small" type="button" onClick={() => setCreating(true)}><Plus size={16} /> Nouveau paiement</button>
+            <button className="btn small" type="button" onClick={() => { setForm(emptyPaymentForm); setInvoiceQuery(''); setCreating(true); }}><Plus size={16} /> Nouveau paiement</button>
           </div>
         </div>
         <Table headers={['Date', 'Mode', 'Transactions', 'Total']} rows={caisseRows.map((r) => [formatDate(r.Date), r.Mode_Paiement, r.Nombre_Transactions, money(r.Total_Encaisse)])} />
       </div>
       {creating && (
-        <Modal title="Encaisser un paiement" onClose={() => setCreating(false)}>
+        <Modal title="Encaisser un paiement" onClose={closeCreate}>
           <Form onSubmit={savePayment}>
             <SearchInput value={invoiceQuery} onChange={setInvoiceQuery} placeholder="Rechercher une facture ou un client" />
             <Select label="Facture" value={form.vente_id} onChange={(vente_id) => setForm({ ...form, vente_id })} options={filteredFactures.map((v) => [v.id_ventes, `${v.numero_facture} - ${v.client_nom} - reste ${money(v.reste_a_payer)}`])} />
@@ -2386,7 +2409,8 @@ function Rapports({ data, searchQuery = '', user }) {
 }
 
 function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
-  const [form, setForm] = useState({ nom: '', email: '', mot_de_passe: 'User@123', role: 'caissier' });
+  const emptyUserForm = { nom: '', email: '', mot_de_passe: 'User@123', role: 'caissier' };
+  const [form, setForm] = useState(emptyUserForm);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState(null);
   const [historyUser, setHistoryUser] = useState(null);
@@ -2474,10 +2498,13 @@ function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
   };
   const create = () => submit(async () => {
     await api('/utilisateurs', { method: 'POST', body: JSON.stringify(form) });
-    setForm({ nom: '', email: '', mot_de_passe: 'User@123', role: 'caissier' });
-    setCreating(false);
+    closeCreate();
     notify('Utilisateur cree et email envoye');
   });
+  const closeCreate = () => {
+    setForm(emptyUserForm);
+    setCreating(false);
+  };
   const saveEdit = () => submit(async () => {
     await api(`/utilisateurs/${editing.id_utilisateur}`, { method: 'PUT', body: JSON.stringify(editing) });
     setEditing(null);
@@ -2506,7 +2533,7 @@ function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
           <h3>Equipe</h3>
           <div className="actions">
             <SearchInput value={query} onChange={setQuery} placeholder="Rechercher utilisateur" />
-            <button className="btn small" type="button" onClick={() => setCreating(true)}><Plus size={16} /> Nouvel utilisateur</button>
+            <button className="btn small" type="button" onClick={() => { setForm(emptyUserForm); setCreating(true); }}><Plus size={16} /> Nouvel utilisateur</button>
           </div>
         </div>
         <Table headers={['Nom', 'Email', 'Role', 'Statut', 'Actions']} rows={users.map((u) => [
@@ -2524,7 +2551,7 @@ function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
         ])} />
       </div>
       {creating && (
-        <Modal title="Nouvel utilisateur" onClose={() => setCreating(false)}>
+        <Modal title="Nouvel utilisateur" onClose={closeCreate}>
           <Form onSubmit={create}>
             <Input label="Nom" value={form.nom} onChange={(nom) => setForm({ ...form, nom })} required />
             <Input label="Email" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} required />
@@ -2588,7 +2615,8 @@ function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
 
 function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
   const status = data.extra.mailStatus || {};
-  const [form, setForm] = useState({ to: '', subject: '', message: '' });
+  const emptyMailForm = { to: '', subject: '', message: '' };
+  const [form, setForm] = useState(emptyMailForm);
   const [creating, setCreating] = useState(null);
   const [sending, setSending] = useState(false);
   const [mailFeedback, setMailFeedback] = useState(null);
@@ -2597,12 +2625,14 @@ function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
   const isTeamNotification = creating === 'team';
 
   const openComposer = (type) => {
+    setForm(emptyMailForm);
     setMailFeedback(null);
     setCreating(type);
   };
 
   const closeComposer = () => {
     if (sending) return;
+    setForm(emptyMailForm);
     setMailFeedback(null);
     setCreating(null);
   };
@@ -2633,7 +2663,7 @@ function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
         }
         sentMessage = response.message || (isTeamNotification ? 'Notification equipe envoyee' : 'Email envoye');
       });
-      setForm({ to: '', subject: '', message: '' });
+      setForm(emptyMailForm);
       setCreating(null);
       notify(sentMessage);
     } catch (error) {
@@ -2725,10 +2755,13 @@ function Fournisseurs({ api, notify, data, submit, searchQuery = '' }) {
 
   const create = () => submit(async () => {
     await api('/fournisseurs', { method: 'POST', body: JSON.stringify(form) });
-    setForm(emptyForm);
-    setCreating(false);
+    closeCreate();
     notify('Fournisseur ajoute');
   });
+  const closeCreate = () => {
+    setForm(emptyForm);
+    setCreating(false);
+  };
 
   const saveEdit = () => submit(async () => {
     await api(`/fournisseurs/${editing.id_fournisseur}`, { method: 'PUT', body: JSON.stringify(editing) });
@@ -2751,7 +2784,7 @@ function Fournisseurs({ api, notify, data, submit, searchQuery = '' }) {
           <h3>Fournisseurs</h3>
           <div className="actions">
             <SearchInput value={query} onChange={setQuery} placeholder="Rechercher fournisseur" />
-            <button className="btn small" type="button" onClick={() => setCreating(true)}><Plus size={16} /> Ajouter fournisseur</button>
+            <button className="btn small" type="button" onClick={() => { setForm(emptyForm); setCreating(true); }}><Plus size={16} /> Ajouter fournisseur</button>
           </div>
         </div>
         <Table headers={['Nom', 'Telephone', 'Email', 'Approvisionnements', 'Actions']} rows={fournisseurs.map((f) => [
@@ -2767,7 +2800,7 @@ function Fournisseurs({ api, notify, data, submit, searchQuery = '' }) {
         ])} />
       </div>
       {creating && (
-        <Modal title="Nouveau fournisseur" onClose={() => setCreating(false)}>
+        <Modal title="Nouveau fournisseur" onClose={closeCreate}>
           <Form onSubmit={create}>
             <Input label="Nom" value={form.nom} onChange={(nom) => setForm({ ...form, nom })} required />
             <Input label="Telephone" value={form.telephone} onChange={(telephone) => setForm({ ...form, telephone })} />
@@ -2802,10 +2835,13 @@ function Categories({ api, notify, data, submit, searchQuery = '' }) {
   const categories = data.categories.filter((c) => `${c.reference_categorie || ''} ${c.nom} ${c.description || ''}`.toLowerCase().includes(term));
   const save = () => submit(async () => {
     await api('/categories', { method: 'POST', body: JSON.stringify(form) });
-    setForm(emptyCategoryForm);
-    setCreating(false);
+    closeCreate();
     notify('Categorie creee');
   });
+  const closeCreate = () => {
+    setForm(emptyCategoryForm);
+    setCreating(false);
+  };
   const saveEdit = () => submit(async () => {
     await api(`/categories/${editing.id_categorie}`, { method: 'PUT', body: JSON.stringify(editing) });
     setEditing(null);
@@ -2829,7 +2865,7 @@ function Categories({ api, notify, data, submit, searchQuery = '' }) {
           </div>
           <div className="actions">
             <SearchInput value={query} onChange={setQuery} placeholder="Rechercher categorie" />
-            <button className="btn small" type="button" onClick={() => setCreating(true)}><Plus size={16} /> Nouvelle categorie</button>
+            <button className="btn small" type="button" onClick={() => { setForm(emptyCategoryForm); setCreating(true); }}><Plus size={16} /> Nouvelle categorie</button>
           </div>
         </div>
         <div className="category-market-layout">
@@ -2861,7 +2897,7 @@ function Categories({ api, notify, data, submit, searchQuery = '' }) {
         </div>
       </div>
       {creating && (
-        <Modal title="Nouvelle categorie" onClose={() => setCreating(false)}>
+        <Modal title="Nouvelle categorie" onClose={closeCreate}>
           <Form onSubmit={save}>
             <Input label="Nom" value={form.nom} onChange={(nom) => setForm({ ...form, nom })} required />
             <Input label="Description" value={form.description} onChange={(description) => setForm({ ...form, description })} />

@@ -11,6 +11,7 @@ const getTransporter = () => {
         host: process.env.EMAIL_HOST || 'smtp.gmail.com',
         port: Number(process.env.EMAIL_PORT || 465),
         secure: String(process.env.EMAIL_SECURE || 'true') !== 'false',
+        family: Number(process.env.EMAIL_IP_FAMILY || 4),
         connectionTimeout: Number(process.env.EMAIL_CONNECTION_TIMEOUT || 10000),
         greetingTimeout: Number(process.env.EMAIL_GREETING_TIMEOUT || 10000),
         socketTimeout: Number(process.env.EMAIL_SOCKET_TIMEOUT || 15000),
@@ -47,6 +48,22 @@ export const sendMail = async ({ to, subject, text, html, replyTo, fromName }) =
     });
 
     return { skipped: false, messageId: info.messageId };
+};
+
+export const getMailErrorMessage = (error) => {
+    const rawMessage = String(error?.message || '');
+    const rawCode = String(error?.code || '');
+    const text = `${rawCode} ${rawMessage}`;
+
+    if (/ENETUNREACH|ETIMEDOUT|Connection timeout|ECONNECTION/i.test(text)) {
+        return "Le serveur n'arrive pas a joindre Gmail. Verifiez EMAIL_HOST=smtp.gmail.com, EMAIL_PORT=465, EMAIL_SECURE=true et EMAIL_IP_FAMILY=4 dans Render, puis redeployez.";
+    }
+
+    if (/EAUTH|Invalid login|Username and Password not accepted|535/i.test(text)) {
+        return "Gmail refuse l'identifiant ou le mot de passe d'application. Verifiez EMAIL_USER et EMAIL_PASS dans Render.";
+    }
+
+    return rawMessage || "Impossible d'envoyer l'email pour le moment.";
 };
 
 export const sendWelcomeUserEmail = async ({ to, name, role, password, company }) => {

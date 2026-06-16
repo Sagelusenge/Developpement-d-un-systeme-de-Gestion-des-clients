@@ -1,4 +1,4 @@
-import { isMailReady, sendMail } from '../services/mailService.js';
+import { getMailErrorMessage, isMailReady, sendMail } from '../services/mailService.js';
 import pool from '../config/db.js';
 
 export const getMailStatus = (req, res) => {
@@ -77,7 +77,7 @@ export const sendCustomMail = async (req, res) => {
         res.json({ success: true, message: 'Email envoye', data: result });
     } catch (error) {
         console.error('Erreur envoi email SMTP:', error.message);
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({ success: false, message: getMailErrorMessage(error) });
     }
 };
 

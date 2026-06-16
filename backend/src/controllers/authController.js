@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
-import { sendMail } from '../services/mailService.js';
+import { getMailErrorMessage, sendMail } from '../services/mailService.js';
 
 const generateToken = (user) => {
     return jwt.sign(
@@ -310,7 +310,7 @@ export const forgotPassword = async (req, res) => {
         res.json({ success: true, message: 'Code de recuperation envoye par email.' });
     } catch (error) {
         console.error('Erreur forgot password:', error.message);
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({ success: false, message: getMailErrorMessage(error) });
     }
 };
 
