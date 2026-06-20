@@ -26,6 +26,20 @@ L'application utilise trois roles principaux.
 
 ## Modules
 
+### Site public
+
+Le site vitrine utilise des routes distinctes :
+
+- `/` : accueil ;
+- `/about` : histoire, mission et valeurs ;
+- `/services` : produits et services ;
+- `/contact` : formulaire transmis aux managers ;
+- `/inscription` : creation et verification du compte client ;
+- `/connexion` : connexion equipe ou client ;
+- `/app` : application CRM apres authentification.
+
+L'inscription client envoie un code de confirmation a six chiffres par email. Le code expire apres 15 minutes et n'est jamais stocke en clair.
+
 ### Tableau de bord
 
 Le tableau de bord donne une vue rapide de l'activite:

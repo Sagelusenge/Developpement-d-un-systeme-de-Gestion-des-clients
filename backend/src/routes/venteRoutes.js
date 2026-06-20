@@ -25,13 +25,13 @@ router.get('/:id',
 
 router.post('/',   
     protect, 
-    authorizeRoles('manager', 'caissier'), 
+    authorizeRoles('caissier'),
     createVente
 );
 
 router.put('/:id',
     protect,
-    authorizeRoles('manager'),
+    authorizeRoles('caissier'),
     updateVente
 );
 

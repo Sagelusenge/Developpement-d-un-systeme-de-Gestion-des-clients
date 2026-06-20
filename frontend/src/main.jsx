@@ -19,22 +19,29 @@ import {
   Eye,
   FileText,
   Grid2X2,
+  Hammer,
   HelpCircle,
+  Home,
   LockKeyhole,
   LogOut,
   LogIn,
   Mail,
+  MapPin,
   Menu,
   Moon,
   Package,
   Plus,
   Printer,
   Search,
+  Send,
   Settings,
+  ShieldCheck,
   ShoppingCart,
   SlidersHorizontal,
   SunMedium,
   Tags,
+  Target,
+  TrendingUp,
   Trash2,
   UserCog,
   Users,
@@ -113,6 +120,9 @@ const searchPlaceholders = {
   utilisateurs: 'Rechercher un utilisateur, email ou role...',
   rapports: 'Rechercher dans les rapports...',
   mails: 'Rechercher un email ou destinataire...',
+  commandes: 'Rechercher une commande ou un client...',
+  reclamations: 'Rechercher une reclamation...',
+  achats: 'Rechercher une facture...',
 };
 
 const fallbackProductPhotos = [
@@ -238,6 +248,9 @@ const iconMap = {
   rapports: BarChart3,
   utilisateurs: UserCog,
   mails: Mail,
+  commandes: ShoppingCart,
+  reclamations: HelpCircle,
+  achats: FileText,
 };
 
 function IconButton({ title, children, className = '' }) {
@@ -483,6 +496,152 @@ function printTableDocument(title, headers, rows, options = {}) {
   });
 }
 
+const publicPages = ['/', '/about', '/services', '/contact', '/inscription'];
+
+function PublicHeader({ route, goTo }) {
+  const [open, setOpen] = useState(false);
+  const links = [['/', 'Accueil'], ['/about', 'A propos'], ['/services', 'Services'], ['/contact', 'Contact']];
+  const move = (path) => { setOpen(false); goTo(path); };
+  return (
+    <header className="public-header">
+      <button className="public-brand" type="button" onClick={() => move('/')}>
+        <img src={LOGO_URL} alt="" /><span><strong>Quincaillerie Centrale</strong><small>Materiaux & construction</small></span>
+      </button>
+      <button className="public-menu-toggle" type="button" onClick={() => setOpen(!open)} aria-label="Ouvrir le menu"><Menu size={25} /></button>
+      <nav className={open ? 'open' : ''}>
+        {links.map(([path, label]) => <button key={path} className={route === path ? 'active' : ''} type="button" onClick={() => move(path)}>{label}</button>)}
+        <button className="public-signin" type="button" onClick={() => move('/connexion')}>Se connecter</button>
+        <button className="public-login" type="button" onClick={() => move('/inscription')}><UserCog size={17} /> Creer un compte</button>
+      </nav>
+    </header>
+  );
+}
+
+function PublicFooter({ goTo }) {
+  return (
+    <footer className="public-footer">
+      <div className="public-footer-grid">
+        <div><div className="footer-brand"><img src={LOGO_URL} alt="" /><strong>Quincaillerie Centrale</strong></div><p>Des materiaux fiables pour construire Goma, depuis 1992.</p></div>
+        <div><strong>Navigation</strong><button onClick={() => goTo('/about')}>Notre histoire</button><button onClick={() => goTo('/services')}>Nos services</button><button onClick={() => goTo('/contact')}>Nous contacter</button></div>
+        <div><strong>Nous trouver</strong><p>Quartier Murara<br />Avenue du Commerce<br />Karisimbi, Goma</p></div>
+      </div>
+      <div className="footer-bottom"><span>© 2026 Quincaillerie Centrale</span><span>Qualite • Proximite • Confiance</span></div>
+    </footer>
+  );
+}
+
+function PublicHome({ goTo }) {
+  return (
+    <>
+      <section className="public-hero">
+        <div className="hero-copy"><span className="eyebrow">Au service de Goma depuis 1992</span><h1>Construire solide.<br /><em>Construire ensemble.</em></h1><p>Materiaux de construction et articles de quincaillerie de qualite, accessibles aux professionnels comme aux particuliers.</p><div className="hero-actions"><button className="public-primary" onClick={() => goTo('/services')}>Decouvrir nos services <ArrowRight size={19} /></button><button className="public-secondary" onClick={() => goTo('/contact')}>Nous contacter</button></div><div className="hero-proof"><div><strong>30+</strong><span>annees d'experience</span></div><div><strong>Goma</strong><span>au coeur de notre action</span></div><div><strong>Qualite</strong><span>a prix competitifs</span></div></div></div>
+        <div className="hero-visual"><img src="https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&w=1200&q=85" alt="Materiaux et outils de construction" /><div className="hero-float"><ShieldCheck size={28} /><span><strong>Votre chantier, notre engagement</strong><small>Conseil, disponibilite et suivi</small></span></div></div>
+      </section>
+      <section className="public-intro"><div><span className="section-kicker">Notre raison d'etre</span><h2>La confiance se construit avec de bons materiaux.</h2></div><p>La Quincaillerie Centrale accompagne la croissance de Goma en proposant des produits de construction de qualite superieure à des prix competitifs. Notre expertise locale nous permet de comprendre vos besoins et de vous orienter vers les bonnes solutions.</p></section>
+      <section className="public-service-preview">
+        <article><span>01</span><Hammer size={30} /><h3>Materiaux de construction</h3><p>Des produits essentiels selectionnes pour la solidite et la durabilite de vos ouvrages.</p></article>
+        <article><span>02</span><Package size={30} /><h3>Articles de quincaillerie</h3><p>Un catalogue adapte aux artisans, entreprises et projets domestiques.</p></article>
+        <article><span>03</span><Users size={30} /><h3>Conseil de proximite</h3><p>Une equipe qui vous aide à choisir selon votre chantier, votre budget et vos priorites.</p></article>
+      </section>
+      <section className="public-story-band"><div className="story-image"><img src="https://images.unsplash.com/photo-1541971875076-8f970d573be6?auto=format&fit=crop&w=1000&q=85" alt="Construction d'un batiment" /></div><div><span className="section-kicker light">Une histoire ancree à Goma</span><h2>De 1992 à aujourd'hui</h2><p>Fondee par Jean-Pierre Bishweka Bufole, l'entreprise s'est distinguee apres l'eruption volcanique de 2002 en fournissant les materiaux necessaires à la reconstruction de la ville.</p><button className="public-text-link" onClick={() => goTo('/about')}>Lire notre histoire <ArrowRight size={18} /></button></div></section>
+      <section className="public-cta"><span>Un projet en preparation ?</span><h2>Parlons de vos besoins.</h2><p>Notre equipe est à votre ecoute sur l'Avenue du Commerce, au quartier Murara.</p><button className="public-primary" onClick={() => goTo('/contact')}>Contacter l'equipe <Send size={18} /></button></section>
+    </>
+  );
+}
+
+function PublicAbout({ goTo }) {
+  return (
+    <>
+      <section className="public-page-hero about-hero"><span className="eyebrow">A propos</span><h1>Une entreprise locale,<br />une histoire de resilience.</h1><p>Depuis plus de trois decennies, la Quincaillerie Centrale participe au developpement de Goma et du Nord-Kivu.</p></section>
+      <section className="about-story"><div><span className="section-kicker">Notre histoire</span><h2>1992, le debut d'une ambition</h2><p>La Quincaillerie Centrale a ete creee en 1992 à Goma par l'entrepreneur congolais Jean-Pierre Bishweka Bufole, dans une periode marquee par de profondes difficultes economiques et sociales.</p><p>L'eruption volcanique de 2002 a constitue un tournant. En mettant à disposition les materiaux indispensables à la reconstruction, l'entreprise s'est imposee comme un acteur du commerce general et de la relance de la ville.</p></div><div className="about-year"><strong>1992</strong><span>Fondation à Goma</span></div></section>
+      <section className="mission-grid"><article><Target /><span>Notre mission</span><h3>Rendre la qualite accessible</h3><p>Fournir des produits et services de qualite superieure à des prix competitifs, accessibles à tous.</p></article><article><TrendingUp /><span>Notre ambition</span><h3>Grandir avec la region</h3><p>Rester une reference du commerce general à Goma et au Nord-Kivu, tout en contribuant au developpement economique local.</p></article><article><ShieldCheck /><span>Notre engagement</span><h3>Meriter votre confiance</h3><p>Allier disponibilite, transparence et accompagnement pour chaque client et chaque projet.</p></article></section>
+      <section className="public-values"><div><span className="section-kicker">Nos valeurs</span><h2>Ce qui guide notre travail</h2></div><div className="values-list"><article><b>01</b><div><h3>Qualite</h3><p>Des produits choisis pour repondre aux exigences du terrain.</p></div></article><article><b>02</b><div><h3>Proximite</h3><p>Une connaissance concrete de Goma, de ses artisans et de ses chantiers.</p></div></article><article><b>03</b><div><h3>Accessibilite</h3><p>Des prix competitifs pour servir le plus grand nombre.</p></div></article><article><b>04</b><div><h3>Resilience</h3><p>Une entreprise qui avance avec sa ville, meme dans les periodes difficiles.</p></div></article></div></section>
+      <section className="public-cta"><span>Decouvrez notre offre</span><h2>Tout pour faire avancer votre chantier.</h2><button className="public-primary" onClick={() => goTo('/services')}>Voir nos services <ArrowRight size={18} /></button></section>
+    </>
+  );
+}
+
+function PublicServices({ goTo }) {
+  const services = [
+    [Hammer, 'Materiaux de construction', 'Une offre pour les travaux de construction, de renovation et d’amenagement, adaptee aux besoins du marche local.'],
+    [Package, 'Quincaillerie generale', 'Des outils, equipements et consommables destines aux professionnels, artisans et particuliers.'],
+    [ShoppingCart, 'Commande en ligne', 'Depuis votre espace client, consultez les produits disponibles, envoyez une commande et suivez son traitement.'],
+    [FileText, 'Factures et suivi des achats', 'Retrouvez vos achats, vos factures et votre situation de paiement dans un espace personnel securise.'],
+    [HelpCircle, 'Reclamations et service client', 'Signalez un probleme depuis votre compte et suivez directement la reponse du manager.'],
+    [Users, 'Conseil et accompagnement', 'Notre equipe vous oriente vers les produits adaptes à votre projet et à votre budget.']
+  ];
+  return (
+    <><section className="public-page-hero services-hero"><span className="eyebrow">Nos services</span><h1>Plus que des produits,<br />un accompagnement.</h1><p>Une offre complete qui relie le magasin, le suivi commercial et votre espace client.</p></section><section className="services-grid">{services.map(([Icon, title, text], index) => <article key={title}><b>{String(index + 1).padStart(2, '0')}</b><Icon size={32} /><h2>{title}</h2><p>{text}</p></article>)}</section><section className="digital-service"><div><span className="section-kicker light">Votre espace client</span><h2>Vos commandes vous suivent partout.</h2><p>Commandez, consultez vos factures et echangez avec le manager depuis une interface simple et securisee.</p><button className="public-primary" onClick={() => goTo('/connexion')}>Acceder à mon espace <ArrowRight size={18} /></button></div><div className="digital-mock"><div className="mock-top"><i /><i /><i /></div><div className="mock-content"><aside /><main><span /><span /><div><i /><i /><i /></div></main></div></div></section><section className="public-cta"><span>Besoin d'un renseignement ?</span><h2>Notre equipe vous repond.</h2><button className="public-primary" onClick={() => goTo('/contact')}>Nous contacter <Send size={18} /></button></section></>
+  );
+}
+
+function PublicContact() {
+  const [form, setForm] = useState({ nom: '', email: '', sujet: '', message: '' });
+  const [status, setStatus] = useState({ loading: false, message: '', ok: false });
+  const submit = async (event) => {
+    event.preventDefault(); setStatus({ loading: true, message: '', ok: false });
+    try {
+      const response = await fetch(`${API_URL}/public/contact`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.message || 'Envoi impossible.');
+      setForm({ nom: '', email: '', sujet: '', message: '' }); setStatus({ loading: false, message: body.message, ok: true });
+    } catch (error) { setStatus({ loading: false, message: error.message, ok: false }); }
+  };
+  return (
+    <><section className="public-page-hero contact-hero"><span className="eyebrow">Contact</span><h1>Parlons de votre projet.</h1><p>Une question sur nos produits, une commande ou votre espace client ? Ecrivez-nous.</p></section><section className="contact-layout"><aside><span className="section-kicker">Nous trouver</span><h2>Au coeur de Goma</h2><div className="contact-card"><MapPin size={27} /><div><strong>Adresse</strong><p>Avenue du Commerce<br />Quartier Murara, Commune de Karisimbi<br />Goma, Nord-Kivu</p></div></div><div className="contact-note"><ShieldCheck size={23} /><p>Les messages envoyes ici arrivent directement dans l’espace du manager.</p></div></aside><div className="contact-form-card"><h2>Envoyer un message</h2><p>Remplissez le formulaire et notre equipe prendra connaissance de votre demande.</p><form onSubmit={submit}><div className="form-row"><Input label="Nom complet" value={form.nom} onChange={(nom) => setForm({ ...form, nom })} required /><Input label="Adresse email" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} required /></div><Input label="Sujet" value={form.sujet} onChange={(sujet) => setForm({ ...form, sujet })} required /><label>Votre message<textarea value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} required /></label>{status.message && <p className={status.ok ? 'contact-success' : 'contact-error'}>{status.message}</p>}<button className="public-primary" disabled={status.loading}>{status.loading ? 'Envoi...' : 'Envoyer le message'} <Send size={18} /></button></form></div></section></>
+  );
+}
+
+function PublicRegistration({ goTo, onComplete }) {
+  const [step, setStep] = useState('form');
+  const [form, setForm] = useState({ nom: '', postnom: '', telephone: '', email: '', password: '', confirm: '', accepted: false });
+  const [code, setCode] = useState('');
+  const [status, setStatus] = useState({ loading: false, message: '', ok: false });
+  const requestRegistration = async (event) => {
+    event.preventDefault();
+    if (form.password !== form.confirm) return setStatus({ loading: false, message: 'Les deux mots de passe ne correspondent pas.', ok: false });
+    if (!form.accepted) return setStatus({ loading: false, message: 'Veuillez accepter les conditions de creation du compte.', ok: false });
+    setStatus({ loading: true, message: '', ok: false });
+    try {
+      const response = await fetch(`${API_URL}/client-auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.message || 'Inscription impossible.');
+      setStep('verify'); setStatus({ loading: false, message: body.message, ok: true });
+    } catch (error) { setStatus({ loading: false, message: error.message, ok: false }); }
+  };
+  const verify = async (event) => {
+    event.preventDefault(); setStatus({ loading: true, message: '', ok: false });
+    try {
+      const response = await fetch(`${API_URL}/client-auth/verify-email`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: form.email, code }) });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.message || 'Verification impossible.');
+      onComplete(body);
+    } catch (error) { setStatus({ loading: false, message: error.message, ok: false }); }
+  };
+  const resend = async () => {
+    setStatus({ loading: true, message: '', ok: false });
+    try {
+      const response = await fetch(`${API_URL}/client-auth/resend-code`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: form.email }) });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.message || 'Renvoi impossible.');
+      setStatus({ loading: false, message: body.message, ok: true });
+    } catch (error) { setStatus({ loading: false, message: error.message, ok: false }); }
+  };
+  return (
+    <section className="registration-page">
+      <div className="registration-aside"><span className="eyebrow">ESPACE CLIENT</span><h1>Votre quincaillerie,<br />à portee de main.</h1><p>Un compte personnel pour commander, suivre vos achats, consulter vos factures et contacter directement notre equipe.</p><div className="registration-benefits"><div><ShieldCheck /><span><strong>Compte securise</strong><small>Votre adresse email est verifiee</small></span></div><div><ShoppingCart /><span><strong>Commandes simplifiees</strong><small>Suivez chaque etape en ligne</small></span></div><div><HelpCircle /><span><strong>Assistance directe</strong><small>Vos reclamations arrivent au manager</small></span></div></div></div>
+      <div className="registration-card">
+        {step === 'form' ? <><span className="registration-step">ETAPE 1 SUR 2</span><h2>Creer mon compte</h2><p>Renseignez vos informations personnelles. Un code sera envoye à votre adresse email.</p><form onSubmit={requestRegistration}><div className="form-row"><Input label="Nom" value={form.nom} onChange={(nom) => setForm({ ...form, nom })} required /><Input label="Postnom" value={form.postnom} onChange={(postnom) => setForm({ ...form, postnom })} /></div><Input label="Numero de telephone" value={form.telephone} onChange={(telephone) => setForm({ ...form, telephone })} placeholder="Ex. +243..." required /><Input label="Adresse email" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} placeholder="votrenom@gmail.com" required /><div className="form-row"><Input label="Mot de passe" type="password" value={form.password} onChange={(password) => setForm({ ...form, password })} required /><Input label="Confirmer" type="password" value={form.confirm} onChange={(confirm) => setForm({ ...form, confirm })} required /></div><small className="password-hint">8 caracteres minimum, avec majuscule, minuscule et chiffre.</small><label className="terms-check"><input type="checkbox" checked={form.accepted} onChange={(event) => setForm({ ...form, accepted: event.target.checked })} /><span>J'accepte la creation de mon espace client et le traitement de mes informations pour la gestion de mes commandes.</span></label>{status.message && <p className={status.ok ? 'contact-success' : 'contact-error'}>{status.message}</p>}<button className="public-primary registration-submit" disabled={status.loading}>{status.loading ? 'Envoi du code...' : 'Continuer et verifier mon email'} <ArrowRight size={18} /></button></form></> : <><span className="registration-step">ETAPE 2 SUR 2</span><div className="verify-icon"><Mail size={30} /></div><h2>Consultez votre messagerie</h2><p>Nous avons envoye un code professionnel à 6 chiffres à <strong>{form.email}</strong>. Il reste valable pendant 15 minutes.</p><form onSubmit={verify}><label className="verification-label">Code de confirmation<input className="verification-code" inputMode="numeric" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="000000" required /></label>{status.message && <p className={status.ok ? 'contact-success' : 'contact-error'}>{status.message}</p>}<button className="public-primary registration-submit" disabled={status.loading || code.length !== 6}>{status.loading ? 'Verification...' : 'Confirmer mon adresse'} <ShieldCheck size={18} /></button><div className="verify-actions"><button type="button" onClick={resend} disabled={status.loading}>Renvoyer le code</button><button type="button" onClick={() => { setStep('form'); setCode(''); }}>Modifier l'adresse</button></div></form></>}
+        <p className="registration-login">Vous avez deja un compte ? <button type="button" onClick={() => goTo('/connexion')}>Se connecter</button></p>
+      </div>
+    </section>
+  );
+}
+
+function PublicWebsite({ route, goTo, onRegistrationComplete }) {
+  return <div className="public-site"><PublicHeader route={route} goTo={goTo} /><main>{route === '/about' ? <PublicAbout goTo={goTo} /> : route === '/services' ? <PublicServices goTo={goTo} /> : route === '/contact' ? <PublicContact /> : route === '/inscription' ? <PublicRegistration goTo={goTo} onComplete={onRegistrationComplete} /> : <PublicHome goTo={goTo} />}</main><PublicFooter goTo={goTo} /></div>;
+}
+
 function App() {
   const [booting, setBooting] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('crm_token') || '');
@@ -500,6 +659,19 @@ function App() {
   const [showProfile, setShowProfile] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [route, setRoute] = useState(window.location.pathname || '/');
+
+  const goTo = (path) => {
+    window.history.pushState({}, '', path);
+    setRoute(path);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    const onPopState = () => setRoute(window.location.pathname || '/');
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setBooting(false), 650);
@@ -537,13 +709,13 @@ function App() {
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
-    fetch(`${API_URL}/auth/me`, {
+    fetch(`${API_URL}/${authType === 'client' ? 'client-auth' : 'auth'}/me`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then((response) => response.json().then((body) => ({ response, body })))
       .then(({ response, body }) => {
         if (!response.ok || !body.user || cancelled) return;
-        const refreshedUser = { ...body.user, id: body.user.id_utilisateur, type: 'utilisateur' };
+        const refreshedUser = { ...body.user, id: body.user.id || body.user.id_utilisateur || body.user.id_client };
         setUser(refreshedUser);
         localStorage.setItem('crm_user', JSON.stringify(refreshedUser));
       })
@@ -576,16 +748,28 @@ function App() {
       return body;
     };
 
-    const result = await requestLogin('/auth/login');
+    const result = await requestLogin(authType === 'client' ? '/client-auth/login' : '/auth/login');
     const connectedUser = result.user || result.admin;
     setToken(result.token);
     setUser(connectedUser);
-    setAuthType('user');
     setPage('dashboard');
     localStorage.setItem('crm_token', result.token);
     localStorage.setItem('crm_user', JSON.stringify(connectedUser));
-    localStorage.setItem('crm_auth_type', 'user');
+    localStorage.setItem('crm_auth_type', authType);
+    goTo('/app');
     notify('Connexion reussie');
+  };
+
+  const completeClientRegistration = (result) => {
+    setToken(result.token);
+    setUser(result.user);
+    setAuthType('client');
+    setPage('dashboard');
+    localStorage.setItem('crm_token', result.token);
+    localStorage.setItem('crm_user', JSON.stringify(result.user));
+    localStorage.setItem('crm_auth_type', 'client');
+    notify('Bienvenue dans votre espace client.');
+    goTo('/app');
   };
 
   const logout = () => {
@@ -597,12 +781,14 @@ function App() {
     setUser(null);
     setAuthType('user');
     setPage('dashboard');
+    goTo('/connexion');
   };
 
   const navItems = useMemo(() => {
     const role = user?.role;
     return [
       { id: 'dashboard', label: tr(lang, 'dashboard'), roles: ['manager', 'caissier', 'magasinier'] },
+      { id: 'dashboard', label: 'Mon espace', roles: ['client'] },
       { id: 'clients', label: tr(lang, 'clients'), roles: ['manager', 'caissier'] },
       { id: 'ventes', label: 'Ventes', roles: ['manager', 'caissier'] },
       { id: 'paiements', label: tr(lang, 'paiements'), roles: ['manager', 'caissier'] },
@@ -612,6 +798,9 @@ function App() {
       { id: 'rapports', label: tr(lang, 'rapports'), roles: ['manager', 'caissier', 'magasinier'] },
       { id: 'utilisateurs', label: tr(lang, 'utilisateurs'), roles: ['manager'] },
       { id: 'mails', label: tr(lang, 'mails'), roles: ['manager'] }
+      ,{ id: 'commandes', label: 'Commandes', roles: ['manager', 'caissier', 'client'] }
+      ,{ id: 'achats', label: 'Mes achats', roles: ['client'] }
+      ,{ id: 'reclamations', label: 'Reclamations', roles: ['manager', 'client'] }
     ].filter((item) => item.roles.includes(role));
   }, [authType, user, lang]);
 
@@ -642,8 +831,12 @@ function App() {
     return <main className="app-boot"><QcLoader label="Ouverture de Quincaillerie Centrale" /></main>;
   }
 
+  if (publicPages.includes(route)) {
+    return <PublicWebsite route={route} goTo={goTo} onRegistrationComplete={completeClientRegistration} />;
+  }
+
   if (!token) {
-    return <Login authType={authType} setAuthType={setAuthType} onLogin={login} notify={notify} toast={toast} lang={lang} />;
+    return <Login authType={authType} setAuthType={setAuthType} onLogin={login} notify={notify} toast={toast} lang={lang} goTo={goTo} />;
   }
 
   const titles = {
@@ -661,6 +854,9 @@ function App() {
       : user?.role === 'caissier'
         ? ['Rapports caisse', 'Factures, dettes et paiements recus.']
         : ['Rapports', 'Factures, creances, stock et meilleurs clients.'],
+    commandes: ['Commandes', user?.role === 'client' ? 'Passez et suivez vos commandes.' : 'Suivi et traitement des commandes clients.'],
+    achats: ['Mes achats', 'Factures et paiements de votre compte.'],
+    reclamations: ['Reclamations', user?.role === 'client' ? 'Ecrivez directement au manager.' : 'Demandes envoyees par les clients.'],
   };
   const [title, subtitle] = titles[page] || [APP_NAME, ''];
   const sidebarTitle = user?.entreprise_nom || user?.raison_sociale || user?.entreprise_id || APP_NAME;
@@ -768,7 +964,7 @@ function App() {
   );
 }
 
-function Login({ onLogin, notify, toast }) {
+function Login({ authType, setAuthType, onLogin, notify, toast, goTo }) {
   const [form, setForm] = useState({ email: '', password: '' });
   const [showForgot, setShowForgot] = useState(false);
   const [resetStep, setResetStep] = useState('email');
@@ -990,7 +1186,11 @@ function Login({ onLogin, notify, toast }) {
             </div>
           </div>
           <h2>Connexion</h2>
-          <p>Accedez a votre espace de gestion commerciale.</p>
+          <p>{authType === 'client' ? 'Consultez vos achats, commandes et reclamations.' : 'Accedez a votre espace de gestion commerciale.'}</p>
+          <div className="auth-switch">
+            <button type="button" className={authType !== 'client' ? 'active' : ''} onClick={() => setAuthType('user')}>Equipe</button>
+            <button type="button" className={authType === 'client' ? 'active' : ''} onClick={() => setAuthType('client')}>Client</button>
+          </div>
           <form className="form" onSubmit={submit}>
             <label>Adresse e-mail
               <span className="input-shell">
@@ -1009,12 +1209,13 @@ function Login({ onLogin, notify, toast }) {
                   <Eye size={22} />
                 </button>
               </span>
-              <button className="forgot-inline" type="button" onClick={openForgotScreen}>Mot de passe oublie ?</button>
+              {authType !== 'client' && <button className="forgot-inline" type="button" onClick={openForgotScreen}>Mot de passe oublie ?</button>}
             </label>
             <button className="btn login-submit" disabled={loading}>
               {loading ? 'Connexion...' : 'Se connecter'} <LogIn size={20} />
             </button>
           </form>
+          {authType === 'client' && <p className="login-register-link">Nouveau client ? <button type="button" onClick={() => goTo('/inscription')}>Creer gratuitement mon compte</button></p>}
         </div>
       </section>
       {toast && <div className="toast">{toast}</div>}
@@ -1077,7 +1278,7 @@ function ProfileModal({ api, notify, user, onUserUpdate, onClose }) {
     }
     setSavingProfile(true);
     try {
-      const response = await api('/auth/profile', { method: 'PUT', body: JSON.stringify(profile) });
+      const response = await api(`/${user?.type === 'client' ? 'client-auth' : 'auth'}/profile`, { method: 'PUT', body: JSON.stringify(profile) });
       onUserUpdate?.(response.user || profile);
       notify(response.message || 'Profil mis a jour');
     } finally {
@@ -1090,7 +1291,7 @@ function ProfileModal({ api, notify, user, onUserUpdate, onClose }) {
       notify('Les mots de passe ne correspondent pas');
       return;
     }
-    await api('/auth/change-password', { method: 'POST', body: JSON.stringify(form) });
+    await api(`/${user?.type === 'client' ? 'client-auth' : 'auth'}/change-password`, { method: 'POST', body: JSON.stringify(form) });
     setForm({ new_password: '', confirm_password: '' });
     notify('Mot de passe mis a jour');
   };
@@ -1155,6 +1356,17 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
         tasks.push(api('/mail/status').then((r) => { next.extra.mailStatus = r.data || {}; }).catch(() => {}));
         tasks.push(api('/mail/messages').then((r) => { next.extra.mailMessages = r.data || []; }).catch(() => {}));
       }
+      if (page === 'commandes' || (page === 'dashboard' && user?.role === 'client')) {
+        tasks.push(api('/commandes').then((r) => { next.extra.commandes = r.data || []; }));
+        tasks.push(api('/commandes/catalogue').then((r) => { next.extra.catalogue = r.data || []; }));
+      }
+      if (page === 'achats' || (page === 'dashboard' && user?.role === 'client')) {
+        tasks.push(api('/commandes/achats').then((r) => { next.extra.achats = r.data || []; }));
+      }
+      if (page === 'reclamations' || (page === 'dashboard' && user?.role === 'client')) {
+        tasks.push(api('/reclamations').then((r) => { next.extra.reclamations = r.data || []; }));
+        if (user?.role === 'client') tasks.push(api('/commandes').then((r) => { next.extra.commandes = r.data || []; }));
+      }
       if (page === 'rapports') {
         tasks.push(api('/rapports/factures').then((r) => { next.extra.factures = r.data || []; }).catch(() => {}));
         tasks.push(api('/rapports/creances').then((r) => { next.extra.creances = r.data || []; }).catch(() => {}));
@@ -1192,6 +1404,7 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
   if (error) return <p className="notice">{error}</p>;
 
   const props = { api, notify, data, submit, lang, user, searchQuery, setPage };
+  if (page === 'dashboard' && user?.role === 'client') return <ClientDashboard data={data} setPage={setPage} user={user} />;
   if (page === 'dashboard') return <Dashboard data={data} searchQuery={searchQuery} setPage={setPage} user={user} />;
   if (page === 'clients') return <Clients {...props} />;
   if (page === 'produits') return <Produits {...props} />;
@@ -1202,6 +1415,9 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
   if (page === 'mails') return <Mails {...props} />;
   if (page === 'categories') return <Categories {...props} />;
   if (page === 'rapports') return <Rapports data={data} searchQuery={searchQuery} user={user} />;
+  if (page === 'commandes') return <Commandes {...props} />;
+  if (page === 'achats') return <AchatsClient {...props} />;
+  if (page === 'reclamations') return <Reclamations {...props} />;
   return null;
 }
 
@@ -1728,7 +1944,7 @@ function QuoteComposer({ form, setForm, clients, produits, submitLabel }) {
 }
 
 function Clients({ api, notify, data, submit, searchQuery = '' }) {
-  const emptyClientForm = { nom: '', postnom: '', telephone: '' };
+  const emptyClientForm = { nom: '', postnom: '', telephone: '', email: '', mot_de_passe: '' };
   const [form, setForm] = useState(emptyClientForm);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -1807,6 +2023,10 @@ function Clients({ api, notify, data, submit, searchQuery = '' }) {
               <Input label="Postnom" value={form.postnom} onChange={(postnom) => setForm({ ...form, postnom })} />
             </div>
             <Input label="Telephone" value={form.telephone} onChange={(telephone) => setForm({ ...form, telephone })} />
+            <div className="form-row">
+              <Input label="Email de connexion client" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} />
+              <Input label="Mot de passe initial" type="password" value={form.mot_de_passe} onChange={(mot_de_passe) => setForm({ ...form, mot_de_passe })} />
+            </div>
             <button className="btn modal-submit">Enregistrer <ArrowRight size={20} /></button>
           </Form>
         </Modal>
@@ -1828,6 +2048,8 @@ function Clients({ api, notify, data, submit, searchQuery = '' }) {
             <Input label="Nom" value={editing.nom || ''} onChange={(nom) => setEditing({ ...editing, nom })} required />
             <Input label="Postnom" value={editing.postnom || ''} onChange={(postnom) => setEditing({ ...editing, postnom })} />
             <Input label="Telephone" value={editing.telephone || ''} onChange={(telephone) => setEditing({ ...editing, telephone })} />
+            <Input label="Email de connexion client" type="email" value={editing.email || ''} onChange={(email) => setEditing({ ...editing, email })} />
+            <Input label="Nouveau mot de passe (laisser vide pour conserver)" type="password" value={editing.mot_de_passe || ''} onChange={(mot_de_passe) => setEditing({ ...editing, mot_de_passe })} />
             <button className="btn">Mettre a jour</button>
           </Form>
         </Modal>
@@ -2036,7 +2258,7 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
   );
 }
 
-function Ventes({ api, notify, data, submit, searchQuery = '' }) {
+function Ventes({ api, notify, data, submit, searchQuery = '', user }) {
   const emptyLine = () => ({ produit_id: '', quantite: 1 });
   const emptySaleForm = () => ({ client_id: '', lignes: [emptyLine()] });
   const [form, setForm] = useState(emptySaleForm);
@@ -2103,7 +2325,7 @@ function Ventes({ api, notify, data, submit, searchQuery = '' }) {
               <option value="partiel">Partielles</option>
               <option value="impaye">Impayees</option>
             </select>
-            <button className="btn small" type="button" onClick={() => { setForm(emptySaleForm()); setCreating(true); }}><Plus size={16} /> Nouvelle facture</button>
+            {user?.role === 'caissier' && <button className="btn small" type="button" onClick={() => { setForm(emptySaleForm()); setCreating(true); }}><Plus size={16} /> Nouvelle facture</button>}
           </div>
         </div>
         <Table headers={['Facture', 'Client', 'Montant', 'Paye', 'Reste', 'Actions']} rows={ventesList.map((v) => [
@@ -2113,7 +2335,7 @@ function Ventes({ api, notify, data, submit, searchQuery = '' }) {
           money(v.total_paye),
           money(v.reste_a_payer),
           <RowActions
-            onEdit={() => startEdit(v)}
+            onEdit={user?.role === 'caissier' ? () => startEdit(v) : null}
             onPrint={() => printDocument('Facture', [['Facture', v.numero_facture], ['Client', v.client_nom], ['Montant', money(v.montant_ttc)], ['Paye', money(v.total_paye)], ['Reste', money(v.reste_a_payer)]], { paper: 'page' })}
             onDelete={() => remove(v)}
           />
@@ -2150,7 +2372,7 @@ function Ventes({ api, notify, data, submit, searchQuery = '' }) {
   );
 }
 
-function Paiements({ api, notify, data, submit, searchQuery = '' }) {
+function Paiements({ api, notify, data, submit, searchQuery = '', user }) {
   const factures = data.ventes.filter((v) => Number(v.reste_a_payer) > 0);
   const emptyPaymentForm = { vente_id: '', montant: '', mode_paiement: 'especes', reference_externe: '', telephone_payeur: '' };
   const [form, setForm] = useState(emptyPaymentForm);
@@ -2224,7 +2446,7 @@ function Paiements({ api, notify, data, submit, searchQuery = '' }) {
                 <input className="date-filter" type="date" value={dateRange.fin} onChange={(event) => setDateRange({ ...dateRange, fin: event.target.value })} />
               </>
             )}
-            <button className="btn small" type="button" onClick={() => { setForm(emptyPaymentForm); setInvoiceQuery(''); setCreating(true); }}><Plus size={16} /> Nouveau paiement</button>
+            {user?.role === 'caissier' && <button className="btn small" type="button" onClick={() => { setForm(emptyPaymentForm); setInvoiceQuery(''); setCreating(true); }}><Plus size={16} /> Nouveau paiement</button>}
           </div>
         </div>
         <Table headers={['Date', 'Mode', 'Transactions', 'Total']} rows={caisseRows.map((r) => [formatDate(r.Date), r.Mode_Paiement, r.Nombre_Transactions, money(r.Total_Encaisse)])} />
@@ -2916,6 +3138,123 @@ function Categories({ api, notify, data, submit, searchQuery = '' }) {
           </Form>
         </Modal>
       )}
+    </div>
+  );
+}
+
+function ClientDashboard({ data, setPage, user }) {
+  const commandes = data.extra.commandes || [];
+  const achats = data.extra.achats || [];
+  const reclamations = data.extra.reclamations || [];
+  const totalAchats = achats.reduce((sum, item) => sum + Number(item.montant_ttc || 0), 0);
+  return (
+    <div className="client-space">
+      <section className="client-hero">
+        <div><span>Espace client</span><h2>Bonjour {user?.nom || 'client'} 👋</h2><p>Commandez vos produits et gardez un oeil sur chaque etape.</p></div>
+        <button className="btn" type="button" onClick={() => setPage('commandes')}><ShoppingCart size={19} /> Commander</button>
+      </section>
+      <section className="client-kpis">
+        <article><ShoppingCart /><span>Commandes</span><strong>{commandes.length}</strong></article>
+        <article><FileText /><span>Achats cumules</span><strong>{moneySmart(totalAchats)}</strong></article>
+        <article><HelpCircle /><span>Reclamations ouvertes</span><strong>{reclamations.filter((item) => !['resolue', 'cloturee'].includes(item.statut)).length}</strong></article>
+      </section>
+      <section className="panel">
+        <div className="panel-heading"><h3>Dernieres commandes</h3><button className="link-button" type="button" onClick={() => setPage('commandes')}>Voir tout</button></div>
+        <Table headers={['Commande', 'Date', 'Montant', 'Statut', 'Facture']} rows={commandes.slice(0, 5).map((item) => [item.id_commande, formatDate(item.date_commande), money(item.montant_ttc), <Badge>{item.statut}</Badge>, item.numero_facture || '-'])} />
+      </section>
+    </div>
+  );
+}
+
+function Commandes({ api, notify, data, submit, user, searchQuery = '' }) {
+  const commandes = data.extra.commandes || [];
+  const catalogue = data.extra.catalogue || [];
+  const [cart, setCart] = useState({});
+  const [note, setNote] = useState('');
+  const [query, setQuery] = useState('');
+  const term = `${searchQuery} ${query}`.trim().toLowerCase();
+  const filtered = commandes.filter((item) => `${item.id_commande} ${item.client_nom || ''} ${item.statut}`.toLowerCase().includes(term));
+  const cartItems = catalogue.filter((product) => Number(cart[product.id_produit] || 0) > 0);
+  const cartTotal = cartItems.reduce((sum, product) => sum + Number(product.prix_ht) * Number(cart[product.id_produit]) * 1.16, 0);
+  const add = (product, delta = 1) => setCart((current) => ({ ...current, [product.id_produit]: Math.max(0, Math.min(Number(product.quantite_stock), Number(current[product.id_produit] || 0) + delta)) }));
+  const placeOrder = () => {
+    if (!cartItems.length) return notify('Ajoutez au moins un produit au panier.');
+    submit(async () => {
+      await api('/commandes', { method: 'POST', body: JSON.stringify({ note_client: note, articles: cartItems.map((product) => ({ produit_id: product.id_produit, quantite: cart[product.id_produit] })) }) });
+      setCart({}); setNote(''); notify('Commande envoyee au manager.');
+    });
+  };
+  const updateStatus = (item, statut) => submit(async () => {
+    await api(`/commandes/${item.id_commande}/statut`, { method: 'PUT', body: JSON.stringify({ statut }) });
+    notify('Commande mise a jour.');
+  });
+  const convert = (item) => submit(async () => {
+    const result = await api(`/commandes/${item.id_commande}/convertir`, { method: 'POST', body: '{}' });
+    notify(result.message);
+  });
+
+  if (user?.role === 'client') return (
+    <div className="client-order-layout">
+      <section className="panel catalogue-panel">
+        <div className="panel-heading"><div><h3>Catalogue disponible</h3><p>Le stock est confirme lors de la facturation.</p></div></div>
+        <div className="client-catalogue">
+          {catalogue.map((product, index) => (
+            <article key={product.id_produit}>
+              <img src={productPhotoUrl(product, index)} alt="" />
+              <div><small>{product.categorie_nom || 'Produit'}</small><h4>{product.nom}</h4><span>Stock {product.quantite_stock} {product.unite}</span><strong>{moneySmart(Number(product.prix_ht) * 1.16)} TTC</strong></div>
+              <div className="cart-stepper"><button type="button" onClick={() => add(product, -1)}>-</button><b>{cart[product.id_produit] || 0}</b><button type="button" onClick={() => add(product, 1)}>+</button></div>
+            </article>
+          ))}
+        </div>
+      </section>
+      <aside className="panel client-cart">
+        <h3>Mon panier</h3>
+        {cartItems.length ? cartItems.map((product) => <div key={product.id_produit}><span>{product.nom} × {cart[product.id_produit]}</span><strong>{moneySmart(Number(product.prix_ht) * Number(cart[product.id_produit]) * 1.16)}</strong></div>) : <p className="empty compact">Panier vide</p>}
+        <label>Note pour l'equipe<textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Livraison, precision sur la commande..." /></label>
+        <div className="cart-total"><span>Total estime</span><strong>{moneySmart(cartTotal)}</strong></div>
+        <button className="btn" type="button" onClick={placeOrder}>Envoyer la commande <ArrowRight size={18} /></button>
+      </aside>
+      <section className="panel order-history"><div className="panel-heading"><h3>Suivi de mes commandes</h3></div><Table headers={['Commande', 'Date', 'Articles', 'Montant', 'Statut', 'Facture']} rows={filtered.map((item) => [item.id_commande, formatDate(item.date_commande), item.lignes?.reduce((sum, line) => sum + Number(line.quantite), 0) || 0, money(item.montant_ttc), <Badge>{item.statut}</Badge>, item.numero_facture || '-'])} /></section>
+    </div>
+  );
+
+  return (
+    <section className="panel">
+      <div className="panel-heading client-toolbar"><div><h3>Commandes clients</h3><p>{commandes.filter((item) => item.statut === 'en_attente').length} en attente</p></div><SearchInput value={query} onChange={setQuery} placeholder="Commande ou client" /></div>
+      <Table headers={['Commande', 'Client', 'Date', 'Articles', 'Montant', 'Statut', 'Actions']} rows={filtered.map((item) => [
+        item.id_commande, `${item.client_nom} ${item.client_postnom || ''}`, formatDate(item.date_commande), item.lignes?.map((line) => `${line.produit_nom} × ${line.quantite}`).join(', '), money(item.montant_ttc), <Badge>{item.statut}</Badge>,
+        <div className="actions order-actions">
+          {!item.vente_id && !['annulee', 'rejetee'].includes(item.statut) && <select value={item.statut} onChange={(event) => updateStatus(item, event.target.value)}><option value="en_attente">En attente</option><option value="confirmee">Confirmee</option><option value="preparee">Preparee</option><option value="livree">Livree</option><option value="annulee">Annulee</option><option value="rejetee">Rejetee</option></select>}
+          {user?.role === 'caissier' && !item.vente_id && !['annulee', 'rejetee'].includes(item.statut) && <button className="btn small" type="button" onClick={() => convert(item)}>Facturer</button>}
+          {item.numero_facture && <Badge>{item.numero_facture}</Badge>}
+        </div>
+      ])} />
+    </section>
+  );
+}
+
+function AchatsClient({ data, searchQuery = '' }) {
+  const rows = (data.extra.achats || []).filter((item) => `${item.numero_facture} ${item.montant_ttc}`.toLowerCase().includes(searchQuery.toLowerCase()));
+  return <section className="panel"><div className="panel-heading"><div><h3>Mes achats et factures</h3><p>Historique des ventes liees a votre compte.</p></div></div><Table headers={['Facture', 'Date', 'Montant', 'Paye', 'Reste', 'Statut']} rows={rows.map((item) => [item.numero_facture, formatDate(item.date_vente), money(item.montant_ttc), money(item.total_paye), money(item.reste_a_payer), <Badge>{Number(item.reste_a_payer) <= 0 ? 'Paye' : Number(item.total_paye) > 0 ? 'Partiel' : 'Impaye'}</Badge>])} /></section>;
+}
+
+function Reclamations({ api, notify, data, submit, user, searchQuery = '' }) {
+  const [form, setForm] = useState({ sujet: '', message: '', commande_id: '' });
+  const [editing, setEditing] = useState(null);
+  const rows = (data.extra.reclamations || []).filter((item) => `${item.id_reclamation} ${item.client_nom || ''} ${item.sujet} ${item.statut}`.toLowerCase().includes(searchQuery.toLowerCase()));
+  const send = () => submit(async () => {
+    await api('/reclamations', { method: 'POST', body: JSON.stringify(form) });
+    setForm({ sujet: '', message: '', commande_id: '' }); notify('Reclamation envoyee directement au manager.');
+  });
+  const save = () => submit(async () => {
+    await api(`/reclamations/${editing.id_reclamation}`, { method: 'PUT', body: JSON.stringify(editing) });
+    setEditing(null); notify('Reclamation traitee.');
+  });
+  return (
+    <div className="grid">
+      {user?.role === 'client' && <section className="panel complaint-form"><div className="panel-heading"><div><h3>Nouvelle reclamation</h3><p>Votre message sera visible par le manager.</p></div></div><Form onSubmit={send}><Input label="Sujet" value={form.sujet} onChange={(sujet) => setForm({ ...form, sujet })} required /><Select label="Commande concernee (optionnel)" value={form.commande_id} onChange={(commande_id) => setForm({ ...form, commande_id })} required={false} options={[["", "Aucune commande"], ...(data.extra.commandes || []).map((item) => [item.id_commande, item.id_commande])]} /><label>Message<textarea value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} required /></label><button className="btn modal-submit">Envoyer au manager <ArrowRight size={18} /></button></Form></section>}
+      <section className="panel"><div className="panel-heading"><div><h3>{user?.role === 'client' ? 'Mes reclamations' : 'Reclamations clientes'}</h3><p>{rows.filter((item) => item.statut === 'ouverte').length} ouverte(s)</p></div></div><Table headers={['Reference', ...(user?.role === 'manager' ? ['Client'] : []), 'Sujet', 'Message', 'Reponse', 'Statut', ...(user?.role === 'manager' ? ['Action'] : [])]} rows={rows.map((item) => [item.id_reclamation, ...(user?.role === 'manager' ? [`${item.client_nom} ${item.client_postnom || ''}`] : []), item.sujet, item.message, item.reponse || 'En attente', <Badge>{item.statut}</Badge>, ...(user?.role === 'manager' ? [<button className="btn small" type="button" onClick={() => setEditing(item)}>Traiter</button>] : [])])} /></section>
+      {editing && <Modal title={`Traiter ${editing.id_reclamation}`} onClose={() => setEditing(null)}><Form onSubmit={save}><Select label="Statut" value={editing.statut} onChange={(statut) => setEditing({ ...editing, statut })} options={[['ouverte', 'Ouverte'], ['en_cours', 'En cours'], ['resolue', 'Resolue'], ['cloturee', 'Cloturee']]} /><label>Reponse au client<textarea value={editing.reponse || ''} onChange={(event) => setEditing({ ...editing, reponse: event.target.value })} /></label><button className="btn modal-submit">Enregistrer la reponse</button></Form></Modal>}
     </div>
   );
 }

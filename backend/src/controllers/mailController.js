@@ -1,4 +1,4 @@
-import { getMailErrorMessage, isMailReady, sendMail } from '../services/mailService.js';
+import { brandedEmail, escapeHtml, getMailErrorMessage, isMailReady, sendMail } from '../services/mailService.js';
 import pool from '../config/db.js';
 
 export const getMailStatus = (req, res) => {
@@ -50,7 +50,13 @@ export const sendCustomMail = async (req, res) => {
             to,
             subject,
             text: message,
-            html: `<div style="font-family:Arial,sans-serif;line-height:1.6">${String(message).replace(/\n/g, '<br>')}</div>`,
+            html: brandedEmail({
+                eyebrow: 'MESSAGE DE NOTRE EQUIPE',
+                title: subject,
+                greeting: 'Bonjour',
+                content: `<div style="color:#45566b;font-size:15px;line-height:1.8;white-space:pre-line">${escapeHtml(message).replace(/\n/g, '<br>')}</div>`,
+                notice: 'Vous pouvez repondre directement à cet email pour poursuivre l’echange avec notre equipe.'
+            }),
             replyTo: req.user?.email,
             fromName: req.user?.nom || 'Quincaillerie Centrale'
         });

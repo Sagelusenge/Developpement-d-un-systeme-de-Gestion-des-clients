@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
-import { getMailErrorMessage, sendMail } from '../services/mailService.js';
+import { brandedEmail, codeBlock, getMailErrorMessage, sendMail, sendPasswordCodeEmail, sendSecurityNoticeEmail } from '../services/mailService.js';
 
 const generateToken = (user) => {
     return jwt.sign(
@@ -250,9 +250,9 @@ export const resetRequestedPassword = async (req, res) => {
 
         await sendMail({
             to: users[0].email,
-            subject: 'Nouveau mot de passe temporaire - Quincaillerie Centrale',
-            text: `Bonjour ${users[0].nom}, votre mot de passe temporaire est: ${new_password}. Connectez-vous puis changez-le dans vos parametres.`,
-            html: `<p>Bonjour ${users[0].nom},</p><p>Votre mot de passe temporaire est: <strong>${new_password}</strong></p><p>Connectez-vous puis changez-le dans vos parametres.</p>`
+            subject: 'Votre acces temporaire | Quincaillerie Centrale',
+            text: `Bonjour ${users[0].nom},\n\nVotre mot de passe temporaire est ${new_password}. Changez-le des votre prochaine connexion.`,
+            html: brandedEmail({ eyebrow: 'GESTION DES ACCES', title: 'Un nouveau mot de passe temporaire', greeting: `Bonjour ${users[0].nom}`, intro: 'Votre responsable a reinitialise votre acces à la plateforme.', content: codeBlock(new_password, 'Mot de passe temporaire'), notice: 'Pour proteger votre compte, remplacez ce mot de passe immediatement apres votre connexion.' })
         }).catch(() => null);
 
         res.json({ success: true, message: `Mot de passe reinitialise pour ${email}.` });
@@ -296,12 +296,7 @@ export const forgotPassword = async (req, res) => {
             [user.id_utilisateur, normalizeEmail(user.email), codeHash]
         );
 
-        const mailResult = await sendMail({
-            to: user.email,
-            subject: 'Code de reinitialisation - Quincaillerie Centrale',
-            text: `Bonjour ${user.nom}, votre code de reinitialisation est ${code}. Il expire dans 15 minutes.`,
-            html: `<p>Bonjour ${user.nom},</p><p>Votre code de reinitialisation est :</p><p style="font-size:28px;font-weight:700;letter-spacing:6px">${code}</p><p>Ce code expire dans 15 minutes. Si vous n'avez pas demande ce code, ignorez cet email.</p>`
-        });
+        const mailResult = await sendPasswordCodeEmail({ to: user.email, name: user.nom, code });
 
         if (mailResult?.skipped) {
             return res.status(503).json({ success: false, message: 'Service email non configure sur le serveur.' });
@@ -370,12 +365,8 @@ export const resetPasswordWithCode = async (req, res) => {
             [reset.id_reset]
         );
 
-        sendMail({
-            to: reset.email,
-            subject: 'Mot de passe reinitialise - Quincaillerie Centrale',
-            text: `Bonjour ${reset.nom}, votre mot de passe vient d'etre reinitialise.`,
-            html: `<p>Bonjour ${reset.nom},</p><p>Votre mot de passe vient d'etre reinitialise.</p><p>Si vous n'etes pas a l'origine de cette action, contactez rapidement votre manager.</p>`
-        }).catch((error) => console.error('Erreur email confirmation reset:', error.message));
+        sendSecurityNoticeEmail({ to: reset.email, name: reset.nom, title: 'Votre mot de passe a ete modifie', message: 'La reinitialisation de votre mot de passe vient d’etre effectuee avec succes.' })
+            .catch((error) => console.error('Erreur email confirmation reset:', error.message));
 
         res.json({ success: true, message: 'Mot de passe reinitialise. Vous pouvez vous connecter.' });
     } catch (error) {

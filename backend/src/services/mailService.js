@@ -24,12 +24,86 @@ const getTransporter = () => {
 
 export const isMailReady = () => Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
 
-const escapeHtml = (value) => String(value || '')
+export const escapeHtml = (value) => String(value || '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+
+export const brandedEmail = ({ eyebrow = 'QUINCAILLERIE CENTRALE', title, greeting, intro, content = '', notice = '', closing = 'L’equipe Quincaillerie Centrale' }) => `
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;background:#f2f5f9;font-family:Arial,Helvetica,sans-serif;color:#172033">
+  <div style="display:none;max-height:0;overflow:hidden;color:transparent">${escapeHtml(intro || title)}</div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f2f5f9;padding:32px 12px"><tr><td align="center">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#ffffff;border:1px solid #dce4ee;border-radius:16px;overflow:hidden;box-shadow:0 12px 35px rgba(6,38,74,.08)">
+      <tr><td style="background:#06264a;padding:28px 34px;border-bottom:5px solid #f5b942">
+        <div style="color:#8ec8ff;font-size:11px;font-weight:700;letter-spacing:2px">${escapeHtml(eyebrow)}</div>
+        <h1 style="color:#ffffff;font-size:25px;line-height:1.25;margin:9px 0 0">${escapeHtml(title)}</h1>
+      </td></tr>
+      <tr><td style="padding:34px">
+        <p style="font-size:16px;line-height:1.7;margin:0 0 16px">${escapeHtml(greeting || 'Bonjour')},</p>
+        ${intro ? `<p style="color:#45566b;font-size:15px;line-height:1.75;margin:0 0 24px">${escapeHtml(intro)}</p>` : ''}
+        ${content}
+        ${notice ? `<div style="background:#eef6ff;border-left:4px solid #0b5ea8;border-radius:6px;color:#334b65;font-size:13px;line-height:1.65;margin:26px 0;padding:15px 17px">${escapeHtml(notice)}</div>` : ''}
+        <p style="color:#45566b;font-size:14px;line-height:1.7;margin:28px 0 0">Cordialement,<br><strong style="color:#06264a">${escapeHtml(closing)}</strong></p>
+      </td></tr>
+      <tr><td style="background:#f8fafc;border-top:1px solid #e2e8f0;color:#718096;font-size:11px;line-height:1.6;padding:18px 34px;text-align:center">Message automatique et securise. Ne transmettez jamais vos codes de verification ou mots de passe.</td></tr>
+    </table>
+  </td></tr></table>
+</body></html>`;
+
+export const codeBlock = (code, label = 'Votre code de verification') => `
+  <div style="background:#f8fafc;border:1px solid #dce4ee;border-radius:12px;margin:22px 0;padding:22px;text-align:center">
+    <div style="color:#64748b;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase">${escapeHtml(label)}</div>
+    <div style="color:#06264a;font-size:34px;font-weight:800;letter-spacing:9px;margin-top:12px">${escapeHtml(code)}</div>
+  </div>`;
+
+export const sendVerificationCodeEmail = ({ to, name, code }) => sendMail({
+    to,
+    subject: `${code} - Confirmez votre adresse email | ${APP_NAME}`,
+    text: `Bonjour ${name || 'cher client'},\n\nVotre code de confirmation est ${code}. Il expire dans 15 minutes.\n\nNe partagez jamais ce code.\n\nL'equipe ${APP_NAME}`,
+    html: brandedEmail({
+        eyebrow: 'CREATION DE VOTRE ESPACE CLIENT',
+        title: 'Confirmez votre adresse email',
+        greeting: `Bonjour ${name || 'cher client'}`,
+        intro: 'Merci de rejoindre Quincaillerie Centrale. Utilisez le code ci-dessous pour finaliser la creation de votre espace personnel.',
+        content: codeBlock(code),
+        notice: 'Ce code expire dans 15 minutes. Si vous n’avez pas demande cette inscription, ignorez simplement ce message.'
+    })
+});
+
+export const sendClientWelcomeEmail = ({ to, name }) => sendMail({
+    to,
+    subject: `Bienvenue dans votre espace client | ${APP_NAME}`,
+    text: `Bonjour ${name || 'cher client'},\n\nVotre adresse email est confirmee et votre espace client est maintenant actif. Vous pouvez passer des commandes, suivre vos achats et contacter notre equipe.\n\nL'equipe ${APP_NAME}`,
+    html: brandedEmail({
+        eyebrow: 'BIENVENUE CHEZ QUINCAILLERIE CENTRALE',
+        title: 'Votre espace client est actif',
+        greeting: `Bonjour ${name || 'cher client'}`,
+        intro: 'Votre adresse email a ete confirmee avec succes. Votre espace personnel est maintenant pret.',
+        content: `<div style="background:#f8fafc;border:1px solid #dce4ee;border-radius:10px;padding:18px"><p style="color:#45566b;line-height:1.75;margin:0">Vous pouvez desormais passer vos commandes, suivre leur avancement, consulter vos achats et transmettre une reclamation directement à notre equipe.</p></div>`,
+        notice: 'Connectez-vous uniquement depuis le site officiel et gardez votre mot de passe confidentiel.'
+    })
+});
+
+export const sendPasswordCodeEmail = ({ to, name, code }) => sendMail({
+    to,
+    subject: `${code} - Reinitialisation de votre mot de passe | ${APP_NAME}`,
+    text: `Bonjour ${name || 'cher utilisateur'},\n\nVotre code de reinitialisation est ${code}. Il expire dans 15 minutes.\n\nL'equipe ${APP_NAME}`,
+    html: brandedEmail({
+        eyebrow: 'SECURITE DU COMPTE', title: 'Reinitialisation du mot de passe', greeting: `Bonjour ${name || 'cher utilisateur'}`,
+        intro: 'Une demande de reinitialisation a ete recue pour votre compte. Saisissez ce code dans l’application pour continuer.',
+        content: codeBlock(code, 'Code de reinitialisation'),
+        notice: 'Ce code expire dans 15 minutes. Si cette demande ne vient pas de vous, ne communiquez ce code à personne.'
+    })
+});
+
+export const sendSecurityNoticeEmail = ({ to, name, title, message }) => sendMail({
+    to, subject: `${title} | ${APP_NAME}`, text: `Bonjour ${name || 'cher utilisateur'},\n\n${message}\n\nL'equipe ${APP_NAME}`,
+    html: brandedEmail({ eyebrow: 'AVIS DE SECURITE', title, greeting: `Bonjour ${name || 'cher utilisateur'}`, intro: message, notice: 'Si vous n’etes pas à l’origine de cette action, contactez rapidement un responsable.' })
+});
 
 export const sendMail = async ({ to, subject, text, html, replyTo, fromName }) => {
     const transporter = getTransporter();

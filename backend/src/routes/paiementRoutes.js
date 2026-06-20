@@ -11,7 +11,7 @@ const router = express.Router();
 // ✅ MANAGER + CAISSIER peuvent enregistrer et voir les paiements
 router.post('/',              
     protect, 
-    authorizeRoles('manager', 'caissier'), 
+    authorizeRoles('caissier'),
     createPaiement
 );
 

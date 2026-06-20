@@ -16,6 +16,10 @@ import mailRoutes from './routes/mailRoutes.js';
 import categorieRoutes from './routes/categorieRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import fournisseurRoutes from './routes/fournisseurRoutes.js';
+import clientAuthRoutes from './routes/clientAuthRoutes.js';
+import commandeRoutes from './routes/commandeRoutes.js';
+import reclamationRoutes from './routes/reclamationRoutes.js';
+import publicRoutes from './routes/publicRoutes.js';
 
 dotenv.config();
 
@@ -48,6 +52,10 @@ app.use('/api/paiements', paiementRoutes);
 app.use('/api/rapports', rapportRoutes);
 app.use('/api/mail', mailRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/client-auth', clientAuthRoutes);
+app.use('/api/commandes', commandeRoutes);
+app.use('/api/reclamations', reclamationRoutes);
+app.use('/api/public', publicRoutes);
 
 app.get('/api/health', (req, res) => {
     res.json({ success: true, message: 'Quincaillerie Centrale API operationnelle' });

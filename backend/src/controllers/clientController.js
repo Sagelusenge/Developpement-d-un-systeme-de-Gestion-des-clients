@@ -1,4 +1,5 @@
 import pool from '../config/db.js';
+import bcrypt from 'bcryptjs';
 
 const nextClientId = async (connection) => {
     await connection.query(
@@ -19,7 +20,7 @@ export const getAllClients = async (req, res) => {
     const entreprise_id = req.user.entreprise_id;
     try {
         const [rows] = await pool.query(
-            `SELECT c.*,
+            `SELECT c.id_client, c.nom, c.postnom, c.telephone, c.email, c.actif, c.entreprise_id,
                 COUNT(v.id_ventes) AS nombre_achats,
                 IFNULL(SUM(v.montant_ttc), 0) AS ca_total
              FROM client c
@@ -40,7 +41,7 @@ export const getClientById = async (req, res) => {
     const entreprise_id = req.user.entreprise_id;
     try {
         const [clients] = await pool.query(
-            'SELECT * FROM client WHERE id_client = ? AND entreprise_id = ?',
+            'SELECT id_client, nom, postnom, telephone, email, actif, entreprise_id FROM client WHERE id_client = ? AND entreprise_id = ?',
             [id, entreprise_id]
         );
 
@@ -70,7 +71,7 @@ export const getClientById = async (req, res) => {
 };
 
 export const createClient = async (req, res) => {
-    const { nom, postnom, telephone } = req.body;
+    const { nom, postnom, telephone, email, mot_de_passe } = req.body;
     const entreprise_id = req.user.entreprise_id;
 
     if (!nom) {
@@ -81,15 +82,21 @@ export const createClient = async (req, res) => {
     try {
         await connection.beginTransaction();
         const idClient = await nextClientId(connection);
+        const normalizedEmail = String(email || '').trim().toLowerCase() || null;
+        if (normalizedEmail) {
+            const [existing] = await connection.query(`SELECT id_client FROM client WHERE LOWER(email) = ? LIMIT 1`, [normalizedEmail]);
+            if (existing.length) throw new Error('Cet email client est deja utilise.');
+        }
 
+        const passwordHash = mot_de_passe ? await bcrypt.hash(String(mot_de_passe), 10) : null;
         await connection.query(
-            `INSERT INTO client (id_client, nom, postnom, telephone, entreprise_id)
-             VALUES (?, ?, ?, ?, ?)`,
-            [idClient, nom, postnom || null, telephone || null, entreprise_id]
+            `INSERT INTO client (id_client, nom, postnom, telephone, email, mot_de_passe, entreprise_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [idClient, nom, postnom || null, telephone || null, normalizedEmail, passwordHash, entreprise_id]
         );
 
         const [newClient] = await connection.query(
-            `SELECT * FROM client
+            `SELECT id_client, nom, postnom, telephone, email, actif, entreprise_id FROM client
              WHERE entreprise_id = ?
                AND (id_client = ? OR telephone = ?)
              ORDER BY id_client DESC
@@ -113,15 +120,23 @@ export const createClient = async (req, res) => {
 
 export const updateClient = async (req, res) => {
     const { id } = req.params;
-    const { nom, postnom, telephone } = req.body;
+    const { nom, postnom, telephone, email, mot_de_passe, actif } = req.body;
     const entreprise_id = req.user.entreprise_id;
 
     try {
+        const normalizedEmail = String(email || '').trim().toLowerCase() || null;
+        if (normalizedEmail) {
+            const [existing] = await pool.query(`SELECT id_client FROM client WHERE LOWER(email) = ? AND id_client <> ? LIMIT 1`, [normalizedEmail, id]);
+            if (existing.length) return res.status(409).json({ success: false, message: 'Cet email client est deja utilise.' });
+        }
+        const passwordHash = mot_de_passe ? await bcrypt.hash(String(mot_de_passe), 10) : null;
+        const params = [nom, postnom || null, telephone || null, normalizedEmail, actif === false ? 0 : 1];
+        let passwordSql = '';
+        if (passwordHash) { passwordSql = ', mot_de_passe = ?'; params.push(passwordHash); }
+        params.push(id, entreprise_id);
         const [result] = await pool.query(
-            `UPDATE client
-             SET nom = ?, postnom = ?, telephone = ?
-             WHERE id_client = ? AND entreprise_id = ?`,
-            [nom, postnom || null, telephone || null, id, entreprise_id]
+            `UPDATE client SET nom = ?, postnom = ?, telephone = ?, email = ?, actif = ?${passwordSql}
+             WHERE id_client = ? AND entreprise_id = ?`, params
         );
 
         if (result.affectedRows === 0) {

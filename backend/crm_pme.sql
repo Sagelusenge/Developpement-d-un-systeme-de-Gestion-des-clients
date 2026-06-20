@@ -49,6 +49,9 @@ CREATE TABLE client (
     nom VARCHAR(100) NOT NULL,
     postnom VARCHAR(100),
     telephone VARCHAR(20),
+    email VARCHAR(150),
+    mot_de_passe VARCHAR(255),
+    actif BOOLEAN DEFAULT TRUE,
     entreprise_id VARCHAR(50) NOT NULL,
     FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE
 );
@@ -138,6 +141,65 @@ CREATE TABLE paiement (
     telephone_payeur VARCHAR(20),
     date_paiement TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (vente_id) REFERENCES ventes(id_ventes) ON DELETE CASCADE
+);
+
+CREATE TABLE commandes (
+    id_commande VARCHAR(50) PRIMARY KEY,
+    client_id VARCHAR(50) NOT NULL,
+    entreprise_id VARCHAR(50) NOT NULL,
+    statut ENUM('en_attente','confirmee','preparee','livree','annulee','rejetee') DEFAULT 'en_attente',
+    montant_ttc DECIMAL(10,2) NOT NULL DEFAULT 0,
+    note_client VARCHAR(500),
+    vente_id VARCHAR(50),
+    date_commande TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (client_id) REFERENCES client(id_client),
+    FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE,
+    FOREIGN KEY (vente_id) REFERENCES ventes(id_ventes) ON DELETE SET NULL
+);
+
+CREATE TABLE lignes_commandes (
+    id_ligne_commande VARCHAR(50) PRIMARY KEY,
+    commande_id VARCHAR(50) NOT NULL,
+    produit_id VARCHAR(50) NOT NULL,
+    quantite INT NOT NULL,
+    prix_unitaire_ht DECIMAL(10,2) NOT NULL,
+    FOREIGN KEY (commande_id) REFERENCES commandes(id_commande) ON DELETE CASCADE,
+    FOREIGN KEY (produit_id) REFERENCES produits(id_produit)
+);
+
+CREATE TABLE reclamations (
+    id_reclamation VARCHAR(50) PRIMARY KEY,
+    client_id VARCHAR(50) NOT NULL,
+    entreprise_id VARCHAR(50) NOT NULL,
+    commande_id VARCHAR(50),
+    vente_id VARCHAR(50),
+    sujet VARCHAR(180) NOT NULL,
+    message TEXT NOT NULL,
+    reponse TEXT,
+    statut ENUM('ouverte','en_cours','resolue','cloturee') DEFAULT 'ouverte',
+    date_reclamation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (client_id) REFERENCES client(id_client),
+    FOREIGN KEY (commande_id) REFERENCES commandes(id_commande) ON DELETE SET NULL,
+    FOREIGN KEY (vente_id) REFERENCES ventes(id_ventes) ON DELETE SET NULL,
+    FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE
+);
+
+CREATE TABLE client_registration_codes (
+    id_registration INT AUTO_INCREMENT PRIMARY KEY,
+    entreprise_id VARCHAR(50) NOT NULL,
+    nom VARCHAR(100) NOT NULL,
+    postnom VARCHAR(100),
+    telephone VARCHAR(30),
+    email VARCHAR(150) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    code_hash VARCHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_client_registration_email (email, used_at, created_at),
+    FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE
 );
 
 CREATE TABLE demandes_abonnement (
