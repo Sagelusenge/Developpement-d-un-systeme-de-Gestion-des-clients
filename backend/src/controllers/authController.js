@@ -44,7 +44,15 @@ const findValidResetCode = async ({ email, code }) => {
         [normalizeEmail(email), hashResetCode(email, code)]
     );
 
-    return rows[0] || null;
+    if (rows[0]) return { ...rows[0], account_type: 'utilisateur' };
+    const [clients] = await pool.query(
+        `SELECT prc.id_reset, prc.client_id, prc.email, c.nom
+         FROM client_password_reset_codes prc JOIN client c ON c.id_client = prc.client_id
+         WHERE prc.email = ? AND prc.code_hash = ? AND prc.used_at IS NULL AND prc.expires_at >= NOW() AND c.actif = 1
+         ORDER BY prc.created_at DESC LIMIT 1`,
+        [normalizeEmail(email), hashResetCode(email, code)]
+    );
+    return clients[0] ? { ...clients[0], account_type: 'client' } : null;
 };
 
 export const login = async (req, res) => {
@@ -67,27 +75,32 @@ export const login = async (req, res) => {
             [email]
         );
 
-        if (users.length === 0) {
-            return res.status(401).json({
-                success: false,
-                message: 'Email ou mot de passe incorrect'
-            });
-        }
-
         const user = users[0];
         let isMatch = false;
 
-        if (user.mot_de_passe.startsWith('$2')) {
+        if (user?.mot_de_passe?.startsWith('$2')) {
             isMatch = await bcrypt.compare(password, user.mot_de_passe);
-        } else {
+        } else if (user?.mot_de_passe) {
             const sha2Hash = crypto.createHash('sha256').update(password).digest('hex');
             isMatch = sha2Hash === user.mot_de_passe;
         }
 
         if (!isMatch) {
-            return res.status(401).json({
-                success: false,
-                message: 'Email ou mot de passe incorrect'
+            const [[client]] = await pool.query(
+                `SELECT c.*, e.raison_sociale AS entreprise_nom, e.statut_abonnement
+                 FROM client c JOIN entreprise e ON e.id_entreprise = c.entreprise_id
+                 WHERE LOWER(c.email) = ? AND c.actif = 1 LIMIT 1`, [email]
+            );
+            if (!client?.mot_de_passe || !(await bcrypt.compare(password, client.mot_de_passe))) {
+                return res.status(401).json({ success: false, message: 'Email ou mot de passe incorrect' });
+            }
+            if (client.statut_abonnement !== 'actif') {
+                return res.status(403).json({ success: false, message: 'Service suspendu. Contactez votre administrateur.' });
+            }
+            const clientToken = jwt.sign({ id: client.id_client, client_id: client.id_client, email: client.email, role: 'client', entreprise_id: client.entreprise_id, nom: client.nom, type: 'client' }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '2h' });
+            return res.json({
+                success: true, message: 'Connexion reussie', token: clientToken,
+                user: { id: client.id_client, id_client: client.id_client, nom: client.nom, postnom: client.postnom, email: client.email, telephone: client.telephone, role: 'client', entreprise_id: client.entreprise_id, entreprise_nom: client.entreprise_nom, type: 'client' }
             });
         }
 
@@ -277,24 +290,22 @@ export const forgotPassword = async (req, res) => {
             [email]
         );
 
-        if (users.length === 0) {
-            return res.json({ success: true, message: 'Si cet email existe, un code de recuperation a ete envoye.' });
+        let user = users[0];
+        if (!user) {
+            const [[client]] = await pool.query(`SELECT id_client, nom, email, entreprise_id FROM client WHERE LOWER(email) = ? AND actif = 1 LIMIT 1`, [email]);
+            if (!client) return res.json({ success: true, message: 'Si cet email existe, un code de recuperation a ete envoye.' });
+            user = { ...client, account_type: 'client' };
         }
-
-        const user = users[0];
         const code = createResetCode();
         const codeHash = hashResetCode(user.email, code);
 
-        await pool.query(
-            'UPDATE password_reset_codes SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL',
-            [user.id_utilisateur]
-        );
-
-        await pool.query(
-            `INSERT INTO password_reset_codes (user_id, email, code_hash, expires_at)
-             VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 15 MINUTE))`,
-            [user.id_utilisateur, normalizeEmail(user.email), codeHash]
-        );
+        if (user.account_type === 'client') {
+            await pool.query('UPDATE client_password_reset_codes SET used_at = NOW() WHERE client_id = ? AND used_at IS NULL', [user.id_client]);
+            await pool.query(`INSERT INTO client_password_reset_codes (client_id, email, code_hash, expires_at) VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 15 MINUTE))`, [user.id_client, normalizeEmail(user.email), codeHash]);
+        } else {
+            await pool.query('UPDATE password_reset_codes SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL', [user.id_utilisateur]);
+            await pool.query(`INSERT INTO password_reset_codes (user_id, email, code_hash, expires_at) VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 15 MINUTE))`, [user.id_utilisateur, normalizeEmail(user.email), codeHash]);
+        }
 
         const mailResult = await sendPasswordCodeEmail({ to: user.email, name: user.nom, code });
 
@@ -356,14 +367,13 @@ export const resetPasswordWithCode = async (req, res) => {
         }
 
         const hashedPassword = await bcrypt.hash(newPassword, 10);
-        await pool.query(
-            'UPDATE utilisateur SET mot_de_passe = ? WHERE id_utilisateur = ?',
-            [hashedPassword, reset.user_id]
-        );
-        await pool.query(
-            'UPDATE password_reset_codes SET used_at = NOW() WHERE id_reset = ?',
-            [reset.id_reset]
-        );
+        if (reset.account_type === 'client') {
+            await pool.query('UPDATE client SET mot_de_passe = ? WHERE id_client = ?', [hashedPassword, reset.client_id]);
+            await pool.query('UPDATE client_password_reset_codes SET used_at = NOW() WHERE id_reset = ?', [reset.id_reset]);
+        } else {
+            await pool.query('UPDATE utilisateur SET mot_de_passe = ? WHERE id_utilisateur = ?', [hashedPassword, reset.user_id]);
+            await pool.query('UPDATE password_reset_codes SET used_at = NOW() WHERE id_reset = ?', [reset.id_reset]);
+        }
 
         sendSecurityNoticeEmail({ to: reset.email, name: reset.nom, title: 'Votre mot de passe a ete modifie', message: 'La reinitialisation de votre mot de passe vient d’etre effectuee avec succes.' })
             .catch((error) => console.error('Erreur email confirmation reset:', error.message));

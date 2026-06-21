@@ -176,6 +176,8 @@ CREATE TABLE reclamations (
     vente_id VARCHAR(50),
     sujet VARCHAR(180) NOT NULL,
     message TEXT NOT NULL,
+    entity_type VARCHAR(40),
+    entity_id VARCHAR(80),
     reponse TEXT,
     statut ENUM('ouverte','en_cours','resolue','cloturee') DEFAULT 'ouverte',
     date_reclamation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -200,6 +202,39 @@ CREATE TABLE client_registration_codes (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_client_registration_email (email, used_at, created_at),
     FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE
+);
+
+CREATE TABLE chat_conversations (
+    id_conversation VARCHAR(50) PRIMARY KEY,
+    client_id VARCHAR(50) NOT NULL,
+    entreprise_id VARCHAR(50) NOT NULL,
+    statut ENUM('ouverte','en_attente_manager','resolue') DEFAULT 'ouverte',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (client_id) REFERENCES client(id_client) ON DELETE CASCADE,
+    FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE
+);
+
+CREATE TABLE client_password_reset_codes (
+    id_reset INT AUTO_INCREMENT PRIMARY KEY,
+    client_id VARCHAR(50) NOT NULL,
+    email VARCHAR(150) NOT NULL,
+    code_hash VARCHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_client_reset_email (email, created_at),
+    FOREIGN KEY (client_id) REFERENCES client(id_client) ON DELETE CASCADE
+);
+
+CREATE TABLE chat_messages (
+    id_message VARCHAR(50) PRIMARY KEY,
+    conversation_id VARCHAR(50) NOT NULL,
+    sender_type ENUM('client','bot','manager') NOT NULL,
+    sender_id VARCHAR(50),
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (conversation_id) REFERENCES chat_conversations(id_conversation) ON DELETE CASCADE
 );
 
 CREATE TABLE demandes_abonnement (

@@ -27,6 +27,7 @@ import {
   LogIn,
   Mail,
   MapPin,
+  MessageCircle,
   Menu,
   Moon,
   Package,
@@ -123,6 +124,7 @@ const searchPlaceholders = {
   commandes: 'Rechercher une commande ou un client...',
   reclamations: 'Rechercher une reclamation...',
   achats: 'Rechercher une facture...',
+  chat: 'Rechercher un client ou une conversation...',
 };
 
 const fallbackProductPhotos = [
@@ -251,6 +253,7 @@ const iconMap = {
   commandes: ShoppingCart,
   reclamations: HelpCircle,
   achats: FileText,
+  chat: MessageCircle,
 };
 
 function IconButton({ title, children, className = '' }) {
@@ -543,6 +546,8 @@ function PublicHome({ goTo }) {
         <article><span>02</span><Package size={30} /><h3>Articles de quincaillerie</h3><p>Un catalogue adapte aux artisans, entreprises et projets domestiques.</p></article>
         <article><span>03</span><Users size={30} /><h3>Conseil de proximite</h3><p>Une equipe qui vous aide à choisir selon votre chantier, votre budget et vos priorites.</p></article>
       </section>
+      <section className="public-process"><div><span className="section-kicker">Une experience plus simple</span><h2>Du besoin au chantier, sans perdre le fil.</h2><p>Notre plateforme prolonge le service du magasin : vous preparez votre commande, notre equipe la verifie, puis vous suivez sa confirmation et votre facture depuis votre espace personnel.</p></div><ol><li><b>1</b><span><strong>Choisissez</strong><small>Consultez uniquement les produits disponibles au bon prix de vente.</small></span></li><li><b>2</b><span><strong>Commandez</strong><small>Le montant est calcule sur le prix de vente catalogue avec la TVA.</small></span></li><li><b>3</b><span><strong>Suivez</strong><small>Retrouvez le statut, la facture, le paiement et l'assistance au meme endroit.</small></span></li></ol></section>
+      <section className="public-trust-band"><div><strong>1992</strong><span>Fondation à Goma</span></div><div><strong>2002</strong><span>Engagement dans la reconstruction</span></div><div><strong>16 %</strong><span>TVA clairement affichee</span></div><div><strong>1 espace</strong><span>Commandes, factures et assistance</span></div></section>
       <section className="public-story-band"><div className="story-image"><img src="https://images.unsplash.com/photo-1541971875076-8f970d573be6?auto=format&fit=crop&w=1000&q=85" alt="Construction d'un batiment" /></div><div><span className="section-kicker light">Une histoire ancree à Goma</span><h2>De 1992 à aujourd'hui</h2><p>Fondee par Jean-Pierre Bishweka Bufole, l'entreprise s'est distinguee apres l'eruption volcanique de 2002 en fournissant les materiaux necessaires à la reconstruction de la ville.</p><button className="public-text-link" onClick={() => goTo('/about')}>Lire notre histoire <ArrowRight size={18} /></button></div></section>
       <section className="public-cta"><span>Un projet en preparation ?</span><h2>Parlons de vos besoins.</h2><p>Notre equipe est à votre ecoute sur l'Avenue du Commerce, au quartier Murara.</p><button className="public-primary" onClick={() => goTo('/contact')}>Contacter l'equipe <Send size={18} /></button></section>
     </>
@@ -748,14 +753,16 @@ function App() {
       return body;
     };
 
-    const result = await requestLogin(authType === 'client' ? '/client-auth/login' : '/auth/login');
+    const result = await requestLogin('/auth/login');
     const connectedUser = result.user || result.admin;
+    const detectedAuthType = connectedUser?.type === 'client' || connectedUser?.role === 'client' ? 'client' : 'user';
     setToken(result.token);
     setUser(connectedUser);
+    setAuthType(detectedAuthType);
     setPage('dashboard');
     localStorage.setItem('crm_token', result.token);
     localStorage.setItem('crm_user', JSON.stringify(connectedUser));
-    localStorage.setItem('crm_auth_type', authType);
+    localStorage.setItem('crm_auth_type', detectedAuthType);
     goTo('/app');
     notify('Connexion reussie');
   };
@@ -801,6 +808,7 @@ function App() {
       ,{ id: 'commandes', label: 'Commandes', roles: ['manager', 'caissier', 'client'] }
       ,{ id: 'achats', label: 'Mes achats', roles: ['client'] }
       ,{ id: 'reclamations', label: 'Reclamations', roles: ['manager', 'client'] }
+      ,{ id: 'chat', label: role === 'client' ? 'Assistance' : 'Chat clients', roles: ['manager', 'client'] }
     ].filter((item) => item.roles.includes(role));
   }, [authType, user, lang]);
 
@@ -819,10 +827,16 @@ function App() {
     setShowNotifications(false);
     if (notification?.id_notification) {
       api(`/notifications/${notification.id_notification}/read`, { method: 'PUT', body: '{}' })
-        .then(() => setNotifications((items) => items.map((item) => (
-          item.id_notification === notification.id_notification ? { ...item, lu: true } : item
-        ))))
+        .then(() => setNotifications((items) => items.filter((item) => item.id_notification !== notification.id_notification)))
         .catch(() => null);
+    }
+    const targetPage = notification?.entity_type === 'commande' ? 'commandes'
+      : notification?.entity_type === 'reclamation' ? 'reclamations'
+        : notification?.entity_type === 'chat' ? 'chat' : '';
+    if (targetPage) {
+      setPage(targetPage);
+      window.setTimeout(() => setPlatformSearch(notification.entity_id || ''), 0);
+      return;
     }
     setSelectedNotification(notification);
   };
@@ -857,6 +871,7 @@ function App() {
     commandes: ['Commandes', user?.role === 'client' ? 'Passez et suivez vos commandes.' : 'Suivi et traitement des commandes clients.'],
     achats: ['Mes achats', 'Factures et paiements de votre compte.'],
     reclamations: ['Reclamations', user?.role === 'client' ? 'Ecrivez directement au manager.' : 'Demandes envoyees par les clients.'],
+    chat: [user?.role === 'client' ? 'Assistance' : 'Chat clients', user?.role === 'client' ? 'Obtenez une reponse automatique ou echangez avec le manager.' : 'Repondez aux questions transferees par l’assistant.'],
   };
   const [title, subtitle] = titles[page] || [APP_NAME, ''];
   const sidebarTitle = user?.entreprise_nom || user?.raison_sociale || user?.entreprise_id || APP_NAME;
@@ -1186,11 +1201,7 @@ function Login({ authType, setAuthType, onLogin, notify, toast, goTo }) {
             </div>
           </div>
           <h2>Connexion</h2>
-          <p>{authType === 'client' ? 'Consultez vos achats, commandes et reclamations.' : 'Accedez a votre espace de gestion commerciale.'}</p>
-          <div className="auth-switch">
-            <button type="button" className={authType !== 'client' ? 'active' : ''} onClick={() => setAuthType('user')}>Equipe</button>
-            <button type="button" className={authType === 'client' ? 'active' : ''} onClick={() => setAuthType('client')}>Client</button>
-          </div>
+          <p>Connectez-vous avec votre adresse email. Votre espace sera reconnu automatiquement.</p>
           <form className="form" onSubmit={submit}>
             <label>Adresse e-mail
               <span className="input-shell">
@@ -1209,13 +1220,15 @@ function Login({ authType, setAuthType, onLogin, notify, toast, goTo }) {
                   <Eye size={22} />
                 </button>
               </span>
-              {authType !== 'client' && <button className="forgot-inline" type="button" onClick={openForgotScreen}>Mot de passe oublie ?</button>}
+              <button className="forgot-inline" type="button" onClick={openForgotScreen}>Mot de passe oublie ?</button>
             </label>
             <button className="btn login-submit" disabled={loading}>
               {loading ? 'Connexion...' : 'Se connecter'} <LogIn size={20} />
             </button>
           </form>
-          {authType === 'client' && <p className="login-register-link">Nouveau client ? <button type="button" onClick={() => goTo('/inscription')}>Creer gratuitement mon compte</button></p>}
+          <p className="login-register-link">Nouveau client ? <button type="button" onClick={() => goTo('/inscription')}>Creer gratuitement mon compte</button></p>
+          <button className="login-home-link" type="button" onClick={() => goTo('/')}><Home size={17} /> Retour à l'accueil</button>
+          <div className="login-mini-footer"><span>© 2026 Quincaillerie Centrale</span><small>Connexion securisee • Goma, Nord-Kivu</small></div>
         </div>
       </section>
       {toast && <div className="toast">{toast}</div>}
@@ -1367,6 +1380,7 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
         tasks.push(api('/reclamations').then((r) => { next.extra.reclamations = r.data || []; }));
         if (user?.role === 'client') tasks.push(api('/commandes').then((r) => { next.extra.commandes = r.data || []; }));
       }
+      if (page === 'chat') tasks.push(api('/chat').then((r) => { next.extra.chats = r.data || []; }));
       if (page === 'rapports') {
         tasks.push(api('/rapports/factures').then((r) => { next.extra.factures = r.data || []; }).catch(() => {}));
         tasks.push(api('/rapports/creances').then((r) => { next.extra.creances = r.data || []; }).catch(() => {}));
@@ -1418,6 +1432,7 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
   if (page === 'commandes') return <Commandes {...props} />;
   if (page === 'achats') return <AchatsClient {...props} />;
   if (page === 'reclamations') return <Reclamations {...props} />;
+  if (page === 'chat') return <ChatPage {...props} />;
   return null;
 }
 
@@ -1841,6 +1856,8 @@ function LineEditor({ lignes, setLignes, produits }) {
     }));
     return sortProductsByName(produits.filter((p) => {
       if (usedKeys.has(productKey(p) || p.id_produit)) return false;
+      if (Number(p.quantite_stock || 0) <= 0) return false;
+      if (Number(p.prix_ht || 0) < Number(p.prix_achat || 0)) return false;
       return !term || `${p.nom} ${p.reference_produit || ''} ${p.categorie_nom || ''}`.toLowerCase().includes(term);
     }));
   };
@@ -1875,6 +1892,7 @@ function LineEditor({ lignes, setLignes, produits }) {
               <strong>{selectedProduct?.nom || 'Produit selectionne'}</strong>
               <span>{selectedProduct?.reference_produit || 'Sans reference'} - {selectedProduct?.categorie_nom || 'Sans categorie'} - Stock {selectedProduct?.quantite_stock ?? '-'} {selectedProduct?.unite || 'piece'}</span>
               <em>Cout moyen {moneySmart(prixAchat)} / catalogue {moneySmart(selectedProduct?.prix_ht || 0)}</em>
+              {prixVente < prixAchat && <strong className="pricing-danger">Vente bloquee : prix inferieur au cout d'achat</strong>}
             </div>
             <div className="line-qty">
               <div className="quantity-control">
@@ -1885,7 +1903,7 @@ function LineEditor({ lignes, setLignes, produits }) {
                   <button type="button" onClick={() => updateQuantity(ligne.produit_id, quantite + 1)} aria-label="Augmenter la quantite">+</button>
                 </div>
               </div>
-              <Input label="Prix vente unitaire" type="number" min="0" step="0.01" value={prixInputValue} onChange={(prix) => updatePrice(ligne.produit_id, prix)} />
+              <Input label="Prix vente unitaire" type="number" min={prixAchat} step="0.01" value={prixInputValue} onChange={(prix) => updatePrice(ligne.produit_id, prix)} />
               <div className="line-result">
                 <span>Total</span>
                 <strong>{moneySmart(totalLigne)}</strong>
@@ -2079,7 +2097,7 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
   const [statusFilter, setStatusFilter] = useState('tous');
   const [page, setPage] = useState(1);
   const categoryOptions = [['', 'Sans categorie'], ...data.categories.map((c) => [c.id_categorie, c.nom])];
-  const canManageProducts = user?.role !== 'caissier';
+  const canManageProducts = user?.role === 'magasinier';
   const term = `${searchQuery} ${query}`.trim().toLowerCase();
   const visibleCategories = data.categories.length ? data.categories : [{ id_categorie: 'all', nom: 'Tous les produits' }];
   const produits = data.produits
@@ -2158,7 +2176,7 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
                   <div className="actions">
                     {canManageProducts && <button className="action edit" type="button" title="Modifier" onClick={() => setEditing(p)}><Edit3 size={17} /></button>}
                     <button className="action print-action" type="button" title="Imprimer" onClick={() => printDocument('Fiche stock produit', [['Reference', p.reference_produit], ['Produit', p.nom], ['Prix HT', money(p.prix_ht)], ['Stock', p.quantite_stock], ['Statut', p.statut_stock]], { paper: 'page' })}><Printer size={17} /></button>
-                    {user?.role === 'manager' && <button className="action delete" type="button" title="Supprimer" onClick={() => remove(p)}><Trash2 size={17} /></button>}
+                    {canManageProducts && <button className="action delete" type="button" title="Supprimer" onClick={() => remove(p)}><Trash2 size={17} /></button>}
                   </div>
                 </article>
               ))}
@@ -2337,7 +2355,7 @@ function Ventes({ api, notify, data, submit, searchQuery = '', user }) {
           <RowActions
             onEdit={user?.role === 'caissier' ? () => startEdit(v) : null}
             onPrint={() => printDocument('Facture', [['Facture', v.numero_facture], ['Client', v.client_nom], ['Montant', money(v.montant_ttc)], ['Paye', money(v.total_paye)], ['Reste', money(v.reste_a_payer)]], { paper: 'page' })}
-            onDelete={() => remove(v)}
+            onDelete={user?.role === 'caissier' ? () => remove(v) : null}
           />
         ])} />
       </div>
@@ -2618,7 +2636,7 @@ function Rapports({ data, searchQuery = '', user }) {
           </div>
           <Table headers={['Date', 'Libelle', 'Produit', 'Type', 'Qte', 'PU achat', 'Total achat', 'Fournisseur']} rows={mouvementsStock.map((r) => [formatDate(r.date_mouvement), r.note || `${r.type_mouvement === 'entree' ? 'Entree stock' : 'Sortie stock'} - ${r.produit_nom || 'Produit'}`, r.produit_nom, <Badge>{r.type_mouvement === 'entree' ? 'Entree' : 'Sortie'}</Badge>, r.quantite, r.prix_achat_unitaire !== null && r.prix_achat_unitaire !== undefined ? moneySmart(r.prix_achat_unitaire) : '-', r.prix_achat_total !== null && r.prix_achat_total !== undefined ? moneySmart(r.prix_achat_total) : '-', r.fournisseur_nom || '-'])} />
         </div>}
-        {canSalesReports && <div className="panel">
+        {canSalesReports && <div className="panel top-clients-report-wide">
           <div className="panel-heading">
             <h3>Top clients</h3>
             <button className="btn print" onClick={() => printRows(`Top clients - ${period}`, ['Client', 'Achats', 'CA'], top.map((r) => [`${r.nom} ${r.postnom || ''}`, r.nombre_achats, money(r.ca_total)]))}><Printer size={18} /> Imprimer</button>
@@ -2639,9 +2657,12 @@ function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
   const [historyLogs, setHistoryLogs] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [query, setQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('tous');
   const roles = [['manager', 'Manager'], ['caissier', 'Caissier'], ['magasinier', 'Magasinier']];
   const term = `${searchQuery} ${query}`.trim().toLowerCase();
-  const users = (data.extra.utilisateurs || []).filter((u) => `${u.nom} ${u.email} ${u.role}`.toLowerCase().includes(term));
+  const users = (data.extra.utilisateurs || [])
+    .filter((u) => `${u.nom} ${u.email} ${u.role}`.toLowerCase().includes(term))
+    .filter((u) => roleFilter === 'tous' || u.role === roleFilter);
   const currentUserId = user?.id || user?.id_utilisateur;
   const canDeleteUser = (target) => target.id_utilisateur !== currentUserId && target.role !== 'manager';
   const moduleLabels = {
@@ -2752,9 +2773,10 @@ function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
     <div className="grid">
       <div className="panel">
         <div className="panel-heading client-toolbar">
-          <h3>Equipe</h3>
+          <h3>Utilisateurs et clients</h3>
           <div className="actions">
             <SearchInput value={query} onChange={setQuery} placeholder="Rechercher utilisateur" />
+            <select className="compact-filter" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}><option value="tous">Tous les roles</option><option value="manager">Managers</option><option value="caissier">Caissiers</option><option value="magasinier">Magasiniers</option><option value="client">Clients</option></select>
             <button className="btn small" type="button" onClick={() => { setForm(emptyUserForm); setCreating(true); }}><Plus size={16} /> Nouvel utilisateur</button>
           </div>
         </div>
@@ -2764,9 +2786,9 @@ function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
           u.role,
           <Badge>{u.actif ? 'actif' : 'suspendu'}</Badge>,
           <RowActions
-            onEdit={() => setEditing({ ...u, mot_de_passe: '' })}
+            onEdit={u.role !== 'client' ? () => setEditing({ ...u, mot_de_passe: '' }) : null}
             onPrint={() => printDocument('Utilisateur', [['Nom', u.nom], ['Email', u.email], ['Role', u.role], ['Statut', u.actif ? 'actif' : 'suspendu']], { paper: 'page' })}
-            onToggle={() => openHistory(u)}
+            onToggle={u.role !== 'client' ? () => openHistory(u) : null}
             toggleLabel="Vision et historique"
             onDelete={canDeleteUser(u) ? () => remove(u) : null}
           />
@@ -2966,7 +2988,7 @@ function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
   );
 }
 
-function Fournisseurs({ api, notify, data, submit, searchQuery = '' }) {
+function Fournisseurs({ api, notify, data, submit, searchQuery = '', user }) {
   const emptyForm = { nom: '', telephone: '', email: '', adresse: '' };
   const [form, setForm] = useState(emptyForm);
   const [editing, setEditing] = useState(null);
@@ -3006,7 +3028,7 @@ function Fournisseurs({ api, notify, data, submit, searchQuery = '' }) {
           <h3>Fournisseurs</h3>
           <div className="actions">
             <SearchInput value={query} onChange={setQuery} placeholder="Rechercher fournisseur" />
-            <button className="btn small" type="button" onClick={() => { setForm(emptyForm); setCreating(true); }}><Plus size={16} /> Ajouter fournisseur</button>
+            {user?.role === 'magasinier' && <button className="btn small" type="button" onClick={() => { setForm(emptyForm); setCreating(true); }}><Plus size={16} /> Ajouter fournisseur</button>}
           </div>
         </div>
         <Table headers={['Nom', 'Telephone', 'Email', 'Approvisionnements', 'Actions']} rows={fournisseurs.map((f) => [
@@ -3015,9 +3037,9 @@ function Fournisseurs({ api, notify, data, submit, searchQuery = '' }) {
           f.email || '-',
           f.total_approvisionnements || 0,
           <RowActions
-            onEdit={() => setEditing(f)}
+            onEdit={user?.role === 'magasinier' ? () => setEditing(f) : null}
             onPrint={() => printDocument('Fournisseur', [['Nom', f.nom], ['Telephone', f.telephone || '-'], ['Email', f.email || '-'], ['Approvisionnements', f.total_approvisionnements || 0]], { paper: 'page' })}
-            onDelete={() => remove(f)}
+            onDelete={user?.role === 'magasinier' ? () => remove(f) : null}
           />
         ])} />
       </div>
@@ -3047,7 +3069,7 @@ function Fournisseurs({ api, notify, data, submit, searchQuery = '' }) {
   );
 }
 
-function Categories({ api, notify, data, submit, searchQuery = '' }) {
+function Categories({ api, notify, data, submit, searchQuery = '', user }) {
   const emptyCategoryForm = { nom: '', description: '', photo_url: '' };
   const [form, setForm] = useState(emptyCategoryForm);
   const [creating, setCreating] = useState(false);
@@ -3087,7 +3109,7 @@ function Categories({ api, notify, data, submit, searchQuery = '' }) {
           </div>
           <div className="actions">
             <SearchInput value={query} onChange={setQuery} placeholder="Rechercher categorie" />
-            <button className="btn small" type="button" onClick={() => { setForm(emptyCategoryForm); setCreating(true); }}><Plus size={16} /> Nouvelle categorie</button>
+            {user?.role === 'magasinier' && <button className="btn small" type="button" onClick={() => { setForm(emptyCategoryForm); setCreating(true); }}><Plus size={16} /> Nouvelle categorie</button>}
           </div>
         </div>
         <div className="category-market-layout">
@@ -3111,7 +3133,7 @@ function Categories({ api, notify, data, submit, searchQuery = '' }) {
                   <em>Ref. {c.reference_categorie || c.id_categorie}</em>
                   <p>{c.description || 'Aucune description'}</p>
                   <span>{c.total_produits || 0} produits</span>
-                  <RowActions onEdit={() => setEditing(c)} onDelete={() => remove(c)} />
+                  <RowActions onEdit={user?.role === 'magasinier' ? () => setEditing(c) : null} onDelete={user?.role === 'magasinier' ? () => remove(c) : null} />
                 </article>
               ))}
             </div>
@@ -3259,6 +3281,35 @@ function Reclamations({ api, notify, data, submit, user, searchQuery = '' }) {
   );
 }
 
+function ChatPage({ api, notify, data, submit, user, searchQuery = '' }) {
+  const chats = (data.extra.chats || []).filter((chat) => `${chat.id_conversation} ${chat.client_nom || ''} ${chat.dernier_message || ''}`.toLowerCase().includes(searchQuery.toLowerCase()));
+  const [selectedId, setSelectedId] = useState('');
+  const [message, setMessage] = useState('');
+  const selected = chats.find((chat) => chat.id_conversation === selectedId) || chats[0] || null;
+  const send = () => {
+    if (!message.trim()) return;
+    submit(async () => {
+      const result = await api('/chat/messages', { method: 'POST', body: JSON.stringify({ conversation_id: selected?.id_conversation || undefined, message }) });
+      setSelectedId(result.conversation_id || selected?.id_conversation || '');
+      setMessage('');
+      if (result.automatic_reply) notify('L’assistant a repondu automatiquement.');
+    });
+  };
+  return (
+    <div className={`chat-shell ${user?.role === 'client' ? 'client-chat-shell' : ''}`}>
+      {user?.role === 'manager' && <aside className="chat-list"><div className="chat-list-head"><MessageCircle size={21} /><strong>Conversations</strong></div>{chats.length ? chats.map((chat) => <button key={chat.id_conversation} className={selected?.id_conversation === chat.id_conversation ? 'active' : ''} type="button" onClick={() => setSelectedId(chat.id_conversation)}><span>{getInitials(chat.client_nom)}</span><div><strong>{chat.client_nom} {chat.client_postnom || ''}</strong><small>{chat.dernier_message || 'Nouvelle conversation'}</small></div><Badge>{chat.statut}</Badge></button>) : <p className="empty compact">Aucune conversation</p>}</aside>}
+      <section className="chat-window">
+        <header><div className="chat-avatar"><MessageCircle size={22} /></div><div><strong>{user?.role === 'client' ? 'Assistant Quincaillerie Centrale' : selected ? `${selected.client_nom} ${selected.client_postnom || ''}` : 'Selectionnez un client'}</strong><span>{selected?.statut === 'en_attente_manager' ? 'Reponse humaine demandee' : 'Assistant automatique disponible'}</span></div></header>
+        <div className="chat-messages">
+          {!selected && user?.role === 'client' && <div className="chat-welcome"><MessageCircle size={34} /><h3>Comment pouvons-nous vous aider ?</h3><p>Posez une question sur un prix, une commande, une facture, un paiement ou une reclamation. Les questions complexes seront transmises au manager.</p></div>}
+          {(selected?.messages || []).map((item) => <article key={item.id_message} className={`chat-bubble ${item.sender_type === 'client' ? (user?.role === 'client' ? 'mine' : 'theirs') : item.sender_type === 'manager' ? (user?.role === 'manager' ? 'mine' : 'theirs') : 'bot'}`}><small>{item.sender_type === 'bot' ? 'Assistant automatique' : item.sender_type === 'manager' ? 'Manager' : 'Client'}</small><p>{item.message}</p><time>{new Date(item.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time></article>)}
+        </div>
+        {(user?.role === 'client' || selected) && <Form onSubmit={send}><div className="chat-composer"><textarea value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Ecrivez votre question..." maxLength={2000} /><button className="btn" disabled={!message.trim()}><Send size={19} /> Envoyer</button></div></Form>}
+      </section>
+    </div>
+  );
+}
+
 function Form({ children, onSubmit }) {
   return <form className="form" onSubmit={(event) => { event.preventDefault(); Promise.resolve(onSubmit()).catch(() => null); }}>{children}</form>;
 }
@@ -3278,6 +3329,10 @@ function Modal({ title, children, onClose, className = '' }) {
 }
 
 function Input({ label, value, onChange, type = 'text', required = false, ...props }) {
+  const [visible, setVisible] = useState(false);
+  if (type === 'password') {
+    return <label>{label}<span className="password-field"><input type={visible ? 'text' : 'password'} value={value} onChange={(e) => onChange(e.target.value)} required={required} {...props} /><button type="button" onClick={() => setVisible(!visible)} title={visible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}><Eye size={18} /></button></span></label>;
+  }
   return <label>{label}<input type={type} value={value} onChange={(e) => onChange(e.target.value)} required={required} {...props} /></label>;
 }
 

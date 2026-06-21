@@ -4,8 +4,8 @@ export const getNotifications = async (req, res) => {
     try {
         const [rows] = await pool.query(
             `SELECT * FROM notifications
-             WHERE recipient_user_id = ?
-                OR (recipient_type = 'enterprise_admin' AND entreprise_id = ?)
+             WHERE lu = FALSE AND (recipient_user_id = ?
+                OR (recipient_type = 'enterprise_admin' AND entreprise_id = ?))
              ORDER BY created_at DESC
              LIMIT 30`,
             [req.user.id, req.user.entreprise_id]
@@ -21,7 +21,7 @@ export const markNotificationRead = async (req, res) => {
     const { id } = req.params;
 
     try {
-        await pool.query(`UPDATE notifications SET lu = TRUE WHERE id_notification = ?`, [id]);
+        await pool.query(`UPDATE notifications SET lu = TRUE WHERE id_notification = ? AND (recipient_user_id = ? OR (recipient_type = 'enterprise_admin' AND entreprise_id = ?))`, [id, req.user.id, req.user.entreprise_id]);
         res.json({ success: true, message: 'Notification lue' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

@@ -28,7 +28,7 @@ export const getAllProduits = async (req, res) => {
              FROM produits p
              LEFT JOIN categorie_produit c ON c.id_categorie = p.categorie_id
              WHERE p.entreprise_id = ?
-             ORDER BY p.nom ASC`,
+             ORDER BY (p.prix_ht < p.prix_achat) DESC, p.nom ASC`,
             [entreprise_id]
         );
         res.json({ success: true, data: rows });
@@ -69,6 +69,9 @@ export const createProduit = async (req, res) => {
             success: false,
             message: 'Nom et prix positif requis'
         });
+    }
+    if (Number(prix_achat || 0) > Number(prix_ht)) {
+        return res.status(400).json({ success: false, message: "Le prix de vente ne peut pas etre inferieur au cout d'achat." });
     }
 
     const connection = await pool.getConnection();
@@ -113,6 +116,9 @@ export const updateProduit = async (req, res) => {
 
     if (!nom || Number(prix_ht) <= 0) {
         return res.status(400).json({ success: false, message: 'Nom et prix positif requis' });
+    }
+    if (Number(prix_achat || 0) > Number(prix_ht)) {
+        return res.status(400).json({ success: false, message: "Le prix de vente ne peut pas etre inferieur au cout d'achat." });
     }
 
     try {

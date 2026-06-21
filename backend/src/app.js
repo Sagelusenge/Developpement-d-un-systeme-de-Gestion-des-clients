@@ -20,6 +20,7 @@ import clientAuthRoutes from './routes/clientAuthRoutes.js';
 import commandeRoutes from './routes/commandeRoutes.js';
 import reclamationRoutes from './routes/reclamationRoutes.js';
 import publicRoutes from './routes/publicRoutes.js';
+import chatRoutes from './routes/chatRoutes.js';
 
 dotenv.config();
 
@@ -56,6 +57,7 @@ app.use('/api/client-auth', clientAuthRoutes);
 app.use('/api/commandes', commandeRoutes);
 app.use('/api/reclamations', reclamationRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/chat', chatRoutes);
 
 app.get('/api/health', (req, res) => {
     res.json({ success: true, message: 'Quincaillerie Centrale API operationnelle' });

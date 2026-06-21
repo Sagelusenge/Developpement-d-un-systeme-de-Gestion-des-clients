@@ -33,7 +33,7 @@ export const createReclamation = async (req, res) => {
             [id, req.user.client_id, req.user.entreprise_id, req.body.commande_id || null, req.body.vente_id || null, sujet, message]
         );
         await connection.commit();
-        await notifyEnterpriseAdmins({ entreprise_id: req.user.entreprise_id, titre: 'Nouvelle reclamation client', message: `${req.user.nom || 'Un client'} a envoye la reclamation ${id}: ${sujet}.` }).catch(() => null);
+        await notifyEnterpriseAdmins({ entreprise_id: req.user.entreprise_id, titre: 'Nouvelle reclamation client', message: `${req.user.nom || 'Un client'} a envoye la reclamation ${id}: ${sujet}.`, entity_type: 'reclamation', entity_id: id }).catch(() => null);
         res.status(201).json({ success: true, message: 'Reclamation envoyee au manager.', id });
     } catch (error) {
         await connection.rollback(); res.status(400).json({ success: false, message: error.message });

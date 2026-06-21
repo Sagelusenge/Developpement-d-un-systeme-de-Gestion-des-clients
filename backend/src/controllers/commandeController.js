@@ -22,7 +22,7 @@ export const getCatalogue = async (req, res) => {
             `SELECT p.id_produit, p.reference_produit, p.nom, p.unite, p.prix_ht, p.taux_tva,
                     p.quantite_stock, p.photo_url, c.nom AS categorie_nom
              FROM produits p LEFT JOIN categorie_produit c ON c.id_categorie = p.categorie_id
-             WHERE p.entreprise_id = ? AND p.quantite_stock > 0 ORDER BY p.nom`,
+             WHERE p.entreprise_id = ? AND p.quantite_stock > 0 AND p.prix_ht >= p.prix_achat ORDER BY p.nom`,
             [req.user.entreprise_id]
         );
         res.json({ success: true, data: rows });
@@ -73,11 +73,12 @@ export const createCommande = async (req, res) => {
         for (const article of articles) {
             const quantite = Number(article.quantite);
             const [[product]] = await connection.query(
-                `SELECT id_produit, nom, prix_ht, quantite_stock FROM produits
+                `SELECT id_produit, nom, prix_ht, prix_achat, quantite_stock FROM produits
                  WHERE id_produit = ? AND entreprise_id = ?`, [article.produit_id, req.user.entreprise_id]
             );
             if (!product || !Number.isInteger(quantite) || quantite <= 0) throw new Error('Produit ou quantite invalide.');
             if (quantite > product.quantite_stock) throw new Error(`Stock disponible insuffisant pour ${product.nom}.`);
+            if (Number(product.prix_ht) < Number(product.prix_achat || 0)) throw new Error(`${product.nom} est temporairement indisponible: son prix catalogue est inferieur à son cout d'achat.`);
             lines.push({ ...product, quantite });
             total += quantite * Number(product.prix_ht) * 1.16;
         }
@@ -95,7 +96,7 @@ export const createCommande = async (req, res) => {
             );
         }
         await connection.commit();
-        await notifyEnterpriseAdmins({ entreprise_id: req.user.entreprise_id, titre: 'Nouvelle commande client', message: `${req.user.nom || 'Un client'} a envoye la commande ${id}.` }).catch(() => null);
+        await notifyEnterpriseAdmins({ entreprise_id: req.user.entreprise_id, titre: 'Nouvelle commande client', message: `${req.user.nom || 'Un client'} a envoye la commande ${id}.`, entity_type: 'commande', entity_id: id }).catch(() => null);
         res.status(201).json({ success: true, message: 'Commande envoyee.', id });
     } catch (error) {
         await connection.rollback();
@@ -142,6 +143,7 @@ export const convertCommande = async (req, res) => {
                 [line.produit_id, order.entreprise_id]
             );
             if (!product || Number(product.quantite_stock) < Number(line.quantite)) throw new Error(`Stock insuffisant pour ${line.produit_id}.`);
+            if (Number(line.prix_unitaire_ht) < Number(product.prix_achat || 0)) throw new Error(`Facturation bloquee pour ${line.produit_id}: le prix commande est inferieur au cout actuel. Le magasinier doit corriger le prix catalogue puis le client doit confirmer une nouvelle commande.`);
             const saleLineId = await nextId(connection, 'lignes_ventes', 'LVT', 6);
             await connection.query(
                 `INSERT INTO lignes_ventes (id_lignes_ventes, vente_id, produit_id, quantite, prix_unitaire_ht, prix_achat_unitaire)

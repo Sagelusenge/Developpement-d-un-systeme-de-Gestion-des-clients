@@ -10,11 +10,14 @@ export const getAllUtilisateurs = async (req, res) => {
     const entreprise_id = req.user.entreprise_id;
     try {
         const [rows] = await pool.query(
-            `SELECT id_utilisateur, nom, email, role, actif
-             FROM utilisateur
-             WHERE entreprise_id = ?
+            `SELECT id_utilisateur, nom, email, role, actif, 'equipe' AS type_compte
+             FROM utilisateur WHERE entreprise_id = ?
+             UNION ALL
+             SELECT id_client AS id_utilisateur, CONCAT(nom, ' ', IFNULL(postnom, '')) AS nom,
+                    email, 'client' AS role, actif, 'client' AS type_compte
+             FROM client WHERE entreprise_id = ? AND email IS NOT NULL
              ORDER BY role, nom`,
-            [entreprise_id]
+            [entreprise_id, entreprise_id]
         );
         res.json({ success: true, data: rows });
     } catch (error) {

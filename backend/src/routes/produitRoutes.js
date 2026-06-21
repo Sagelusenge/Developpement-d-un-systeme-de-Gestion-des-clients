@@ -27,26 +27,26 @@ router.get('/mouvements-recents',
 // ✅ MANAGER + MAGASINIER peuvent créer/modifier/supprimer
 router.post('/',    
     protect, 
-    authorizeRoles('manager', 'magasinier'), 
+    authorizeRoles('magasinier'),
     createProduit
 );
 
 router.put('/:id',  
     protect, 
-    authorizeRoles('manager', 'magasinier'), 
+    authorizeRoles('magasinier'),
     updateProduit
 );
 
 router.delete('/:id', 
     protect, 
-    authorizeRoles('manager'), 
+    authorizeRoles('magasinier'),
     deleteProduit
 );
 
 // ✅ MANAGER + MAGASINIER peuvent approvisionner
 router.post('/:id/approvisionner', 
     protect, 
-    authorizeRoles('manager', 'magasinier'), 
+    authorizeRoles('magasinier'),
     approvisionner
 );
 

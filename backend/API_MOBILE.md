@@ -57,6 +57,13 @@ Accept: application/json
 Les endpoints publics:
 - `POST /auth/login`
 - `POST /auth/forgot-password`
+- `POST /auth/verify-reset-code`
+- `POST /auth/reset-password`
+- `POST /client-auth/login`
+- `POST /client-auth/register`
+- `POST /client-auth/verify-email`
+- `POST /client-auth/resend-code`
+- `POST /public/contact`
 
 ## Reponses d'erreur standards
 
@@ -108,9 +115,10 @@ Erreur serveur:
 ## Roles
 
 ```text
-manager     Acces complet.
-caissier    Clients, ventes, paiements, certains rapports, consultation produits.
+manager     Supervision, clients, utilisateurs, rapports, commandes et reclamations. Consulte les ventes et paiements sans les creer.
+caissier    Clients, creation des ventes, conversion des commandes, paiements, certains rapports, consultation produits.
 magasinier  Produits, categories, fournisseurs, stock, certains rapports.
+client      Catalogue, commandes personnelles, achats, factures, profil et reclamations personnelles.
 ```
 
 ---
@@ -167,8 +175,7 @@ Body:
 
 ```json
 {
-  "email": "caissier@example.com",
-  "motif": "Mot de passe oublie"
+  "email": "caissier@example.com"
 }
 ```
 
@@ -177,7 +184,59 @@ Reponse 200:
 ```json
 {
   "success": true,
-  "message": "Demande envoyee au manager."
+  "message": "Code de recuperation envoye par email."
+}
+```
+
+Le code contient 6 chiffres et expire apres 15 minutes.
+
+## Verifier le code de recuperation
+
+```http
+POST /auth/verify-reset-code
+```
+
+Body:
+
+```json
+{
+  "email": "caissier@example.com",
+  "code": "483921"
+}
+```
+
+Reponse 200:
+
+```json
+{
+  "success": true,
+  "message": "Code confirme. Vous pouvez definir un nouveau mot de passe."
+}
+```
+
+## Definir le nouveau mot de passe
+
+```http
+POST /auth/reset-password
+```
+
+Body:
+
+```json
+{
+  "email": "caissier@example.com",
+  "code": "483921",
+  "new_password": "NouveauPass1",
+  "confirm_password": "NouveauPass1"
+}
+```
+
+Reponse 200:
+
+```json
+{
+  "success": true,
+  "message": "Mot de passe reinitialise. Vous pouvez vous connecter."
 }
 ```
 
@@ -441,7 +500,7 @@ Reponse 200:
 
 # Categories
 
-Roles: lecture `manager`, `caissier`, `magasinier`; creation/modification `manager`, `magasinier`; suppression `manager`.
+Roles: lecture `manager`, `caissier`, `magasinier`; creation/modification/suppression `magasinier` uniquement.
 
 ## Lister les categories
 
@@ -555,7 +614,7 @@ Reponse 200:
 
 # Produits et stock
 
-Roles: lecture `manager`, `caissier`, `magasinier`; creation/modification/approvisionnement `manager`, `magasinier`; suppression `manager`.
+Roles: lecture `manager`, `caissier`, `magasinier`; creation/modification/approvisionnement/suppression `magasinier` uniquement.
 
 Unites conseillees:
 
@@ -753,7 +812,7 @@ Reponse 200:
 
 # Fournisseurs
 
-Roles: lecture `manager`, `magasinier`, `caissier`; creation/modification `manager`, `magasinier`; suppression `manager`.
+Roles: lecture `manager`, `magasinier`, `caissier`; creation/modification/suppression `magasinier` uniquement.
 
 ## Lister les fournisseurs
 
@@ -868,7 +927,7 @@ Erreur possible si le fournisseur a deja des approvisionnements:
 
 # Ventes et factures
 
-Roles: lecture/creation `manager`, `caissier`; modification/suppression `manager`.
+Roles: lecture `manager`, `caissier`; creation/modification `caissier`; suppression exceptionnelle `manager`.
 
 TVA appliquee par le backend pour les ventes: `16%`.
 
@@ -1051,7 +1110,7 @@ Reponse 200:
 
 # Paiements
 
-Roles: `manager`, `caissier`.
+Roles: consultation `manager`, `caissier`; enregistrement d'un paiement `caissier` uniquement.
 
 Modes acceptes:
 
@@ -1901,6 +1960,449 @@ Reponse 200:
 
 ---
 
+# Espace client mobile
+
+Le mobile utilise une connexion unique. Il ne doit jamais demander a l'utilisateur de choisir entre `client` et `equipe`: le backend detecte le type de compte a partir de l'email et du mot de passe.
+
+## Inscription client - demander le code
+
+```http
+POST /client-auth/register
+```
+
+Endpoint public. Le mot de passe doit avoir au moins 8 caracteres, une majuscule, une minuscule et un chiffre.
+
+Body:
+
+```json
+{
+  "nom": "Sage",
+  "postnom": "Lusenge",
+  "telephone": "+243970000000",
+  "email": "sage@gmail.com",
+  "password": "ClientPro1"
+}
+```
+
+Reponse 201:
+
+```json
+{
+  "success": true,
+  "message": "Un code de confirmation a ete envoye a votre adresse email.",
+  "email": "sage@gmail.com"
+}
+```
+
+Erreurs principales: `400` donnees invalides, `409` email deja utilise, `429` nouvelle demande en moins d'une minute, `503` service email non configure.
+
+## Confirmer l'adresse email
+
+```http
+POST /client-auth/verify-email
+```
+
+Body:
+
+```json
+{
+  "email": "sage@gmail.com",
+  "code": "483921"
+}
+```
+
+Reponse 201. Le mobile doit enregistrer `token`, `user` et ouvrir directement l'espace client:
+
+```json
+{
+  "success": true,
+  "message": "Votre adresse email est confirmee. Bienvenue !",
+  "token": "JWT_TOKEN",
+  "user": {
+    "id": "CLI-00042",
+    "id_client": "CLI-00042",
+    "nom": "Sage",
+    "postnom": "Lusenge",
+    "email": "sage@gmail.com",
+    "telephone": "+243970000000",
+    "role": "client",
+    "entreprise_id": "ENT-00001",
+    "entreprise_nom": "Quincaillerie Centrale",
+    "type": "client"
+  }
+}
+```
+
+## Renvoyer le code d'inscription
+
+```http
+POST /client-auth/resend-code
+```
+
+Body:
+
+```json
+{ "email": "sage@gmail.com" }
+```
+
+Reponse 200:
+
+```json
+{ "success": true, "message": "Un nouveau code vient de vous etre envoye." }
+```
+
+## Connexion unique equipe/client
+
+```http
+POST /auth/login
+```
+
+Body identique pour tous les roles:
+
+```json
+{
+  "email": "sage@gmail.com",
+  "password": "ClientPro1"
+}
+```
+
+La reponse contient `user.role` egal a `manager`, `caissier`, `magasinier` ou `client`. La navigation mobile doit etre construite a partir de cette valeur.
+
+## Profil client
+
+```http
+GET /client-auth/me
+PUT /client-auth/profile
+POST /client-auth/change-password
+```
+
+Body de modification du profil:
+
+```json
+{
+  "nom": "Sage Lusenge",
+  "telephone": "+243970000001"
+}
+```
+
+Body de changement du mot de passe:
+
+```json
+{ "new_password": "NouveauClient1" }
+```
+
+Reponse standard:
+
+```json
+{ "success": true, "message": "Mot de passe client mis a jour." }
+```
+
+## Catalogue client securise
+
+```http
+GET /commandes/catalogue
+```
+
+Le catalogue retourne uniquement les produits en stock dont le prix de vente couvre le cout d'achat. `prix_ht` est le prix de vente unitaire hors taxe. Le mobile ne doit jamais utiliser `prix_achat` pour calculer une commande.
+
+Reponse 200:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id_produit": "PRD-00012",
+      "reference_produit": "BARRE-12",
+      "nom": "Barre de fer 12mm",
+      "unite": "piece",
+      "prix_ht": 16,
+      "taux_tva": 16,
+      "quantite_stock": 25,
+      "photo_url": null,
+      "categorie_nom": "Fer"
+    }
+  ]
+}
+```
+
+Calcul d'affichage: `total_ttc = prix_ht x quantite x 1.16`. Exemple: `16 x 5 x 1.16 = 92.80 USD`.
+
+## Creer une commande
+
+```http
+POST /commandes
+```
+
+Body:
+
+```json
+{
+  "note_client": "Je passerai recuperer la commande au magasin.",
+  "articles": [
+    { "produit_id": "PRD-00012", "quantite": 5 }
+  ]
+}
+```
+
+Le backend relit toujours le prix de vente catalogue. Il refuse le stock insuffisant et tout produit dont `prix_ht < prix_achat`.
+
+Reponse 201:
+
+```json
+{
+  "success": true,
+  "message": "Commande envoyee.",
+  "id": "CMD-000003"
+}
+```
+
+## Lister et suivre les commandes
+
+```http
+GET /commandes
+```
+
+Pour un client, seules ses commandes sont retournees. Pour un manager ou caissier, toutes les commandes de l'entreprise sont retournees.
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id_commande": "CMD-000003",
+      "client_id": "CLI-00042",
+      "statut": "en_attente",
+      "montant_ttc": 92.8,
+      "vente_id": null,
+      "numero_facture": null,
+      "date_commande": "2026-06-20T10:30:00.000Z",
+      "lignes": [
+        {
+          "produit_id": "PRD-00012",
+          "produit_nom": "Barre de fer 12mm",
+          "quantite": 5,
+          "prix_unitaire_ht": 16
+        }
+      ]
+    }
+  ]
+}
+```
+
+Statuts: `en_attente`, `confirmee`, `preparee`, `livree`, `annulee`, `rejetee`.
+
+## Modifier le statut d'une commande
+
+Roles: manager ou caissier.
+
+```http
+PUT /commandes/:id/statut
+```
+
+```json
+{ "statut": "preparee" }
+```
+
+Reponse 200:
+
+```json
+{ "success": true, "message": "Statut de la commande mis a jour." }
+```
+
+## Convertir une commande en facture
+
+Role: caissier uniquement.
+
+```http
+POST /commandes/:id/convertir
+```
+
+Body: objet vide `{}`.
+
+```json
+{
+  "success": true,
+  "message": "Commande convertie en facture FAC-2026-00042.",
+  "facture": "FAC-2026-00042"
+}
+```
+
+La conversion conserve le prix de vente enregistre dans la commande et recontrole qu'il n'est pas inferieur au cout d'achat actuel.
+
+## Achats et factures du client
+
+```http
+GET /commandes/achats
+```
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id_ventes": "FAC-2026-00042",
+      "numero_facture": "FAC-2026-00042",
+      "montant_ttc": 92.8,
+      "date_vente": "2026-06-20T11:00:00.000Z",
+      "total_paye": 50,
+      "reste_a_payer": 42.8
+    }
+  ]
+}
+```
+
+## Reclamations
+
+```http
+GET /reclamations
+POST /reclamations
+PUT /reclamations/:id
+```
+
+Creation par le client:
+
+```json
+{
+  "sujet": "Article manquant",
+  "message": "Il manque une piece dans ma commande.",
+  "commande_id": "CMD-000003",
+  "vente_id": null
+}
+```
+
+Reponse 201:
+
+```json
+{
+  "success": true,
+  "message": "Reclamation envoyee au manager.",
+  "id": "REC-000008"
+}
+```
+
+Traitement par le manager:
+
+```json
+{
+  "statut": "en_cours",
+  "reponse": "Nous verifions la preparation de votre commande."
+}
+```
+
+Statuts: `ouverte`, `en_cours`, `resolue`, `cloturee`.
+
+# Chat client, assistant automatique et manager
+
+Les messages sont conserves dans la base comme une messagerie. L'assistant repond automatiquement aux salutations et questions frequentes. Une question non reconnue passe la conversation au statut `en_attente_manager` et notifie le manager.
+
+## Lister les conversations
+
+```http
+GET /chat
+```
+
+Reponse 200:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id_conversation": "CHAT-000001",
+      "client_id": "CLI-00042",
+      "client_nom": "Sage",
+      "statut": "ouverte",
+      "dernier_message": "Ou se trouve votre magasin ?",
+      "messages": [
+        {
+          "id_message": "MSG-0000001",
+          "sender_type": "client",
+          "message": "Ou se trouve votre magasin ?",
+          "created_at": "2026-06-21T08:00:00.000Z"
+        },
+        {
+          "id_message": "MSG-0000002",
+          "sender_type": "bot",
+          "message": "Nous sommes sur l'Avenue du Commerce, quartier Murara, commune de Karisimbi a Goma.",
+          "created_at": "2026-06-21T08:00:01.000Z"
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Envoyer un message
+
+```http
+POST /chat/messages
+```
+
+Premier message client (la conversation est creee automatiquement):
+
+```json
+{ "message": "Quel est le statut de ma commande CMD-000003 ?" }
+```
+
+Message suivant ou reponse manager:
+
+```json
+{
+  "conversation_id": "CHAT-000001",
+  "message": "Votre commande est en preparation."
+}
+```
+
+Reponse 201:
+
+```json
+{
+  "success": true,
+  "message": "Reponse automatique envoyee.",
+  "conversation_id": "CHAT-000001",
+  "automatic_reply": "Ouvrez la rubrique Commandes pour voir le statut exact..."
+}
+```
+
+# Notifications avec navigation
+
+`GET /notifications` retourne maintenant `entity_type` et `entity_id`.
+
+```json
+{
+  "id_notification": 51,
+  "titre": "Nouvelle commande client",
+  "message": "Sage a envoye la commande CMD-000003.",
+  "entity_type": "commande",
+  "entity_id": "CMD-000003",
+  "lu": 0,
+  "created_at": "2026-06-21T08:00:00.000Z"
+}
+```
+
+Correspondance mobile:
+- `commande` ouvre la page Commandes filtree par `entity_id`;
+- `reclamation` ouvre Reclamations;
+- `chat` ouvre la conversation concernee.
+
+Apres ouverture, appeler `PUT /notifications/:id/read` et retirer immediatement la notification de la liste locale.
+
+# Matrice des permissions mise a jour
+
+| Action | Manager | Caissier | Magasinier | Client |
+| --- | --- | --- | --- | --- |
+| Consulter ventes/paiements | Oui | Oui | Non | Ses achats |
+| Creer/modifier/supprimer une vente | Non | Oui | Non | Non |
+| Enregistrer un paiement | Non | Oui | Non | Non |
+| Creer/modifier stock, produits, categories, fournisseurs | Non | Non | Oui | Non |
+| Superviser commandes | Oui | Oui | Non | Ses commandes |
+| Convertir commande en facture | Non | Oui | Non | Non |
+| Traiter reclamations | Oui | Non | Non | Creer/consulter |
+| Repondre au chat humain | Oui | Non | Non | Envoyer/consulter |
+
+---
+
 # Resume rapide des endpoints
 
 ```text
@@ -1910,6 +2412,30 @@ GET    /auth/me
 PUT    /auth/profile
 POST   /auth/change-password
 POST   /auth/reset-request-password
+
+POST   /client-auth/register
+POST   /client-auth/verify-email
+POST   /client-auth/resend-code
+POST   /client-auth/login
+GET    /client-auth/me
+PUT    /client-auth/profile
+POST   /client-auth/change-password
+
+GET    /commandes/catalogue
+GET    /commandes/achats
+GET    /commandes
+POST   /commandes
+PUT    /commandes/:id/statut
+POST   /commandes/:id/convertir
+
+GET    /reclamations
+POST   /reclamations
+PUT    /reclamations/:id
+
+GET    /chat
+POST   /chat/messages
+
+POST   /public/contact
 
 GET    /clients
 GET    /clients/:id

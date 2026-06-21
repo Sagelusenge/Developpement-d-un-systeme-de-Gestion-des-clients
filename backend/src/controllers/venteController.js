@@ -127,6 +127,9 @@ export const createVente = async (req, res) => {
             if (!Number.isFinite(prix) || prix <= 0) {
                 throw new Error('Le prix unitaire doit etre positif.');
             }
+            if (prix < toNumber(produits[0].prix_achat || 0)) {
+                throw new Error(`Vente bloquee pour ${produit_id}: le prix de vente (${prix} USD) est inferieur au cout d'achat (${produits[0].prix_achat} USD). Corrigez d'abord le prix catalogue.`);
+            }
 
             lignes.push({ produit_id, quantite, prix, prix_achat: toNumber(produits[0].prix_achat || 0) });
         }
@@ -169,7 +172,7 @@ export const createVente = async (req, res) => {
         });
     } catch (error) {
         await connection.rollback();
-        res.status(500).json({ success: false, message: error.message });
+        res.status(400).json({ success: false, message: error.message });
     } finally {
         connection.release();
     }
@@ -263,6 +266,9 @@ export const updateVente = async (req, res) => {
             if (!Number.isFinite(prix) || prix <= 0) {
                 throw new Error('Le prix unitaire doit etre positif.');
             }
+            if (prix < toNumber(produits[0].prix_achat || 0)) {
+                throw new Error(`Modification bloquee pour ${produit_id}: le prix de vente est inferieur au cout d'achat.`);
+            }
 
             const id_ligne = await nextId(connection, 'lignes_ventes', 'LVT', 6);
             await connection.query(
@@ -291,7 +297,7 @@ export const updateVente = async (req, res) => {
         res.json({ success: true, message: 'Facture mise a jour' });
     } catch (error) {
         await connection.rollback();
-        res.status(500).json({ success: false, message: error.message });
+        res.status(400).json({ success: false, message: error.message });
     } finally {
         connection.release();
     }
