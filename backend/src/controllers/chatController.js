@@ -1,10 +1,22 @@
 import pool from '../config/db.js';
 import { nextId } from '../services/idService.js';
 import { createNotification, notifyEnterpriseAdmins } from '../services/notificationService.js';
+import { sendManagerChatAlertEmail } from '../services/mailService.js';
+import { publishChatUpdate, subscribeToChat } from '../services/chatRealtimeService.js';
 
 const isClient = (req) => req.user.type === 'client';
-const automaticReply = (message) => {
+const automaticReply = async (message, user) => {
     const text = String(message || '').trim().toLowerCase();
+    const commandRef = text.match(/cmd-\d+/i)?.[0]?.toUpperCase();
+    if (commandRef) {
+        const [[order]] = await pool.query(`SELECT statut, montant_ttc, vente_id FROM commandes WHERE id_commande = ? AND client_id = ? AND entreprise_id = ?`, [commandRef, user.client_id, user.entreprise_id]);
+        if (order) return `La commande ${commandRef} est actuellement « ${order.statut} ». Son total est de ${Number(order.montant_ttc).toFixed(2)} USD TTC${order.vente_id ? ` et elle est liee a la facture ${order.vente_id}` : ''}.`;
+    }
+    const invoiceRef = text.match(/fac-(?:\d{4}-)?\d+/i)?.[0]?.toUpperCase();
+    if (invoiceRef) {
+        const [[invoice]] = await pool.query(`SELECT v.montant_ttc, IFNULL(SUM(p.montant),0) AS total_paye FROM ventes v LEFT JOIN paiement p ON p.vente_id=v.id_ventes WHERE v.id_ventes=? AND v.client_id=? AND v.entreprise_id=? GROUP BY v.id_ventes`, [invoiceRef, user.client_id, user.entreprise_id]);
+        if (invoice) return `La facture ${invoiceRef} est de ${Number(invoice.montant_ttc).toFixed(2)} USD TTC. Montant paye : ${Number(invoice.total_paye).toFixed(2)} USD ; reste : ${(Number(invoice.montant_ttc) - Number(invoice.total_paye)).toFixed(2)} USD.`;
+    }
     if (/^(bonjour|bonsoir|salut|hello|bjr|cc)[!. ]*$/.test(text)) return "Bonjour ! Je suis l’assistant de Quincaillerie Centrale. Posez directement votre question sur une commande, un prix, une facture, un paiement ou une reclamation.";
     if (/(adresse|situe|localisation|trouver)/.test(text)) return "Nous sommes sur l’Avenue du Commerce, quartier Murara, commune de Karisimbi à Goma.";
     if (/(commande|statut|livraison|suivre)/.test(text)) return "Ouvrez la rubrique Commandes pour voir le statut exact : en attente, confirmee, preparee ou livree. Donnez-moi la reference CMD si vous avez besoin d’aide supplementaire.";
@@ -37,6 +49,18 @@ export const getChats = async (req, res) => {
     } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 };
 
+export const streamChatUpdates = (req, res) => {
+    if (!isClient(req) && req.user.role !== 'manager') return res.status(403).end();
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders?.();
+    res.write(`event: connected\ndata: {"connected":true}\n\n`);
+    const unsubscribe = subscribeToChat(req.user.entreprise_id, res);
+    const heartbeat = setInterval(() => res.write(': heartbeat\n\n'), 20000);
+    req.on('close', () => { clearInterval(heartbeat); unsubscribe(); });
+};
+
 export const sendChatMessage = async (req, res) => {
     const message = String(req.body.message || '').trim();
     if (!message || message.length > 2000) return res.status(400).json({ success: false, message: 'Message requis (2000 caracteres maximum).' });
@@ -65,21 +89,31 @@ export const sendChatMessage = async (req, res) => {
         await connection.query(`INSERT INTO chat_messages (id_message, conversation_id, sender_type, sender_id, message) VALUES (?, ?, ?, ?, ?)`, [messageId, conversationId, senderType, req.user.id, message]);
         let reply = null;
         if (isClient(req)) {
-            reply = automaticReply(message);
+            reply = await automaticReply(message, req.user);
             if (reply) {
                 const botId = await nextId(connection, 'chat_messages', 'MSG', 7);
                 await connection.query(`INSERT INTO chat_messages (id_message, conversation_id, sender_type, sender_id, message) VALUES (?, ?, 'bot', NULL, ?)`, [botId, conversationId, reply]);
                 await connection.query(`UPDATE chat_conversations SET statut = 'ouverte', updated_at = NOW() WHERE id_conversation = ?`, [conversationId]);
             } else {
+                reply = "Je n'ai pas une reponse suffisamment fiable pour cette question. Je viens de la transmettre au manager, qui vous repondra ici dans quelques minutes.";
+                const botId = await nextId(connection, 'chat_messages', 'MSG', 7);
+                await connection.query(`INSERT INTO chat_messages (id_message, conversation_id, sender_type, sender_id, message) VALUES (?, ?, 'bot', NULL, ?)`, [botId, conversationId, reply]);
                 await connection.query(`UPDATE chat_conversations SET statut = 'en_attente_manager', updated_at = NOW() WHERE id_conversation = ?`, [conversationId]);
             }
         } else {
             await connection.query(`UPDATE chat_conversations SET statut = 'ouverte', updated_at = NOW() WHERE id_conversation = ?`, [conversationId]);
         }
         await connection.commit();
-        if (isClient(req) && !reply) await notifyEnterpriseAdmins({ entreprise_id: req.user.entreprise_id, titre: 'Message client à traiter', message: `${req.user.nom || 'Un client'} attend une reponse dans ${conversationId}.`, entity_type: 'chat', entity_id: conversationId }).catch(() => null);
+        publishChatUpdate(req.user.entreprise_id, { conversation_id: conversationId, sender_type: senderType });
+        const [[chatState]] = await pool.query(`SELECT statut FROM chat_conversations WHERE id_conversation = ?`, [conversationId]);
+        const escalated = isClient(req) && chatState?.statut === 'en_attente_manager';
+        if (escalated) {
+            await notifyEnterpriseAdmins({ entreprise_id: req.user.entreprise_id, titre: 'Message client à traiter', message: `${req.user.nom || 'Un client'} attend une reponse dans ${conversationId}.`, entity_type: 'chat', entity_id: conversationId }).catch(() => null);
+            const [managers] = await pool.query(`SELECT nom, email FROM utilisateur WHERE entreprise_id = ? AND role = 'manager' AND actif = 1 AND email IS NOT NULL`, [req.user.entreprise_id]);
+            for (const manager of managers) await sendManagerChatAlertEmail({ to: manager.email, managerName: manager.nom, clientName: req.user.nom, clientEmail: req.user.email, conversationId, message }).catch(() => null);
+        }
         if (!isClient(req)) await createNotification({ recipient_type: 'user', recipient_user_id: conversation.client_id, entreprise_id: req.user.entreprise_id, titre: 'Nouvelle reponse du manager', message: `Une reponse a ete ajoutee dans ${conversationId}.`, entity_type: 'chat', entity_id: conversationId }).catch(() => null);
-        res.status(201).json({ success: true, message: reply ? 'Reponse automatique envoyee.' : 'Message enregistre.', conversation_id: conversationId, automatic_reply: reply });
+        res.status(201).json({ success: true, message: escalated ? 'Question transmise au manager.' : 'Reponse automatique envoyee.', conversation_id: conversationId, automatic_reply: reply, escalated });
     } catch (error) {
         await connection.rollback(); res.status(400).json({ success: false, message: error.message });
     } finally { connection.release(); }

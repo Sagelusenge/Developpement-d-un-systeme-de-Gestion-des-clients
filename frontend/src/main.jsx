@@ -644,6 +644,22 @@ function PublicRegistration({ goTo, onComplete }) {
 }
 
 function PublicWebsite({ route, goTo, onRegistrationComplete }) {
+  useEffect(() => {
+    const elements = document.querySelectorAll('.public-site main > section, .public-site main section > article, .public-site .public-footer-grid > div');
+    elements.forEach((element, index) => {
+      element.classList.add('scroll-reveal');
+      element.style.setProperty('--reveal-delay', `${Math.min(index % 4, 3) * 90}ms`);
+    });
+    if (!('IntersectionObserver' in window)) {
+      elements.forEach((element) => element.classList.add('is-visible'));
+      return undefined;
+    }
+    const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
+      if (entry.isIntersecting) { entry.target.classList.add('is-visible'); observer.unobserve(entry.target); }
+    }), { threshold: 0.12, rootMargin: '0px 0px -45px' });
+    elements.forEach((element) => observer.observe(element));
+    return () => observer.disconnect();
+  }, [route]);
   return <div className="public-site"><PublicHeader route={route} goTo={goTo} /><main>{route === '/about' ? <PublicAbout goTo={goTo} /> : route === '/services' ? <PublicServices goTo={goTo} /> : route === '/contact' ? <PublicContact /> : route === '/inscription' ? <PublicRegistration goTo={goTo} onComplete={onRegistrationComplete} /> : <PublicHome goTo={goTo} />}</main><PublicFooter goTo={goTo} /></div>;
 }
 
@@ -797,18 +813,18 @@ function App() {
       { id: 'dashboard', label: tr(lang, 'dashboard'), roles: ['manager', 'caissier', 'magasinier'] },
       { id: 'dashboard', label: 'Mon espace', roles: ['client'] },
       { id: 'clients', label: tr(lang, 'clients'), roles: ['manager', 'caissier'] },
+      { id: 'fournisseurs', label: tr(lang, 'fournisseurs'), roles: ['manager', 'magasinier'] },
+      { id: 'categories', label: tr(lang, 'categories'), roles: ['manager', 'magasinier'] },
+      { id: 'produits', label: 'Produits', roles: ['manager', 'caissier', 'magasinier'] },
       { id: 'ventes', label: 'Ventes', roles: ['manager', 'caissier'] },
       { id: 'paiements', label: tr(lang, 'paiements'), roles: ['manager', 'caissier'] },
-      { id: 'categories', label: tr(lang, 'categories'), roles: ['manager', 'magasinier'] },
-      { id: 'fournisseurs', label: tr(lang, 'fournisseurs'), roles: ['manager', 'magasinier'] },
-      { id: 'produits', label: 'Produits et stock', roles: ['manager', 'caissier', 'magasinier'] },
+      { id: 'commandes', label: 'Commandes', roles: ['manager', 'caissier', 'client'] },
+      { id: 'achats', label: 'Mes achats', roles: ['client'] },
+      { id: 'reclamations', label: 'Reclamations', roles: ['manager', 'client'] },
       { id: 'rapports', label: tr(lang, 'rapports'), roles: ['manager', 'caissier', 'magasinier'] },
-      { id: 'utilisateurs', label: tr(lang, 'utilisateurs'), roles: ['manager'] },
-      { id: 'mails', label: tr(lang, 'mails'), roles: ['manager'] }
-      ,{ id: 'commandes', label: 'Commandes', roles: ['manager', 'caissier', 'client'] }
-      ,{ id: 'achats', label: 'Mes achats', roles: ['client'] }
-      ,{ id: 'reclamations', label: 'Reclamations', roles: ['manager', 'client'] }
-      ,{ id: 'chat', label: role === 'client' ? 'Assistance' : 'Chat clients', roles: ['manager', 'client'] }
+      { id: 'chat', label: role === 'client' ? 'Assistance' : 'Chat', roles: ['manager', 'client'] },
+      { id: 'mails', label: tr(lang, 'mails'), roles: ['manager'] },
+      { id: 'utilisateurs', label: tr(lang, 'utilisateurs'), roles: ['manager'] }
     ].filter((item) => item.roles.includes(role));
   }, [authType, user, lang]);
 
@@ -1363,7 +1379,10 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
         tasks.push(api('/rapports/top-acheteurs').then((r) => { next.extra.top = r.data || []; }).catch(() => {}));
       }
       if (page === 'produits') tasks.push(api('/produits/mouvements-recents').then((r) => { next.extra.mouvementsStock = r.data || []; }).catch(() => {}));
-      if (page === 'paiements') tasks.push(api('/paiements/rapport-caisse').then((r) => { next.extra.caisse = r.data || []; }).catch(() => {}));
+      if (page === 'paiements') {
+        tasks.push(api('/paiements/rapport-caisse').then((r) => { next.extra.caisse = r.data || []; }).catch(() => {}));
+        tasks.push(api('/paiements/mobile-money/demandes').then((r) => { next.extra.mobilePaymentRequests = r.data || []; }).catch(() => {}));
+      }
       if (page === 'utilisateurs') tasks.push(api('/utilisateurs').then((r) => { next.extra.utilisateurs = r.data || []; }));
       if (page === 'mails') {
         tasks.push(api('/mail/status').then((r) => { next.extra.mailStatus = r.data || {}; }).catch(() => {}));
@@ -2423,6 +2442,11 @@ function Paiements({ api, notify, data, submit, searchQuery = '', user }) {
     .filter((r) => `${r.Date} ${r.Mode_Paiement} ${r.Total_Encaisse}`.toLowerCase().includes(term));
   const caisseTotal = caisseRows.reduce((sum, row) => sum + Number(row.Total_Encaisse || 0), 0);
   const transactionsTotal = caisseRows.reduce((sum, row) => sum + Number(row.Nombre_Transactions || 0), 0);
+  const mobileRequests = (data.extra.mobilePaymentRequests || []).filter((item) => `${item.id_demande} ${item.numero_facture} ${item.client_nom} ${item.reference_externe}`.toLowerCase().includes(term));
+  const reviewMobile = (item, statut) => submit(async () => {
+    await api(`/paiements/mobile-money/demandes/${item.id_demande}`, { method: 'PUT', body: JSON.stringify({ statut }) });
+    notify(statut === 'confirmee' ? 'Paiement Mobile Money confirme.' : 'Demande Mobile Money rejetee.');
+  });
   const savePayment = () => {
     if (mobileMoneyRequired && (!form.reference_externe.trim() || !form.telephone_payeur.trim())) {
       notify('Reference et numero obligatoires pour Mobile Money');
@@ -2468,6 +2492,10 @@ function Paiements({ api, notify, data, submit, searchQuery = '', user }) {
           </div>
         </div>
         <Table headers={['Date', 'Mode', 'Transactions', 'Total']} rows={caisseRows.map((r) => [formatDate(r.Date), r.Mode_Paiement, r.Nombre_Transactions, money(r.Total_Encaisse)])} />
+      </div>
+      <div className="panel mobile-review-panel">
+        <div className="panel-heading"><div><h3>Paiements Mobile Money a verifier</h3><p>{mobileRequests.filter((item) => item.statut === 'en_attente').length} demande(s) en attente</p></div></div>
+        <Table headers={['Reference', 'Facture', 'Client', 'Operateur', 'Telephone', 'Transaction', 'Montant', 'Statut', 'Actions']} rows={mobileRequests.map((item) => [item.id_demande, item.numero_facture, `${item.client_nom} ${item.client_postnom || ''}`, item.operateur, item.telephone_payeur, item.reference_externe, money(item.montant), <Badge>{item.statut}</Badge>, item.statut === 'en_attente' && user?.role === 'caissier' ? <div className="actions"><button className="btn small" type="button" onClick={() => reviewMobile(item, 'confirmee')}>Confirmer</button><button className="action delete" type="button" title="Rejeter" onClick={() => reviewMobile(item, 'rejetee')}><X size={17} /></button></div> : '-'])} />
       </div>
       {creating && (
         <Modal title="Encaisser un paiement" onClose={closeCreate}>
@@ -3255,9 +3283,20 @@ function Commandes({ api, notify, data, submit, user, searchQuery = '' }) {
   );
 }
 
-function AchatsClient({ data, searchQuery = '' }) {
+function AchatsClient({ api, notify, data, submit, searchQuery = '' }) {
+  const [payment, setPayment] = useState(null);
+  const [form, setForm] = useState({ operateur: 'mpesa', telephone_payeur: '+243', montant: '', reference_externe: '' });
   const rows = (data.extra.achats || []).filter((item) => `${item.numero_facture} ${item.montant_ttc}`.toLowerCase().includes(searchQuery.toLowerCase()));
-  return <section className="panel"><div className="panel-heading"><div><h3>Mes achats et factures</h3><p>Historique des ventes liees a votre compte.</p></div></div><Table headers={['Facture', 'Date', 'Montant', 'Paye', 'Reste', 'Statut']} rows={rows.map((item) => [item.numero_facture, formatDate(item.date_vente), money(item.montant_ttc), money(item.total_paye), money(item.reste_a_payer), <Badge>{Number(item.reste_a_payer) <= 0 ? 'Paye' : Number(item.total_paye) > 0 ? 'Partiel' : 'Impaye'}</Badge>])} /></section>;
+  const openPayment = (item) => { setPayment(item); setForm({ operateur: 'mpesa', telephone_payeur: '+243', montant: Number(item.reste_a_payer).toFixed(2), reference_externe: '' }); };
+  const pay = () => submit(async () => {
+    await api('/paiements/mobile-money/client', { method: 'POST', body: JSON.stringify({ ...form, vente_id: payment.id_ventes }) });
+    setPayment(null);
+    notify('Paiement Mobile Money transmis. Il sera valide apres confirmation de l’operateur.');
+  });
+  return <>
+    <section className="panel"><div className="panel-heading"><div><h3>Mes achats et factures</h3><p>Payez votre solde par M-Pesa, Airtel Money ou Orange Money.</p></div></div><Table headers={['Facture', 'Date', 'Montant', 'Paye', 'Reste', 'Statut', 'Paiement']} rows={rows.map((item) => [item.numero_facture, formatDate(item.date_vente), money(item.montant_ttc), money(item.total_paye), money(item.reste_a_payer), <Badge>{Number(item.reste_a_payer) <= 0 ? 'Paye' : item.paiement_mobile_statut === 'en_attente' ? 'Verification Mobile Money' : Number(item.total_paye) > 0 ? 'Partiel' : 'Impaye'}</Badge>, Number(item.reste_a_payer) > 0 ? <button className="btn small mobile-pay-button" type="button" disabled={item.paiement_mobile_statut === 'en_attente'} onClick={() => openPayment(item)}><WalletCards size={16} /> {item.paiement_mobile_statut === 'en_attente' ? 'En verification' : 'Payer'}</button> : '-'])} /></section>
+    {payment && <Modal title={`Payer ${payment.numero_facture}`} onClose={() => setPayment(null)}><div className="mobile-money-note"><ShieldCheck size={22} /><p>Effectuez d’abord le transfert depuis votre telephone, puis saisissez la reference recue. Le paiement ne sera comptabilise qu’apres verification.</p></div><Form onSubmit={pay}><Select label="Operateur" value={form.operateur} onChange={(operateur) => setForm({ ...form, operateur })} options={[["mpesa","M-Pesa"],["airtel_money","Airtel Money"],["orange_money","Orange Money"]]} /><Input label="Numero Mobile Money" type="tel" value={form.telephone_payeur} onChange={(telephone_payeur) => setForm({ ...form, telephone_payeur })} required /><Input label="Montant (USD)" type="number" min="0.01" max={payment.reste_a_payer} step="0.01" value={form.montant} onChange={(montant) => setForm({ ...form, montant })} required /><Input label="Reference de transaction" value={form.reference_externe} onChange={(reference_externe) => setForm({ ...form, reference_externe })} placeholder="Ex. MP240621ABC" required /><button className="btn modal-submit"><ShieldCheck size={18} /> Soumettre pour verification</button></Form></Modal>}
+  </>;
 }
 
 function Reclamations({ api, notify, data, submit, user, searchQuery = '' }) {
@@ -3281,28 +3320,54 @@ function Reclamations({ api, notify, data, submit, user, searchQuery = '' }) {
   );
 }
 
-function ChatPage({ api, notify, data, submit, user, searchQuery = '' }) {
-  const chats = (data.extra.chats || []).filter((chat) => `${chat.id_conversation} ${chat.client_nom || ''} ${chat.dernier_message || ''}`.toLowerCase().includes(searchQuery.toLowerCase()));
+function ChatPage({ api, notify, data, user, searchQuery = '' }) {
+  const [liveChats, setLiveChats] = useState(data.extra.chats || []);
+  const chats = liveChats.filter((chat) => `${chat.id_conversation} ${chat.client_nom || ''} ${chat.dernier_message || ''}`.toLowerCase().includes(searchQuery.toLowerCase()));
   const [selectedId, setSelectedId] = useState('');
   const [message, setMessage] = useState('');
+  const messagesRef = useRef(null);
   const selected = chats.find((chat) => chat.id_conversation === selectedId) || chats[0] || null;
-  const send = () => {
-    if (!message.trim()) return;
-    submit(async () => {
-      const result = await api('/chat/messages', { method: 'POST', body: JSON.stringify({ conversation_id: selected?.id_conversation || undefined, message }) });
-      setSelectedId(result.conversation_id || selected?.id_conversation || '');
-      setMessage('');
-      if (result.automatic_reply) notify('L’assistant a repondu automatiquement.');
+  const refreshChats = async () => { const result = await api('/chat'); setLiveChats(result.data || []); return result.data || []; };
+  useEffect(() => setLiveChats(data.extra.chats || []), [data.extra.chats]);
+  useEffect(() => {
+    const token = localStorage.getItem('crm_token');
+    if (!token) return undefined;
+    const stream = new EventSource(`${API_URL}/chat/stream?token=${encodeURIComponent(token)}`);
+    stream.addEventListener('chat-update', () => refreshChats().catch(() => null));
+    return () => stream.close();
+  }, []);
+  useEffect(() => { messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' }); }, [selected?.messages?.length]);
+  const send = async () => {
+    const text = message.trim();
+    if (!text) return;
+    setMessage('');
+    const tempMessage = { id_message: `temp-${Date.now()}`, sender_type: user?.role === 'client' ? 'client' : 'manager', message: text, created_at: new Date().toISOString(), pending: true };
+    const currentId = selected?.id_conversation || 'pending';
+    setSelectedId(currentId);
+    setLiveChats((items) => {
+      const exists = items.some((chat) => chat.id_conversation === currentId);
+      if (!exists) return [{ id_conversation: currentId, client_nom: user?.nom, statut: 'ouverte', messages: [tempMessage], dernier_message: text }, ...items];
+      return items.map((chat) => chat.id_conversation === currentId ? { ...chat, messages: [...(chat.messages || []), tempMessage], dernier_message: text } : chat);
     });
+    try {
+      const result = await api('/chat/messages', { method: 'POST', body: JSON.stringify({ conversation_id: selected?.id_conversation || undefined, message: text }) });
+      setSelectedId(result.conversation_id || selected?.id_conversation || '');
+      await refreshChats();
+      if (result.escalated) notify('Question transmise au manager. Vous serez notifie de sa reponse.');
+    } catch (error) {
+      setLiveChats((items) => items.map((chat) => ({ ...chat, messages: (chat.messages || []).filter((item) => item.id_message !== tempMessage.id_message) })));
+      setMessage(text);
+      notify(error.message);
+    }
   };
   return (
     <div className={`chat-shell ${user?.role === 'client' ? 'client-chat-shell' : ''}`}>
       {user?.role === 'manager' && <aside className="chat-list"><div className="chat-list-head"><MessageCircle size={21} /><strong>Conversations</strong></div>{chats.length ? chats.map((chat) => <button key={chat.id_conversation} className={selected?.id_conversation === chat.id_conversation ? 'active' : ''} type="button" onClick={() => setSelectedId(chat.id_conversation)}><span>{getInitials(chat.client_nom)}</span><div><strong>{chat.client_nom} {chat.client_postnom || ''}</strong><small>{chat.dernier_message || 'Nouvelle conversation'}</small></div><Badge>{chat.statut}</Badge></button>) : <p className="empty compact">Aucune conversation</p>}</aside>}
       <section className="chat-window">
         <header><div className="chat-avatar"><MessageCircle size={22} /></div><div><strong>{user?.role === 'client' ? 'Assistant Quincaillerie Centrale' : selected ? `${selected.client_nom} ${selected.client_postnom || ''}` : 'Selectionnez un client'}</strong><span>{selected?.statut === 'en_attente_manager' ? 'Reponse humaine demandee' : 'Assistant automatique disponible'}</span></div></header>
-        <div className="chat-messages">
-          {!selected && user?.role === 'client' && <div className="chat-welcome"><MessageCircle size={34} /><h3>Comment pouvons-nous vous aider ?</h3><p>Posez une question sur un prix, une commande, une facture, un paiement ou une reclamation. Les questions complexes seront transmises au manager.</p></div>}
-          {(selected?.messages || []).map((item) => <article key={item.id_message} className={`chat-bubble ${item.sender_type === 'client' ? (user?.role === 'client' ? 'mine' : 'theirs') : item.sender_type === 'manager' ? (user?.role === 'manager' ? 'mine' : 'theirs') : 'bot'}`}><small>{item.sender_type === 'bot' ? 'Assistant automatique' : item.sender_type === 'manager' ? 'Manager' : 'Client'}</small><p>{item.message}</p><time>{new Date(item.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time></article>)}
+        <div className="chat-messages" ref={messagesRef}>
+          {!selected && user?.role === 'client' && <div className="chat-welcome"><MessageCircle size={34} /><h3>Comment pouvons-nous vous aider ?</h3><p>L’assistant consulte vos references de commande et de facture, puis repond aux questions sur les prix, paiements, produits et reclamations. S’il ne dispose pas d’une information fiable, le manager est prevenu immediatement par notification et par email.</p></div>}
+          {(selected?.messages || []).map((item) => <article key={item.id_message} className={`chat-bubble ${item.pending ? 'pending' : ''} ${item.sender_type === 'client' ? (user?.role === 'client' ? 'mine' : 'theirs') : item.sender_type === 'manager' ? (user?.role === 'manager' ? 'mine' : 'theirs') : 'bot'}`}><small>{item.sender_type === 'bot' ? 'Assistant automatique' : item.sender_type === 'manager' ? 'Manager' : 'Client'}</small><p>{item.message}</p><time>{item.pending ? 'Envoi...' : new Date(item.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time></article>)}
         </div>
         {(user?.role === 'client' || selected) && <Form onSubmit={send}><div className="chat-composer"><textarea value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Ecrivez votre question..." maxLength={2000} /><button className="btn" disabled={!message.trim()}><Send size={19} /> Envoyer</button></div></Form>}
       </section>

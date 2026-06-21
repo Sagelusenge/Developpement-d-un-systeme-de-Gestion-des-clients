@@ -145,6 +145,26 @@ export const ensureRuntimeSchema = async (pool) => {
     `);
 
     await pool.query(`
+        CREATE TABLE IF NOT EXISTS demandes_paiement_mobile (
+            id_demande VARCHAR(50) PRIMARY KEY,
+            vente_id VARCHAR(50) NOT NULL,
+            client_id VARCHAR(50) NOT NULL,
+            entreprise_id VARCHAR(50) NOT NULL,
+            operateur ENUM('mpesa','airtel_money','orange_money') NOT NULL,
+            telephone_payeur VARCHAR(20) NOT NULL,
+            montant DECIMAL(10,2) NOT NULL,
+            reference_externe VARCHAR(100) NOT NULL,
+            statut ENUM('en_attente','confirmee','rejetee') NOT NULL DEFAULT 'en_attente',
+            date_demande TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            date_traitement TIMESTAMP NULL,
+            UNIQUE KEY uniq_mobile_reference (entreprise_id, operateur, reference_externe),
+            FOREIGN KEY (vente_id) REFERENCES ventes(id_ventes) ON DELETE CASCADE,
+            FOREIGN KEY (client_id) REFERENCES client(id_client) ON DELETE CASCADE,
+            FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE
+        )
+    `);
+
+    await pool.query(`
         CREATE TABLE IF NOT EXISTS commandes (
             id_commande VARCHAR(50) PRIMARY KEY,
             client_id VARCHAR(50) NOT NULL,

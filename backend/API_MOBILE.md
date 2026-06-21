@@ -1984,6 +1984,53 @@ Body:
 }
 ```
 
+## Soumettre un paiement Mobile Money depuis l'espace client
+
+Le client transmet la reference recue de l'operateur. La somme reste au statut `en_attente` et n'est pas ajoutee aux encaissements avant verification. Operateurs: `mpesa`, `airtel_money`, `orange_money`.
+
+```http
+POST /paiements/mobile-money/client
+Authorization: Bearer <token_client>
+Content-Type: application/json
+```
+
+```json
+{
+  "vente_id": "FAC-2026-00003",
+  "operateur": "mpesa",
+  "telephone_payeur": "+243990000001",
+  "montant": 120.00,
+  "reference_externe": "MP240621ABC"
+}
+```
+
+Reponse 201:
+
+```json
+{
+  "success": true,
+  "message": "Paiement Mobile Money recu et en cours de verification.",
+  "data": { "id_demande": "MOB-000001", "statut": "en_attente" }
+}
+```
+
+Une reference deja utilisee, une facture appartenant a un autre client ou un montant superieur au solde est refuse.
+
+Traitement par l'equipe:
+
+```http
+GET /paiements/mobile-money/demandes
+PUT /paiements/mobile-money/demandes/MOB-000001
+```
+
+Body de decision (caissier):
+
+```json
+{ "statut": "confirmee" }
+```
+
+Valeurs: `confirmee` ou `rejetee`. Une confirmation cree le paiement `mobile_money`; un manager peut consulter les demandes mais seul le caissier peut les valider.
+
 Reponse 201:
 
 ```json
@@ -2116,7 +2163,7 @@ Reponse 200:
       "reference_produit": "BARRE-12",
       "nom": "Barre de fer 12mm",
       "unite": "piece",
-      "prix_ht": 16,
+      "prix_ht": 123,
       "taux_tva": 16,
       "quantite_stock": 25,
       "photo_url": null,
@@ -2126,7 +2173,7 @@ Reponse 200:
 }
 ```
 
-Calcul d'affichage: `total_ttc = prix_ht x quantite x 1.16`. Exemple: `16 x 5 x 1.16 = 92.80 USD`.
+Calcul d'affichage: `total_ttc = prix_ht x quantite x 1.16`. Exemple reel corrige: `123 x 5 x 1.16 = 713.40 USD`.
 
 ## Creer une commande
 
@@ -2173,7 +2220,7 @@ Pour un client, seules ses commandes sont retournees. Pour un manager ou caissie
       "id_commande": "CMD-000003",
       "client_id": "CLI-00042",
       "statut": "en_attente",
-      "montant_ttc": 92.8,
+      "montant_ttc": 713.4,
       "vente_id": null,
       "numero_facture": null,
       "date_commande": "2026-06-20T10:30:00.000Z",
@@ -2182,7 +2229,7 @@ Pour un client, seules ses commandes sont retournees. Pour un manager ou caissie
           "produit_id": "PRD-00012",
           "produit_nom": "Barre de fer 12mm",
           "quantite": 5,
-          "prix_unitaire_ht": 16
+          "prix_unitaire_ht": 123
         }
       ]
     }
@@ -2243,7 +2290,7 @@ GET /commandes/achats
     {
       "id_ventes": "FAC-2026-00042",
       "numero_facture": "FAC-2026-00042",
-      "montant_ttc": 92.8,
+      "montant_ttc": 713.4,
       "date_vente": "2026-06-20T11:00:00.000Z",
       "total_paye": 50,
       "reste_a_payer": 42.8
@@ -2295,6 +2342,22 @@ Statuts: `ouverte`, `en_cours`, `resolue`, `cloturee`.
 # Chat client, assistant automatique et manager
 
 Les messages sont conserves dans la base comme une messagerie. L'assistant repond automatiquement aux salutations et questions frequentes. Une question non reconnue passe la conversation au statut `en_attente_manager` et notifie le manager.
+
+## Flux temps reel
+
+```http
+GET /chat/stream?token=<JWT_URL_ENCODE>
+Accept: text/event-stream
+```
+
+Le serveur envoie un evenement `chat-update` immediatement apres l'enregistrement d'un message:
+
+```text
+event: chat-update
+data: {"conversation_id":"CHAT-000001","sender_type":"manager"}
+```
+
+A la reception, l'application mobile rappelle `GET /chat` en arriere-plan, sans afficher de page de chargement. Elle doit aussi afficher le message sortant de facon optimiste des le clic sur Envoyer.
 
 ## Lister les conversations
 

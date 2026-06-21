@@ -51,7 +51,9 @@ export const getAchatsClient = async (req, res) => {
         const [rows] = await pool.query(
             `SELECT v.id_ventes, v.numero_facture, v.montant_ttc, v.date_vente,
                     IFNULL(SUM(p.montant), 0) AS total_paye,
-                    v.montant_ttc - IFNULL(SUM(p.montant), 0) AS reste_a_payer
+                    v.montant_ttc - IFNULL(SUM(p.montant), 0) AS reste_a_payer,
+                    (SELECT d.statut FROM demandes_paiement_mobile d WHERE d.vente_id=v.id_ventes ORDER BY d.date_demande DESC LIMIT 1) AS paiement_mobile_statut,
+                    (SELECT d.id_demande FROM demandes_paiement_mobile d WHERE d.vente_id=v.id_ventes ORDER BY d.date_demande DESC LIMIT 1) AS paiement_mobile_reference
              FROM ventes v LEFT JOIN paiement p ON p.vente_id = v.id_ventes
              WHERE v.client_id = ? AND v.entreprise_id = ?
              GROUP BY v.id_ventes ORDER BY v.date_vente DESC`,

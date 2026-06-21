@@ -105,6 +105,20 @@ export const sendSecurityNoticeEmail = ({ to, name, title, message }) => sendMai
     html: brandedEmail({ eyebrow: 'AVIS DE SECURITE', title, greeting: `Bonjour ${name || 'cher utilisateur'}`, intro: message, notice: 'Si vous n’etes pas à l’origine de cette action, contactez rapidement un responsable.' })
 });
 
+export const sendManagerChatAlertEmail = ({ to, managerName, clientName, clientEmail, conversationId, message }) => sendMail({
+    to,
+    subject: `Question client a traiter - ${conversationId} | ${APP_NAME}`,
+    text: `Bonjour ${managerName || 'Manager'},\n\n${clientName} (${clientEmail || 'email non renseigne'}) attend une reponse dans ${conversationId}.\n\nQuestion : ${message}\n\nConnectez-vous a l'espace manager pour repondre.`,
+    html: brandedEmail({
+        eyebrow: 'ASSISTANCE CLIENT',
+        title: 'Une question necessite votre intervention',
+        greeting: `Bonjour ${managerName || 'Manager'}`,
+        intro: `L'assistant automatique n'a pas pu apporter une reponse suffisamment fiable a ${clientName || 'un client'}.`,
+        content: `<div style="background:#f8fafc;border:1px solid #dce4ee;border-radius:10px;padding:18px"><p style="margin:0 0 9px"><strong>Conversation :</strong> ${escapeHtml(conversationId)}</p><p style="margin:0 0 9px"><strong>Client :</strong> ${escapeHtml(clientName || '-')}</p><p style="margin:0 0 16px"><strong>Email :</strong> ${escapeHtml(clientEmail || '-')}</p><div style="background:#ffffff;border-left:4px solid #f5b942;color:#334155;line-height:1.7;padding:13px 15px">${escapeHtml(message)}</div></div>`,
+        notice: "Connectez-vous a l'espace manager, ouvrez Chat clients puis selectionnez cette conversation pour repondre."
+    })
+});
+
 export const sendMail = async ({ to, subject, text, html, replyTo, fromName }) => {
     const transporter = getTransporter();
 
