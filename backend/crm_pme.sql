@@ -1,5 +1,12 @@
-CREATE DATABASE IF NOT EXISTS crm_pme;
+-- Schema propre CRM PME - Quincaillerie Centrale
+-- La logique metier (stock, facturation, paiements et identifiants) est geree
+-- par l'API Express. Ce fichier ne cree volontairement aucun trigger metier
+-- et aucune donnee de demonstration.
+
+CREATE DATABASE IF NOT EXISTS crm_pme CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE crm_pme;
+
+SET NAMES utf8mb4;
 
 CREATE TABLE sequences (
     nom_table VARCHAR(50) PRIMARY KEY,
@@ -10,7 +17,7 @@ CREATE TABLE entreprise (
     id_entreprise VARCHAR(50) PRIMARY KEY,
     raison_sociale VARCHAR(200) NOT NULL,
     num_id_nationale VARCHAR(50) UNIQUE,
-    email VARCHAR(150),
+    email VARCHAR(150) UNIQUE,
     ville VARCHAR(100),
     statut_abonnement ENUM('actif', 'suspendu', 'expire') DEFAULT 'actif',
     date_expiration_abonnement DATE
@@ -55,7 +62,9 @@ CREATE TABLE client (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     email_verified_at DATETIME NULL,
     entreprise_id VARCHAR(50) NOT NULL,
-    FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE
+    FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE,
+    INDEX idx_client_entreprise (entreprise_id),
+    INDEX idx_client_created_at (created_at)
 );
 
 CREATE TABLE categorie_produit (
@@ -95,7 +104,10 @@ CREATE TABLE produits (
     seuil_alerte INT DEFAULT 5,
     photo_url TEXT NULL,
     entreprise_id VARCHAR(50) NOT NULL,
-    FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE
+    FOREIGN KEY (categorie_id) REFERENCES categorie_produit(id_categorie) ON DELETE SET NULL,
+    FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE,
+    UNIQUE KEY uniq_produit_reference_entreprise (entreprise_id, reference_produit),
+    INDEX idx_produit_stock (entreprise_id, quantite_stock)
 );
 
 CREATE TABLE mouvements_stock (
@@ -247,6 +259,19 @@ CREATE TABLE client_password_reset_codes (
     FOREIGN KEY (client_id) REFERENCES client(id_client) ON DELETE CASCADE
 );
 
+CREATE TABLE password_reset_codes (
+    id_reset INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(50) NOT NULL,
+    email VARCHAR(150) NOT NULL,
+    code_hash VARCHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_password_reset_email (email, created_at),
+    INDEX idx_password_reset_user (user_id, used_at),
+    FOREIGN KEY (user_id) REFERENCES utilisateur(id_utilisateur) ON DELETE CASCADE
+);
+
 CREATE TABLE chat_messages (
     id_message VARCHAR(50) PRIMARY KEY,
     conversation_id VARCHAR(50) NOT NULL,
@@ -275,6 +300,8 @@ CREATE TABLE notifications (
     entreprise_id VARCHAR(50),
     titre VARCHAR(160) NOT NULL,
     message TEXT NOT NULL,
+    entity_type VARCHAR(40),
+    entity_id VARCHAR(80),
     lu BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_notifications_user (recipient_user_id, lu),
