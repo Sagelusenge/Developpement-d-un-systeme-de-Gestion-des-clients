@@ -41,7 +41,8 @@ export const getMouvementsStock = async (req, res) => {
     const entreprise_id = req.user.entreprise_id;
     try {
         const [rows] = await pool.query(
-            `SELECT m.id_mouvement, m.type_mouvement, m.quantite, m.date_mouvement,
+            `SELECT * FROM (
+             SELECT m.id_mouvement, m.type_mouvement, m.quantite, m.date_mouvement,
                     m.prix_achat_unitaire, m.prix_achat_total, m.note,
                     p.nom AS produit_nom, p.reference_produit,
                     f.nom AS fournisseur_nom
@@ -49,9 +50,15 @@ export const getMouvementsStock = async (req, res) => {
              JOIN produits p ON p.id_produit = m.produit_id
              LEFT JOIN fournisseurs f ON f.id_fournisseur = m.fournisseur_id
              WHERE p.entreprise_id = ?
-             ORDER BY m.date_mouvement DESC
-             LIMIT 20`,
-            [entreprise_id]
+             UNION ALL
+             SELECT CONCAT('SORTIE-',lv.id_lignes_ventes), 'sortie', lv.quantite, v.date_vente,
+                    lv.prix_achat_unitaire, lv.quantite * lv.prix_achat_unitaire,
+                    CONCAT('Vente ',v.numero_facture), p.nom, p.reference_produit, NULL
+             FROM lignes_ventes lv JOIN ventes v ON v.id_ventes=lv.vente_id
+             JOIN produits p ON p.id_produit=lv.produit_id
+             WHERE v.entreprise_id = ?) mouvements
+             ORDER BY date_mouvement DESC LIMIT 200`,
+            [entreprise_id, entreprise_id]
         );
         res.json({ success: true, data: rows });
     } catch (error) {

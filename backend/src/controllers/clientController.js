@@ -22,7 +22,14 @@ export const getAllClients = async (req, res) => {
         const [rows] = await pool.query(
             `SELECT c.id_client, c.nom, c.postnom, c.telephone, c.email, c.actif, c.entreprise_id,
                 COUNT(v.id_ventes) AS nombre_achats,
-                IFNULL(SUM(v.montant_ttc), 0) AS ca_total
+                IFNULL(SUM(v.montant_ttc), 0) AS ca_total,
+                CASE
+                    WHEN COUNT(v.id_ventes) >= 10 OR IFNULL(SUM(v.montant_ttc),0) >= 5000 THEN 'vip'
+                    WHEN COUNT(v.id_ventes) >= 5 OR IFNULL(SUM(v.montant_ttc),0) >= 1000 THEN 'fidele'
+                    WHEN COUNT(v.id_ventes) >= 2 THEN 'regulier'
+                    WHEN COUNT(v.id_ventes) = 1 THEN 'nouveau'
+                    ELSE 'prospect'
+                END AS segment_statut
              FROM client c
              LEFT JOIN ventes v ON c.id_client = v.client_id
              WHERE c.entreprise_id = ?

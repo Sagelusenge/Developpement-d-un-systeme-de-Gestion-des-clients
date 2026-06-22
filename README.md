@@ -20,9 +20,10 @@ L'application utilise trois roles principaux.
 
 | Role | Utilisation principale |
 | --- | --- |
-| Manager | Supervise les ventes, les paiements, le stock, les rapports et les utilisateurs. |
+| Manager | Supervise l'activite, les clients, commandes, reclamations, rapports, chat, emails et utilisateurs. Il consulte les ventes et paiements sans les creer. |
 | Caissier | Enregistre les ventes, les factures et les paiements. |
 | Magasinier | Gere les produits, le stock, les fournisseurs et les mouvements. |
+| Client | Cree son compte, commande, consulte ses achats, paie par Mobile Money, reclame et dialogue avec l'assistance. |
 
 ## Modules
 
@@ -313,6 +314,23 @@ npm start
 
 Les corrections recentes concernent:
 
+- rafraichissement direct des routes SPA via `frontend/public/_redirects`;
+- menu equipe organise en accordeons Magasin, Commercial et Messages;
+- module Commentaires pour conserver les formulaires du site public;
+- fiche de mouvements reunissant approvisionnements et sorties issues des ventes;
+- chatbot hybride: recherche SQL prioritaire, puis OpenAI si configure;
+- avis IA facultatif pour le manager;
+- message de bienvenue et recommandation hebdomadaire limitee pour la fidelisation;
+- Mobile Money automatique lorsque le prestataire est configure, avec validation manuelle de secours;
+- espace client complet avec inscription et verification de l'email par code;
+- pages publiques distinctes avec footer, defilement et animations d'apparition;
+- connexion unique: le serveur detecte automatiquement le type de compte;
+- commandes, achats, factures, reclamations et paiement Mobile Money client;
+- chat persistant en temps reel avec affichage optimiste sans page de chargement;
+- assistant automatique, transfert au manager, notification interne et email professionnel;
+- navigation metier reordonnee et sidebar defilable;
+- controle des prix: commande et vente utilisent le prix de vente, jamais le cout d'achat;
+- demandes Mobile Money verifiees par le caissier avant comptabilisation;
 - responsive mobile/tablette;
 - menu mobile pleine largeur;
 - tableaux mobiles avec defilement horizontal;

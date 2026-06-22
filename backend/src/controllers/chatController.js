@@ -3,10 +3,11 @@ import { nextId } from '../services/idService.js';
 import { createNotification, notifyEnterpriseAdmins } from '../services/notificationService.js';
 import { sendManagerChatAlertEmail } from '../services/mailService.js';
 import { publishChatUpdate, subscribeToChat } from '../services/chatRealtimeService.js';
+import { generateBusinessReply, generateManagerAnalysis } from '../services/openaiService.js';
 
 const isClient = (req) => req.user.type === 'client';
 const automaticReply = async (message, user) => {
-    const text = String(message || '').trim().toLowerCase();
+    const text = String(message || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const commandRef = text.match(/cmd-\d+/i)?.[0]?.toUpperCase();
     if (commandRef) {
         const [[order]] = await pool.query(`SELECT statut, montant_ttc, vente_id FROM commandes WHERE id_commande = ? AND client_id = ? AND entreprise_id = ?`, [commandRef, user.client_id, user.entreprise_id]);
@@ -17,13 +18,24 @@ const automaticReply = async (message, user) => {
         const [[invoice]] = await pool.query(`SELECT v.montant_ttc, IFNULL(SUM(p.montant),0) AS total_paye FROM ventes v LEFT JOIN paiement p ON p.vente_id=v.id_ventes WHERE v.id_ventes=? AND v.client_id=? AND v.entreprise_id=? GROUP BY v.id_ventes`, [invoiceRef, user.client_id, user.entreprise_id]);
         if (invoice) return `La facture ${invoiceRef} est de ${Number(invoice.montant_ttc).toFixed(2)} USD TTC. Montant paye : ${Number(invoice.total_paye).toFixed(2)} USD ; reste : ${(Number(invoice.montant_ttc) - Number(invoice.total_paye)).toFixed(2)} USD.`;
     }
-    if (/^(bonjour|bonsoir|salut|hello|bjr|cc)[!. ]*$/.test(text)) return "Bonjour ! Je suis l’assistant de Quincaillerie Centrale. Posez directement votre question sur une commande, un prix, une facture, un paiement ou une reclamation.";
+    if (/^(bonjour|bonhour|bonsoir|salut|slt|hello|bjr|cc)[!. ]*$/.test(text)) return `Bonjour${String(user.nom || '').trim() ? ` ${String(user.nom).trim()}` : ''}. Je suis l’assistant de Quincaillerie Centrale. Je peux verifier un prix, le stock, une commande, une facture ou un paiement.`;
+    const ignored = new Set(['quel','quelle','quels','quelles','prix','combien','coute','cout','stock','disponible','avez','vous','produit','materiel','concernant','pour','dans','est','le','la','les','un','une','du','de','des']);
+    const terms = text.replace(/[^a-z0-9 -]/g, ' ').split(/\s+/).filter((word) => word.length >= 3 && !ignored.has(word)).slice(0, 4);
+    if (terms.length && /(prix|combien|coute|cout|stock|disponible|materiel|produit)/.test(text)) {
+        const conditions = terms.map(() => `(LOWER(p.nom) LIKE ? OR LOWER(p.reference_produit) LIKE ? OR LOWER(IFNULL(c.nom,'')) LIKE ?)`).join(' OR ');
+        const params = terms.flatMap((term) => [`%${term}%`, `%${term}%`, `%${term}%`]);
+        const [products] = await pool.query(`SELECT p.nom,p.reference_produit,p.unite,p.prix_ht,p.quantite_stock,c.nom categorie_nom FROM produits p LEFT JOIN categorie_produit c ON c.id_categorie=p.categorie_id WHERE p.entreprise_id=? AND (${conditions}) ORDER BY p.quantite_stock DESC LIMIT 5`, [user.entreprise_id, ...params]);
+        if (products.length) return products.map((p) => `${p.nom} (${p.reference_produit}) : ${Number(p.prix_ht).toFixed(2)} USD HT par ${p.unite || 'piece'}, stock ${p.quantite_stock}.`).join('\n');
+    }
     if (/(adresse|situe|localisation|trouver)/.test(text)) return "Nous sommes sur l’Avenue du Commerce, quartier Murara, commune de Karisimbi à Goma.";
     if (/(commande|statut|livraison|suivre)/.test(text)) return "Ouvrez la rubrique Commandes pour voir le statut exact : en attente, confirmee, preparee ou livree. Donnez-moi la reference CMD si vous avez besoin d’aide supplementaire.";
-    if (/(prix|catalogue|produit|stock|disponible)/.test(text)) return "Les prix affiches dans le catalogue sont les prix de vente HT ; le total de la commande inclut 16 % de TVA. Seuls les produits en stock et dont le prix couvre le cout d’achat peuvent etre commandes.";
+    if (/(prix|catalogue|produit|stock|disponible)/.test(text)) return "Indiquez le nom du materiel recherche. Je consulterai directement le catalogue et le stock disponibles.";
     if (/(facture|achat|paiement|reste|dette)/.test(text)) return "La rubrique Mes achats affiche vos factures, les montants payes et le reste à payer. Pour un cas precis, indiquez le numero de facture FAC.";
     if (/(reclamation|plainte|probleme|endommage|erreur)/.test(text)) return "Vous pouvez ouvrir une reclamation depuis la rubrique Reclamations. Elle sera transmise au manager avec la reference de votre commande ou facture.";
     if (/(horaire|ouvert|ferme)/.test(text)) return "Les horaires ne sont pas encore publies dans le systeme. Votre question est transmise au manager pour une reponse confirmee.";
+    const [catalogue] = await pool.query(`SELECT nom,reference_produit,unite,prix_ht,quantite_stock FROM produits WHERE entreprise_id=? AND quantite_stock>0 ORDER BY nom LIMIT 40`, [user.entreprise_id]);
+    const aiReply = await generateBusinessReply({ question: message, clientName: user.nom, context: { catalogue } });
+    if (aiReply && !aiReply.includes('TRANSFERER_MANAGER')) return aiReply;
     return null;
 };
 
@@ -59,6 +71,16 @@ export const streamChatUpdates = (req, res) => {
     const unsubscribe = subscribeToChat(req.user.entreprise_id, res);
     const heartbeat = setInterval(() => res.write(': heartbeat\n\n'), 20000);
     req.on('close', () => { clearInterval(heartbeat); unsubscribe(); });
+};
+
+export const getManagerAiAnalysis = async (req, res) => {
+    if (req.user.role !== 'manager') return res.status(403).json({ success: false, message: 'Analyse reservee au manager.' });
+    const [[stats]] = await pool.query(`SELECT (SELECT COUNT(*) FROM client WHERE entreprise_id=?) clients,(SELECT COUNT(*) FROM commandes WHERE entreprise_id=? AND statut='en_attente') commandes_attente,(SELECT COUNT(*) FROM reclamations WHERE entreprise_id=? AND statut IN ('ouverte','en_cours')) reclamations_ouvertes,(SELECT COUNT(*) FROM produits WHERE entreprise_id=? AND quantite_stock<=seuil_alerte) alertes_stock`, [req.user.entreprise_id,req.user.entreprise_id,req.user.entreprise_id,req.user.entreprise_id]);
+    const [top] = await pool.query(`SELECT c.nom,COUNT(v.id_ventes) achats,IFNULL(SUM(v.montant_ttc),0) chiffre_affaires FROM client c LEFT JOIN ventes v ON v.client_id=c.id_client WHERE c.entreprise_id=? GROUP BY c.id_client ORDER BY chiffre_affaires DESC LIMIT 5`, [req.user.entreprise_id]);
+    const [slowStock] = await pool.query(`SELECT nom,quantite_stock,prix_ht FROM produits WHERE entreprise_id=? ORDER BY quantite_stock DESC LIMIT 10`, [req.user.entreprise_id]);
+    const analysis = await generateManagerAnalysis({ stats, meilleurs_clients: top, stock: slowStock });
+    if (!analysis) return res.status(503).json({ success: false, message: 'Analyse IA indisponible. Configurez OPENAI_API_KEY sur le backend.' });
+    res.json({ success: true, data: { analysis, generated_at: new Date().toISOString() } });
 };
 
 export const sendChatMessage = async (req, res) => {

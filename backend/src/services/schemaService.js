@@ -271,6 +271,38 @@ export const ensureRuntimeSchema = async (pool) => {
     `);
 
     await pool.query(`
+        CREATE TABLE IF NOT EXISTS public_contacts (
+            id_contact INT AUTO_INCREMENT PRIMARY KEY,
+            entreprise_id VARCHAR(50) NOT NULL,
+            nom VARCHAR(160) NOT NULL,
+            email VARCHAR(160) NOT NULL,
+            sujet VARCHAR(180) NOT NULL,
+            message TEXT NOT NULL,
+            statut ENUM('nouveau','lu','traite') NOT NULL DEFAULT 'nouveau',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE,
+            INDEX idx_public_contacts_entreprise (entreprise_id, statut, created_at)
+        )
+    `);
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS prospect_email_campaigns (
+            id_campaign INT AUTO_INCREMENT PRIMARY KEY,
+            client_id VARCHAR(50) NOT NULL,
+            entreprise_id VARCHAR(50) NOT NULL,
+            campaign_key VARCHAR(80) NOT NULL,
+            statut ENUM('en_cours','envoye','echec') NOT NULL DEFAULT 'en_cours',
+            provider_message_id VARCHAR(255),
+            erreur VARCHAR(500),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            sent_at TIMESTAMP NULL,
+            UNIQUE KEY uniq_prospect_campaign (client_id, campaign_key),
+            FOREIGN KEY (client_id) REFERENCES client(id_client) ON DELETE CASCADE,
+            FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE
+        )
+    `);
+
+    await pool.query(`
         CREATE TABLE IF NOT EXISTS password_reset_codes (
             id_reset INT AUTO_INCREMENT PRIMARY KEY,
             user_id VARCHAR(50) NOT NULL,
@@ -379,6 +411,9 @@ export const ensureRuntimeSchema = async (pool) => {
     await addColumnIfMissing('client', 'email', 'VARCHAR(150) NULL');
     await addColumnIfMissing('client', 'mot_de_passe', 'VARCHAR(255) NULL');
     await addColumnIfMissing('client', 'actif', 'BOOLEAN DEFAULT TRUE');
+    await addColumnIfMissing('client', 'created_at', 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
+    await addColumnIfMissing('client', 'email_verified_at', 'DATETIME NULL');
+    await pool.query(`UPDATE client SET email_verified_at=created_at WHERE email_verified_at IS NULL AND email IS NOT NULL AND mot_de_passe IS NOT NULL`);
 
     await addColumnIfMissing('user_activity_logs', 'entreprise_id', 'VARCHAR(50) NOT NULL');
     await addColumnIfMissing('user_activity_logs', 'user_id', 'VARCHAR(50) NOT NULL');

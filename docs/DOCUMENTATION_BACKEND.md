@@ -523,3 +523,68 @@ Cette documentation explique l architecture backend, les routes, les controles, 
 - Note 11: documentation backend doit rester simple, verifiable et utile pour un utilisateur non technique.
 - Note 12: documentation backend doit rester simple, verifiable et utile pour un utilisateur non technique.
 - Note 13: documentation backend doit rester simple, verifiable et utile pour un utilisateur non technique.
+
+## Mise a jour fonctionnelle - 21 juin 2026
+
+### Chat instantane
+
+- Les messages sont stockes dans `chat_conversations` et `chat_messages`.
+- `POST /api/chat/messages` enregistre le message et publie immediatement un evenement apres le commit SQL.
+- `GET /api/chat/stream?token=<JWT>` maintient une connexion SSE et emet `chat-update` pour tous les clients connectes de la meme entreprise.
+- Le flux n'envoie pas le contenu sensible du message: il fournit la conversation et le type d'expediteur; le frontend relit ensuite `GET /api/chat` avec son autorisation normale.
+- Le serveur envoie un heartbeat toutes les 20 secondes et supprime l'abonnement lorsque la connexion se ferme.
+- Le bot peut lire une commande `CMD-...` ou une facture `FAC-...` appartenant au client.
+- Si aucune reponse fiable n'existe, la conversation devient `en_attente_manager`; une notification interne et un email professionnel sont envoyes au manager.
+
+### Paiement Mobile Money client
+
+- Table: `demandes_paiement_mobile`.
+- Operateurs acceptes: `mpesa`, `airtel_money`, `orange_money`.
+- Une contrainte unique protege le couple entreprise, operateur et reference externe.
+- Le backend verifie l'appartenance de la facture, le solde, le telephone, le montant et la reference.
+- Une soumission ne cree pas directement un encaissement: elle reste `en_attente`.
+- Seul le caissier confirme ou rejette. Une confirmation cree alors une ligne `paiement` avec le mode `mobile_money` dans une transaction SQL.
+
+| Methode | Route | Role | Resultat |
+| --- | --- | --- | --- |
+| POST | `/api/paiements/mobile-money/client` | Client | Cree une demande en attente |
+| GET | `/api/paiements/mobile-money/demandes` | Manager, caissier | Liste les demandes |
+| PUT | `/api/paiements/mobile-money/demandes/:id` | Caissier | Confirme ou rejette |
+| GET | `/api/chat/stream?token=...` | Client, manager | Ouvre le flux SSE |
+
+### Securite des prix
+
+- Le client n'envoie jamais le prix faisant autorite.
+- La commande relit `prix_ht`, qui represente le prix de vente catalogue.
+- Le produit est indisponible si `prix_ht < prix_achat`.
+- La conversion d'une commande en facture recontrole le cout actuel.
+- Les factures deja creees et leurs paiements ne sont pas recalcules automatiquement.
+
+Pour les bodies, reponses JSON et erreurs, consulter `backend/API_MOBILE.md`.
+
+## Extension CRM, IA et stock - 21 juin 2026
+
+- `GET /api/public/contacts` liste pour le manager les messages stockes du site.
+- `PUT /api/public/contacts/:id` applique `nouveau`, `lu` ou `traite`.
+- `GET /api/chat/manager-analysis` produit un avis CRM lorsque OpenAI est configure.
+- Le chatbot suit l'ordre: CMD/FAC, recherche produit SQL, FAQ, puis Responses API.
+- `OPENAI_API_KEY` et `OPENAI_MODEL` restent exclusivement dans l'environnement backend. Une cle publiee doit etre revoquee.
+- `GET /api/produits/mouvements-recents` reunit les entrees de `mouvements_stock` et les sorties de `lignes_ventes`.
+- `clientLoyaltyService.js` envoie au maximum une recommandation tous les sept jours, uniquement avec des produits disponibles.
+- Le meme service recherche chaque heure les prospects sans achat devenus eligibles apres `PROSPECT_FOLLOWUP_HOURS`.
+- `prospect_email_campaigns` reserve puis journalise `prospect_discovery_v1` avec les statuts `en_cours`, `envoye` ou `echec`.
+- La contrainte unique `(client_id, campaign_key)` rend l'envoi idempotent, y compris si plusieurs executions se chevauchent.
+- `mobileMoneyService.js` appelle le prestataire configure; une confirmation immediate cree le paiement dans la transaction SQL.
+
+```text
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4.1-mini
+MOBILE_MONEY_PROVIDER_URL=
+MOBILE_MONEY_PROVIDER_KEY=
+MOBILE_MONEY_CALLBACK_URL=
+PROSPECT_FOLLOWUP_HOURS=24
+```
+
+### Statut commercial du client
+
+`GET /api/clients` retourne `segment_statut`. Le champ est calcule en SQL avec le nombre de factures et la somme TTC: `prospect`, `nouveau`, `regulier`, `fidele` ou `vip`. Les seuils de chiffre d'affaires sont exprimes en USD dans la configuration commerciale actuelle.

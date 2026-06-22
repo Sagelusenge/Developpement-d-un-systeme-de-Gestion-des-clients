@@ -125,6 +125,7 @@ const searchPlaceholders = {
   reclamations: 'Rechercher une reclamation...',
   achats: 'Rechercher une facture...',
   chat: 'Rechercher un client ou une conversation...',
+  commentaires: 'Rechercher un visiteur, sujet ou message...',
 };
 
 const fallbackProductPhotos = [
@@ -229,8 +230,8 @@ class ErrorBoundary extends React.Component {
 
 const statusClass = (value) => {
   const text = String(value || '');
-  if (text.includes('OK') || text.includes('actif') || text.includes('Paye') || text.includes('converti')) return 'ok';
-  if (text.includes('ALERTE') || text.includes('attente') || text.includes('Partiel')) return 'warn';
+  if (text.includes('OK') || text.includes('actif') || text.includes('Paye') || text.includes('converti') || text.includes('fidele') || text.includes('regulier') || text.includes('VIP')) return 'ok';
+  if (text.includes('ALERTE') || text.includes('attente') || text.includes('Partiel') || text.includes('Prospect') || text.includes('Nouveau')) return 'warn';
   if (text.includes('RUPTURE') || text.includes('annule') || text.includes('Impaye') || text.includes('suspendu') || text.includes('Retard') || text.includes('Expire')) return 'danger';
   return '';
 };
@@ -254,7 +255,21 @@ const iconMap = {
   reclamations: HelpCircle,
   achats: FileText,
   chat: MessageCircle,
+  commentaires: MessageCircle,
 };
+
+const clientSegment = (client) => {
+  if (client?.segment_statut) return client.segment_statut;
+  const purchases = Number(client?.nombre_achats || 0);
+  const revenue = Number(client?.ca_total || 0);
+  if (purchases >= 10 || revenue >= 5000) return 'vip';
+  if (purchases >= 5 || revenue >= 1000) return 'fidele';
+  if (purchases >= 2) return 'regulier';
+  if (purchases === 1) return 'nouveau';
+  return 'prospect';
+};
+
+const clientSegmentLabel = (segment) => ({ prospect: 'Prospect', nouveau: 'Nouveau client', regulier: 'Client regulier', fidele: 'Client fidele', vip: 'VIP' }[segment] || segment);
 
 function IconButton({ title, children, className = '' }) {
   return <button className={`icon-button ${className}`} title={title} type="button">{children}</button>;
@@ -537,7 +552,7 @@ function PublicHome({ goTo }) {
   return (
     <>
       <section className="public-hero">
-        <div className="hero-copy"><span className="eyebrow">Au service de Goma depuis 1992</span><h1>Construire solide.<br /><em>Construire ensemble.</em></h1><p>Materiaux de construction et articles de quincaillerie de qualite, accessibles aux professionnels comme aux particuliers.</p><div className="hero-actions"><button className="public-primary" onClick={() => goTo('/services')}>Decouvrir nos services <ArrowRight size={19} /></button><button className="public-secondary" onClick={() => goTo('/contact')}>Nous contacter</button></div><div className="hero-proof"><div><strong>30+</strong><span>annees d'experience</span></div><div><strong>Goma</strong><span>au coeur de notre action</span></div><div><strong>Qualite</strong><span>a prix competitifs</span></div></div></div>
+        <div className="hero-copy"><span className="eyebrow">Au service de Goma depuis 1992</span><h1>Construire solide.<br /><em>Construire ensemble.</em></h1><p>Materiaux de construction et articles de quincaillerie de qualite, accessibles aux professionnels comme aux particuliers.</p><div className="hero-actions"><button className="public-primary" onClick={() => goTo('/services')}>Decouvrir nos services <ArrowRight size={19} /></button><button className="public-secondary" onClick={() => goTo('/contact')}>Nous contacter</button></div><div className="hero-proof"><div><strong>3 decennies</strong><span>d'experience locale</span></div><div><strong>Goma</strong><span>au coeur de notre action</span></div><div><strong>Qualite</strong><span>a prix competitifs</span></div></div></div>
         <div className="hero-visual"><img src="https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&w=1200&q=85" alt="Materiaux et outils de construction" /><div className="hero-float"><ShieldCheck size={28} /><span><strong>Votre chantier, notre engagement</strong><small>Conseil, disponibilite et suivi</small></span></div></div>
       </section>
       <section className="public-intro"><div><span className="section-kicker">Notre raison d'etre</span><h2>La confiance se construit avec de bons materiaux.</h2></div><p>La Quincaillerie Centrale accompagne la croissance de Goma en proposant des produits de construction de qualite superieure à des prix competitifs. Notre expertise locale nous permet de comprendre vos besoins et de vous orienter vers les bonnes solutions.</p></section>
@@ -547,7 +562,7 @@ function PublicHome({ goTo }) {
         <article><span>03</span><Users size={30} /><h3>Conseil de proximite</h3><p>Une equipe qui vous aide à choisir selon votre chantier, votre budget et vos priorites.</p></article>
       </section>
       <section className="public-process"><div><span className="section-kicker">Une experience plus simple</span><h2>Du besoin au chantier, sans perdre le fil.</h2><p>Notre plateforme prolonge le service du magasin : vous preparez votre commande, notre equipe la verifie, puis vous suivez sa confirmation et votre facture depuis votre espace personnel.</p></div><ol><li><b>1</b><span><strong>Choisissez</strong><small>Consultez uniquement les produits disponibles au bon prix de vente.</small></span></li><li><b>2</b><span><strong>Commandez</strong><small>Le montant est calcule sur le prix de vente catalogue avec la TVA.</small></span></li><li><b>3</b><span><strong>Suivez</strong><small>Retrouvez le statut, la facture, le paiement et l'assistance au meme endroit.</small></span></li></ol></section>
-      <section className="public-trust-band"><div><strong>1992</strong><span>Fondation à Goma</span></div><div><strong>2002</strong><span>Engagement dans la reconstruction</span></div><div><strong>16 %</strong><span>TVA clairement affichee</span></div><div><strong>1 espace</strong><span>Commandes, factures et assistance</span></div></section>
+      <section className="public-trust-band"><div><strong>1992</strong><span>Fondation à Goma</span></div><div><strong>2002</strong><span>Engagement dans la reconstruction</span></div><div><strong>Prix clairs</strong><span>Catalogue professionnel</span></div><div><strong>1 espace</strong><span>Commandes, factures et assistance</span></div></section>
       <section className="public-story-band"><div className="story-image"><img src="https://images.unsplash.com/photo-1541971875076-8f970d573be6?auto=format&fit=crop&w=1000&q=85" alt="Construction d'un batiment" /></div><div><span className="section-kicker light">Une histoire ancree à Goma</span><h2>De 1992 à aujourd'hui</h2><p>Fondee par Jean-Pierre Bishweka Bufole, l'entreprise s'est distinguee apres l'eruption volcanique de 2002 en fournissant les materiaux necessaires à la reconstruction de la ville.</p><button className="public-text-link" onClick={() => goTo('/about')}>Lire notre histoire <ArrowRight size={18} /></button></div></section>
       <section className="public-cta"><span>Un projet en preparation ?</span><h2>Parlons de vos besoins.</h2><p>Notre equipe est à votre ecoute sur l'Avenue du Commerce, au quartier Murara.</p><button className="public-primary" onClick={() => goTo('/contact')}>Contacter l'equipe <Send size={18} /></button></section>
     </>
@@ -680,6 +695,7 @@ function App() {
   const [showProfile, setShowProfile] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [openNavGroup, setOpenNavGroup] = useState('');
   const [route, setRoute] = useState(window.location.pathname || '/');
 
   const goTo = (path) => {
@@ -824,6 +840,7 @@ function App() {
       { id: 'rapports', label: tr(lang, 'rapports'), roles: ['manager', 'caissier', 'magasinier'] },
       { id: 'chat', label: role === 'client' ? 'Assistance' : 'Chat', roles: ['manager', 'client'] },
       { id: 'mails', label: tr(lang, 'mails'), roles: ['manager'] },
+      { id: 'commentaires', label: 'Commentaires', roles: ['manager'] },
       { id: 'utilisateurs', label: tr(lang, 'utilisateurs'), roles: ['manager'] }
     ].filter((item) => item.roles.includes(role));
   }, [authType, user, lang]);
@@ -848,7 +865,8 @@ function App() {
     }
     const targetPage = notification?.entity_type === 'commande' ? 'commandes'
       : notification?.entity_type === 'reclamation' ? 'reclamations'
-        : notification?.entity_type === 'chat' ? 'chat' : '';
+        : notification?.entity_type === 'chat' ? 'chat'
+          : notification?.entity_type === 'commentaire' ? 'commentaires' : '';
     if (targetPage) {
       setPage(targetPage);
       window.setTimeout(() => setPlatformSearch(notification.entity_id || ''), 0);
@@ -888,9 +906,19 @@ function App() {
     achats: ['Mes achats', 'Factures et paiements de votre compte.'],
     reclamations: ['Reclamations', user?.role === 'client' ? 'Ecrivez directement au manager.' : 'Demandes envoyees par les clients.'],
     chat: [user?.role === 'client' ? 'Assistance' : 'Chat clients', user?.role === 'client' ? 'Obtenez une reponse automatique ou echangez avec le manager.' : 'Repondez aux questions transferees par l’assistant.'],
+    commentaires: ['Commentaires du site', 'Messages envoyes depuis la page Contact.'],
   };
   const [title, subtitle] = titles[page] || [APP_NAME, ''];
   const sidebarTitle = user?.entreprise_nom || user?.raison_sociale || user?.entreprise_id || APP_NAME;
+  const navById = Object.fromEntries(navItems.map((item) => [item.id, item]));
+  const navGroups = user?.role === 'client' ? [] : [
+    { id: 'magasin', label: 'Magasin', ids: ['fournisseurs', 'categories', 'produits'] },
+    { id: 'commercial', label: 'Commercial', ids: ['ventes', 'paiements', 'commandes', 'reclamations'] },
+    { id: 'messages', label: 'Messages', ids: ['chat', 'mails', 'commentaires'] }
+  ].map((group) => ({ ...group, items: group.ids.map((id) => navById[id]).filter(Boolean) })).filter((group) => group.items.length);
+  const groupedIds = new Set(navGroups.flatMap((group) => group.ids));
+  const standaloneNav = navItems.filter((item) => !groupedIds.has(item.id));
+  const renderNavButton = (item) => <button key={item.id} className={page === item.id ? 'active' : ''} onClick={() => { setPage(item.id); setMobileMenuOpen(false); }}>{React.createElement(iconMap[item.id] || Package, { size: 20, strokeWidth: 2.2 })}<span>{item.label}</span></button>;
 
   return (
     <div className={`shell page-${page} ${mobileMenuOpen ? 'menu-open' : ''}`}>
@@ -904,12 +932,9 @@ function App() {
           </div>
         </div>
         <nav className="nav">
-          {navItems.map((item) => (
-            <button key={item.id} className={page === item.id ? 'active' : ''} onClick={() => { setPage(item.id); setMobileMenuOpen(false); }}>
-              {React.createElement(iconMap[item.id] || Package, { size: 23, strokeWidth: 2.2 })}
-              {item.label}
-            </button>
-          ))}
+          {standaloneNav.filter((item) => ['dashboard', 'clients', 'achats'].includes(item.id)).map(renderNavButton)}
+          {navGroups.map((group) => <div className={`nav-group ${openNavGroup === group.id ? 'open' : ''}`} key={group.id}><button className="nav-group-toggle" type="button" onClick={() => setOpenNavGroup((current) => current === group.id ? '' : group.id)}><span>{group.label}</span><ChevronDown size={17} /></button><div className="nav-group-items">{group.items.map(renderNavButton)}</div></div>)}
+          {standaloneNav.filter((item) => !['dashboard', 'clients', 'achats'].includes(item.id)).map(renderNavButton)}
           <button className="nav-logout" type="button" onClick={() => setShowLogoutConfirm(true)}>
             <LogOut size={23} />
             {tr(lang, 'logout')}
@@ -1400,6 +1425,7 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
         if (user?.role === 'client') tasks.push(api('/commandes').then((r) => { next.extra.commandes = r.data || []; }));
       }
       if (page === 'chat') tasks.push(api('/chat').then((r) => { next.extra.chats = r.data || []; }));
+      if (page === 'commentaires') tasks.push(api('/public/contacts').then((r) => { next.extra.commentaires = r.data || []; }));
       if (page === 'rapports') {
         tasks.push(api('/rapports/factures').then((r) => { next.extra.factures = r.data || []; }).catch(() => {}));
         tasks.push(api('/rapports/creances').then((r) => { next.extra.creances = r.data || []; }).catch(() => {}));
@@ -1452,6 +1478,7 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
   if (page === 'achats') return <AchatsClient {...props} />;
   if (page === 'reclamations') return <Reclamations {...props} />;
   if (page === 'chat') return <ChatPage {...props} />;
+  if (page === 'commentaires') return <Commentaires {...props} />;
   return null;
 }
 
@@ -1992,9 +2019,7 @@ function Clients({ api, notify, data, submit, searchQuery = '' }) {
   const clients = data.clients
     .filter((c) => `${c.nom} ${c.postnom || ''} ${c.telephone || ''}`.toLowerCase().includes(term))
     .filter((c) => {
-      if (statusFilter === 'actifs') return Number(c.nombre_achats || 0) > 0;
-      if (statusFilter === 'sans_achat') return Number(c.nombre_achats || 0) === 0;
-      if (statusFilter === 'vip') return Number(c.ca_total || 0) >= 1000;
+      if (statusFilter !== 'tous') return clientSegment(c) === statusFilter;
       return true;
     });
   const showHistory = async (client) => {
@@ -2030,22 +2055,25 @@ function Clients({ api, notify, data, submit, searchQuery = '' }) {
             <SearchInput value={query} onChange={setQuery} placeholder="Rechercher un client" />
             <select className="compact-filter" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
               <option value="tous">Tous</option>
-              <option value="actifs">Actifs</option>
-              <option value="sans_achat">Sans achat</option>
+              <option value="prospect">Prospects - aucun achat</option>
+              <option value="nouveau">Nouveaux clients</option>
+              <option value="regulier">Clients reguliers</option>
+              <option value="fidele">Clients fideles</option>
               <option value="vip">VIP</option>
             </select>
-            <button className="btn secondary small" type="button" onClick={() => printTableDocument('Archive clients', ['Nom', 'Telephone', 'Achats', 'CA'], clients.map((c) => [`${c.nom} ${c.postnom || ''}`, c.telephone || '-', c.nombre_achats || 0, moneySmart(c.ca_total)]), { badge: 'ARCHIVE', tableTitle: 'Liste complete des clients', paper: 'page' })}><Printer size={16} /> Archiver</button>
+            <button className="btn secondary small" type="button" onClick={() => printTableDocument('Archive clients', ['Nom', 'Telephone', 'Statut', 'Achats', 'CA'], clients.map((c) => [`${c.nom} ${c.postnom || ''}`, c.telephone || '-', clientSegmentLabel(clientSegment(c)), c.nombre_achats || 0, moneySmart(c.ca_total)]), { badge: 'ARCHIVE', tableTitle: 'Liste complete des clients', paper: 'page' })}><Printer size={16} /> Archiver</button>
             <button className="btn small" type="button" onClick={() => { setForm(emptyClientForm); setCreating(true); }}><Plus size={16} /> Ajouter client</button>
           </div>
         </div>
-        <Table headers={['Nom', 'Telephone', 'Achats', 'CA', 'Actions']} rows={clients.map((c) => [
+        <Table headers={['Nom', 'Telephone', 'Statut', 'Achats', 'CA', 'Actions']} rows={clients.map((c) => [
           `${c.nom} ${c.postnom || ''}`,
           c.telephone || '-',
+          <Badge>{clientSegmentLabel(clientSegment(c))}</Badge>,
           c.nombre_achats || 0,
           money(c.ca_total),
           <RowActions
             onEdit={() => setEditing(c)}
-            onPrint={() => printDocument('Fiche client', [['Nom', `${c.nom} ${c.postnom || ''}`], ['Telephone', c.telephone || '-'], ['Achats', c.nombre_achats || 0], ['CA', money(c.ca_total)]], { paper: 'page' })}
+            onPrint={() => printDocument('Fiche client', [['Nom', `${c.nom} ${c.postnom || ''}`], ['Telephone', c.telephone || '-'], ['Statut', clientSegmentLabel(clientSegment(c))], ['Achats', c.nombre_achats || 0], ['CA', money(c.ca_total)]], { paper: 'page' })}
             onToggle={() => showHistory(c)}
             toggleLabel="Historique"
             onDelete={() => remove(c)}
@@ -3283,19 +3311,19 @@ function Commandes({ api, notify, data, submit, user, searchQuery = '' }) {
   );
 }
 
-function AchatsClient({ api, notify, data, submit, searchQuery = '' }) {
+function AchatsClient({ api, notify, data, submit, setPage, searchQuery = '' }) {
   const [payment, setPayment] = useState(null);
   const [form, setForm] = useState({ operateur: 'mpesa', telephone_payeur: '+243', montant: '', reference_externe: '' });
   const rows = (data.extra.achats || []).filter((item) => `${item.numero_facture} ${item.montant_ttc}`.toLowerCase().includes(searchQuery.toLowerCase()));
   const openPayment = (item) => { setPayment(item); setForm({ operateur: 'mpesa', telephone_payeur: '+243', montant: Number(item.reste_a_payer).toFixed(2), reference_externe: '' }); };
   const pay = () => submit(async () => {
-    await api('/paiements/mobile-money/client', { method: 'POST', body: JSON.stringify({ ...form, vente_id: payment.id_ventes }) });
+    const result = await api('/paiements/mobile-money/client', { method: 'POST', body: JSON.stringify({ ...form, vente_id: payment.id_ventes }) });
     setPayment(null);
-    notify('Paiement Mobile Money transmis. Il sera valide apres confirmation de l’operateur.');
+    notify(result.message || 'Paiement Mobile Money transmis.');
   });
   return <>
-    <section className="panel"><div className="panel-heading"><div><h3>Mes achats et factures</h3><p>Payez votre solde par M-Pesa, Airtel Money ou Orange Money.</p></div></div><Table headers={['Facture', 'Date', 'Montant', 'Paye', 'Reste', 'Statut', 'Paiement']} rows={rows.map((item) => [item.numero_facture, formatDate(item.date_vente), money(item.montant_ttc), money(item.total_paye), money(item.reste_a_payer), <Badge>{Number(item.reste_a_payer) <= 0 ? 'Paye' : item.paiement_mobile_statut === 'en_attente' ? 'Verification Mobile Money' : Number(item.total_paye) > 0 ? 'Partiel' : 'Impaye'}</Badge>, Number(item.reste_a_payer) > 0 ? <button className="btn small mobile-pay-button" type="button" disabled={item.paiement_mobile_statut === 'en_attente'} onClick={() => openPayment(item)}><WalletCards size={16} /> {item.paiement_mobile_statut === 'en_attente' ? 'En verification' : 'Payer'}</button> : '-'])} /></section>
-    {payment && <Modal title={`Payer ${payment.numero_facture}`} onClose={() => setPayment(null)}><div className="mobile-money-note"><ShieldCheck size={22} /><p>Effectuez d’abord le transfert depuis votre telephone, puis saisissez la reference recue. Le paiement ne sera comptabilise qu’apres verification.</p></div><Form onSubmit={pay}><Select label="Operateur" value={form.operateur} onChange={(operateur) => setForm({ ...form, operateur })} options={[["mpesa","M-Pesa"],["airtel_money","Airtel Money"],["orange_money","Orange Money"]]} /><Input label="Numero Mobile Money" type="tel" value={form.telephone_payeur} onChange={(telephone_payeur) => setForm({ ...form, telephone_payeur })} required /><Input label="Montant (USD)" type="number" min="0.01" max={payment.reste_a_payer} step="0.01" value={form.montant} onChange={(montant) => setForm({ ...form, montant })} required /><Input label="Reference de transaction" value={form.reference_externe} onChange={(reference_externe) => setForm({ ...form, reference_externe })} placeholder="Ex. MP240621ABC" required /><button className="btn modal-submit"><ShieldCheck size={18} /> Soumettre pour verification</button></Form></Modal>}
+    <section className="panel"><div className="panel-heading"><div><h3>Mes achats et factures</h3><p>Payez votre solde par M-Pesa, Airtel Money ou Orange Money.</p></div></div>{rows.length ? <Table headers={['Facture', 'Date', 'Montant', 'Paye', 'Reste', 'Statut', 'Paiement']} rows={rows.map((item) => [item.numero_facture, formatDate(item.date_vente), money(item.montant_ttc), money(item.total_paye), money(item.reste_a_payer), <Badge>{Number(item.reste_a_payer) <= 0 ? 'Paye' : item.paiement_mobile_statut === 'en_attente' ? 'Verification Mobile Money' : Number(item.total_paye) > 0 ? 'Partiel' : 'Impaye'}</Badge>, Number(item.reste_a_payer) > 0 ? <button className="btn small mobile-pay-button" type="button" disabled={item.paiement_mobile_statut === 'en_attente'} onClick={() => openPayment(item)}><WalletCards size={16} /> {item.paiement_mobile_statut === 'en_attente' ? 'En verification' : 'Payer Mobile Money'}</button> : '-'])} /> : <div className="empty purchase-empty"><WalletCards size={32} /><strong>Aucune facture disponible</strong><p>Le bouton Mobile Money apparait des qu'une commande est transformee en facture avec un solde a payer.</p><button className="btn small" type="button" onClick={() => setPage('commandes')}>Voir mes commandes</button></div>}</section>
+    {payment && <Modal title={`Payer ${payment.numero_facture}`} onClose={() => setPayment(null)}><div className="mobile-money-note"><ShieldCheck size={22} /><p>Laissez la reference vide pour lancer automatiquement la demande sur votre telephone. Si le prestataire n'est pas configure, effectuez le transfert puis saisissez la reference recue.</p></div><Form onSubmit={pay}><Select label="Operateur" value={form.operateur} onChange={(operateur) => setForm({ ...form, operateur })} options={[["mpesa","M-Pesa"],["airtel_money","Airtel Money"],["orange_money","Orange Money"]]} /><Input label="Numero Mobile Money" type="tel" value={form.telephone_payeur} onChange={(telephone_payeur) => setForm({ ...form, telephone_payeur })} required /><Input label="Montant (USD)" type="number" min="0.01" max={payment.reste_a_payer} step="0.01" value={form.montant} onChange={(montant) => setForm({ ...form, montant })} required /><Input label="Reference de transaction (optionnel)" value={form.reference_externe} onChange={(reference_externe) => setForm({ ...form, reference_externe })} placeholder="Vide = demande automatique" /><button className="btn modal-submit"><ShieldCheck size={18} /> Payer par Mobile Money</button></Form></Modal>}
   </>;
 }
 
@@ -3320,11 +3348,22 @@ function Reclamations({ api, notify, data, submit, user, searchQuery = '' }) {
   );
 }
 
+function Commentaires({ api, notify, data, submit, searchQuery = '' }) {
+  const rows = (data.extra.commentaires || []).filter((item) => `${item.nom} ${item.email} ${item.sujet} ${item.message}`.toLowerCase().includes(searchQuery.toLowerCase()));
+  const update = (item, statut) => submit(async () => {
+    await api(`/public/contacts/${item.id_contact}`, { method: 'PUT', body: JSON.stringify({ statut }) });
+    notify(statut === 'traite' ? 'Commentaire marque comme traite.' : 'Commentaire marque comme lu.');
+  });
+  return <section className="panel"><div className="panel-heading"><div><h3>Messages de la page Contact</h3><p>{rows.filter((item) => item.statut === 'nouveau').length} nouveau(x) message(s)</p></div></div><Table headers={['Date', 'Visiteur', 'Email', 'Sujet', 'Message', 'Statut', 'Action']} rows={rows.map((item) => [formatDate(item.created_at), item.nom, item.email, item.sujet, item.message, <Badge>{item.statut}</Badge>, <div className="actions">{item.statut === 'nouveau' && <button className="btn small" type="button" onClick={() => update(item, 'lu')}>Marquer lu</button>}{item.statut !== 'traite' && <button className="btn secondary small" type="button" onClick={() => update(item, 'traite')}>Traite</button>}</div>])} /></section>;
+}
+
 function ChatPage({ api, notify, data, user, searchQuery = '' }) {
   const [liveChats, setLiveChats] = useState(data.extra.chats || []);
   const chats = liveChats.filter((chat) => `${chat.id_conversation} ${chat.client_nom || ''} ${chat.dernier_message || ''}`.toLowerCase().includes(searchQuery.toLowerCase()));
   const [selectedId, setSelectedId] = useState('');
   const [message, setMessage] = useState('');
+  const [aiAnalysis, setAiAnalysis] = useState('');
+  const [analysisLoading, setAnalysisLoading] = useState(false);
   const messagesRef = useRef(null);
   const selected = chats.find((chat) => chat.id_conversation === selectedId) || chats[0] || null;
   const refreshChats = async () => { const result = await api('/chat'); setLiveChats(result.data || []); return result.data || []; };
@@ -3360,8 +3399,14 @@ function ChatPage({ api, notify, data, user, searchQuery = '' }) {
       notify(error.message);
     }
   };
+  const analyze = async () => {
+    setAnalysisLoading(true);
+    try { const result = await api('/chat/manager-analysis'); setAiAnalysis(result.data?.analysis || 'Analyse indisponible.'); }
+    catch (error) { notify(error.message); }
+    finally { setAnalysisLoading(false); }
+  };
   return (
-    <div className={`chat-shell ${user?.role === 'client' ? 'client-chat-shell' : ''}`}>
+    <><div className="chat-page-tools">{user?.role === 'manager' && <button className="btn secondary small" type="button" onClick={analyze} disabled={analysisLoading}><BarChart3 size={17} /> {analysisLoading ? 'Analyse...' : 'Avis IA au manager'}</button>}</div><div className={`chat-shell ${user?.role === 'client' ? 'client-chat-shell' : ''}`}>
       {user?.role === 'manager' && <aside className="chat-list"><div className="chat-list-head"><MessageCircle size={21} /><strong>Conversations</strong></div>{chats.length ? chats.map((chat) => <button key={chat.id_conversation} className={selected?.id_conversation === chat.id_conversation ? 'active' : ''} type="button" onClick={() => setSelectedId(chat.id_conversation)}><span>{getInitials(chat.client_nom)}</span><div><strong>{chat.client_nom} {chat.client_postnom || ''}</strong><small>{chat.dernier_message || 'Nouvelle conversation'}</small></div><Badge>{chat.statut}</Badge></button>) : <p className="empty compact">Aucune conversation</p>}</aside>}
       <section className="chat-window">
         <header><div className="chat-avatar"><MessageCircle size={22} /></div><div><strong>{user?.role === 'client' ? 'Assistant Quincaillerie Centrale' : selected ? `${selected.client_nom} ${selected.client_postnom || ''}` : 'Selectionnez un client'}</strong><span>{selected?.statut === 'en_attente_manager' ? 'Reponse humaine demandee' : 'Assistant automatique disponible'}</span></div></header>
@@ -3371,7 +3416,7 @@ function ChatPage({ api, notify, data, user, searchQuery = '' }) {
         </div>
         {(user?.role === 'client' || selected) && <Form onSubmit={send}><div className="chat-composer"><textarea value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Ecrivez votre question..." maxLength={2000} /><button className="btn" disabled={!message.trim()}><Send size={19} /> Envoyer</button></div></Form>}
       </section>
-    </div>
+    </div>{aiAnalysis && <Modal title="Analyse IA de l'activite" onClose={() => setAiAnalysis('')}><div className="ai-analysis"><p>{aiAnalysis}</p><small>Cette analyse aide a la decision; les donnees comptables et le jugement du manager restent prioritaires.</small></div></Modal>}</>
   );
 }
 

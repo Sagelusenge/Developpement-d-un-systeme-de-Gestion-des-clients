@@ -88,6 +88,24 @@ export const sendClientWelcomeEmail = ({ to, name }) => sendMail({
     })
 });
 
+export const sendProspectDiscoveryEmail = ({ to, name, products, catalogUrl }) => {
+    const productRows = (products || []).map((product) => `<tr><td style="border-bottom:1px solid #e2e8f0;padding:13px 8px"><strong style="color:#06264a">${escapeHtml(product.nom)}</strong><br><span style="color:#64748b;font-size:13px">Disponible: ${escapeHtml(product.quantite_stock)} ${escapeHtml(product.unite || 'piece')}</span></td><td style="border-bottom:1px solid #e2e8f0;padding:13px 8px;text-align:right;white-space:nowrap"><strong>${escapeHtml(Number(product.prix_ht).toFixed(2))} USD</strong><br><span style="color:#64748b;font-size:12px">par ${escapeHtml(product.unite || 'piece')}</span></td></tr>`).join('');
+    const safeUrl = escapeHtml(catalogUrl);
+    return sendMail({
+        to,
+        subject: `Des produits disponibles pour vos projets | ${APP_NAME}`,
+        text: `Bonjour ${name || 'cher client'},\n\nQuincaillerie Centrale est a votre disposition pour accompagner vos projets. Produits disponibles: ${(products || []).map((p) => `${p.nom} a ${Number(p.prix_ht).toFixed(2)} USD/${p.unite || 'piece'}`).join(', ')}.\n\nConsultez votre espace client: ${catalogUrl}\n\nL'equipe ${APP_NAME}`,
+        html: brandedEmail({
+            eyebrow: 'A VOTRE SERVICE A GOMA',
+            title: 'Quelques produits pour demarrer votre projet',
+            greeting: `Bonjour ${name || 'cher client'}`,
+            intro: 'Quincaillerie Centrale est a votre disposition pour accompagner vos travaux. Voici une courte selection de produits reellement disponibles au moment de cet envoi.',
+            content: `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #dce4ee;border-radius:10px;border-collapse:separate;overflow:hidden">${productRows}</table><div style="margin-top:24px;text-align:center"><a href="${safeUrl}" style="background:#0b5ea8;border-radius:8px;color:#ffffff;display:inline-block;font-size:14px;font-weight:700;padding:13px 22px;text-decoration:none">Consulter mon espace client</a></div>`,
+            notice: 'Cette selection est volontairement courte. Les prix et disponibilites peuvent evoluer; votre espace client affiche les informations actuelles.'
+        })
+    });
+};
+
 export const sendPasswordCodeEmail = ({ to, name, code }) => sendMail({
     to,
     subject: `${code} - Reinitialisation de votre mot de passe | ${APP_NAME}`,

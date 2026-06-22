@@ -9,6 +9,7 @@ Ce dossier regroupe les documents qui servent a presenter, comprendre et mainten
 | `FONCTIONNEMENT_APPLICATION_DETAILLE.md` | Explique le fonctionnement metier de l'application. |
 | `DOCUMENTATION_BACKEND.md` | Explique l'API, les routes, la base de donnees et les regles serveur. |
 | `DOCUMENTATION_FRONTEND.md` | Explique les pages, composants, formulaires et choix responsive. |
+| `../backend/API_MOBILE.md` | Reference complete des endpoints, bodies, reponses, erreurs, chat SSE et Mobile Money. |
 | `AGILE_BACKLOG_ISSUES.md` | Donne une liste d'issues GitHub possibles pour montrer la methode Agile. |
 | `diagrammes-sequence/` | Contient les flux importants: auth, approvisionnement, vente, rapports et notifications. |
 

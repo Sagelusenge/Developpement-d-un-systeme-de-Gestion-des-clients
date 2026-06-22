@@ -2031,6 +2031,18 @@ Body de decision (caissier):
 
 Valeurs: `confirmee` ou `rejetee`. Une confirmation cree le paiement `mobile_money`; un manager peut consulter les demandes mais seul le caissier peut les valider.
 
+Si `reference_externe` est vide et que le prestataire est configure, le backend lance automatiquement la demande sur le telephone. Une confirmation immediate retourne:
+
+```json
+{
+  "success": true,
+  "message": "Paiement Mobile Money confirme automatiquement.",
+  "data": { "id_demande": "MOB-000001", "statut": "confirmee" }
+}
+```
+
+Sans prestataire configure, le serveur retourne 503 et demande une reference de transfert manuel.
+
 Reponse 201:
 
 ```json
@@ -2359,6 +2371,27 @@ data: {"conversation_id":"CHAT-000001","sender_type":"manager"}
 
 A la reception, l'application mobile rappelle `GET /chat` en arriere-plan, sans afficher de page de chargement. Elle doit aussi afficher le message sortant de facon optimiste des le clic sur Envoyer.
 
+## Analyse IA manager
+
+```http
+GET /chat/manager-analysis
+Authorization: Bearer <token_manager>
+```
+
+Reponse 200:
+
+```json
+{
+  "success": true,
+  "data": {
+    "analysis": "Constats et actions prioritaires...",
+    "generated_at": "2026-06-21T18:00:00.000Z"
+  }
+}
+```
+
+Reponse 503 si `OPENAI_API_KEY` n'est pas configuree. La cle ne doit jamais etre envoyee par l'application mobile.
+
 ## Lister les conversations
 
 ```http
@@ -2451,7 +2484,60 @@ Correspondance mobile:
 
 Apres ouverture, appeler `PUT /notifications/:id/read` et retirer immediatement la notification de la liste locale.
 
+# Commentaires du site public
+
+Le formulaire public `POST /public/contact` stocke maintenant le message avant de notifier le manager.
+
+```http
+GET /public/contacts
+Authorization: Bearer <token_manager>
+```
+
+Reponse 200:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id_contact": 42,
+      "nom": "Patrick Kalume",
+      "email": "patrick@example.com",
+      "sujet": "Demande de prix",
+      "message": "Avez-vous du bois en stock ?",
+      "statut": "nouveau",
+      "created_at": "2026-06-22T08:00:00.000Z"
+    }
+  ]
+}
+```
+
+```http
+PUT /public/contacts/42
+Authorization: Bearer <token_manager>
+Content-Type: application/json
+```
+
+```json
+{ "statut": "traite" }
+```
+
+Statuts autorises: `nouveau`, `lu`, `traite`.
+
 # Matrice des permissions mise a jour
+
+## Relance automatique du prospect sans achat
+
+Cette fonction est executee par le backend et ne demande aucun appel mobile. Un client actif dont l'email a ete confirme, inscrit depuis au moins `PROSPECT_FOLLOWUP_HOURS` et sans vente recoit un seul email `prospect_discovery_v1`.
+
+L'email contient trois produits respectant:
+
+```text
+quantite_stock > 0
+prix_ht >= prix_achat
+```
+
+La table `prospect_email_campaigns` empeche les doublons avec une contrainte unique sur le client et la campagne. Valeur de test: `24`; valeur de production conseillee: `168`.
 
 | Action | Manager | Caissier | Magasinier | Client |
 | --- | --- | --- | --- | --- |
@@ -2505,6 +2591,8 @@ GET    /clients/:id
 POST   /clients
 PUT    /clients/:id
 DELETE /clients/:id
+
+`GET /clients` contient aussi `segment_statut`: `prospect`, `nouveau`, `regulier`, `fidele` ou `vip`, calcule avec le nombre d'achats et le chiffre d'affaires.
 
 GET    /categories
 POST   /categories

@@ -524,3 +524,51 @@ Cette documentation explique l interface React, les pages, les composants, la na
 - Note 12: documentation frontend doit rester simple, verifiable et utile pour un utilisateur non technique.
 - Note 13: documentation frontend doit rester simple, verifiable et utile pour un utilisateur non technique.
 
+## Mise a jour interface - 21 juin 2026
+
+### Site public
+
+- Les routes `/`, `/about`, `/services`, `/contact`, `/inscription` et `/connexion` rendent des pages distinctes.
+- Le footer est present sur le site public et la page reste defilable sur desktop et mobile.
+- Les sections visibles au defilement utilisent `IntersectionObserver`, les classes `scroll-reveal` et `is-visible`.
+- L'animation respecte `prefers-reduced-motion`: elle n'est pas imposee aux utilisateurs qui reduisent les mouvements.
+- La page de connexion utilise un seul formulaire; aucun choix Equipe/Client n'est demande.
+- Les liens inscription, retour accueil et informations de securite disposent d'un espacement distinct.
+
+### Ordre de la navigation
+
+Ordre de reference: Tableau de bord, Clients, Fournisseurs, Categories, Produits, Ventes, Paiements, Commandes, Reclamations, Rapports, Chat, Emails, Utilisateurs, Deconnexion. Le tableau est filtre par role. La zone du menu dispose de son propre defilement vertical.
+
+### Chat sans chargement
+
+1. Au clic sur Envoyer, le texte est retire du champ et ajoute immediatement avec le statut visuel `Envoi...`.
+2. La requete POST s'execute en arriere-plan sans appeler le chargeur global de `Page`.
+3. `EventSource` ecoute le flux SSE et recharge silencieusement les conversations.
+4. Apres confirmation serveur, le message temporaire est remplace par la version stockee.
+5. En cas d'erreur, le message optimiste est retire et le texte revient dans le champ.
+6. La liste descend automatiquement vers le dernier message.
+
+### Espace client et Mobile Money
+
+- Le tableau `Mes achats` affiche facture, total, paye, reste et statut.
+- Le bouton Payer ouvre une modale M-Pesa, Airtel Money ou Orange Money.
+- Les champs obligatoires sont telephone, montant et reference de transaction.
+- Une demande en verification desactive le bouton pour eviter un doublon.
+- La page Paiements de l'equipe affiche les demandes; le caissier peut confirmer ou rejeter.
+- Une confirmation seulement transforme la demande en encaissement reel.
+
+### Verification frontend
+
+Executer `npm run build`. Tester ensuite le defilement de l'accueil, l'apparition progressive des sections, l'ordre du menu, la modale Mobile Money et deux sessions de chat ouvertes simultanement.
+
+## Correctifs responsive et navigation - 21 juin 2026
+
+- `_redirects` renvoie les routes publiques vers `index.html` et evite `Not Found` apres actualisation.
+- Le menu equipe utilise trois accordeons exclusifs: Magasin, Commercial, Messages. L'espace client garde une navigation compacte.
+- Sur petit ecran, Notifications est fixe avec un z-index superieur; les badges du chat sont tronques et l'en-tete duplique est masque.
+- Mes achats explique l'absence de paiement lorsqu'aucune facture n'existe et propose Mobile Money des qu'un solde est payable.
+- Commentaires dispose de la recherche globale et des statuts lu/traite.
+- L'accueil n'affiche plus `16 %` et presente l'anciennete comme trois decennies depuis 1992.
+- Le bouton Avis IA au manager appelle uniquement le backend et n'expose jamais la cle.
+- La page Clients affiche le statut commercial, permet de filtrer Prospect, Nouveau, Regulier, Fidele ou VIP et ajoute le statut aux impressions.
+

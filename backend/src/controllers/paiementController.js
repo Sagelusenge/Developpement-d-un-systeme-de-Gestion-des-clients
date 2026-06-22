@@ -1,5 +1,6 @@
 import pool from '../config/db.js';
 import { nextId } from '../services/idService.js';
+import { initiateMobileMoneyPayment } from '../services/mobileMoneyService.js';
 
 // POST /api/paiements
 export const createPaiement = async (req, res) => {
@@ -110,10 +111,17 @@ export const createClientMobilePayment = async (req, res) => {
     const venteId = String(req.body.vente_id || '').trim();
     const operateur = String(req.body.operateur || '').trim();
     const telephone = String(req.body.telephone_payeur || '').replace(/\s+/g, '');
-    const reference = String(req.body.reference_externe || '').trim().toUpperCase();
+    let reference = String(req.body.reference_externe || '').trim().toUpperCase();
     const montant = Number(req.body.montant);
-    if (!venteId || !['mpesa', 'airtel_money', 'orange_money'].includes(operateur) || !/^\+?[0-9]{9,15}$/.test(telephone) || reference.length < 5 || !Number.isFinite(montant) || montant <= 0) {
-        return res.status(400).json({ success: false, message: 'Operateur, telephone, montant et reference de transaction valides requis.' });
+    if (!venteId || !['mpesa', 'airtel_money', 'orange_money'].includes(operateur) || !/^\+?[0-9]{9,15}$/.test(telephone) || !Number.isFinite(montant) || montant <= 0) {
+        return res.status(400).json({ success: false, message: 'Operateur, telephone et montant valides requis.' });
+    }
+    let providerResult = null;
+    if (!reference) {
+        try { providerResult = await initiateMobileMoneyPayment({ invoiceId: venteId, operator: operateur, phone: telephone, amount: montant, clientId: req.user.client_id }); }
+        catch (error) { return res.status(502).json({ success: false, message: error.message }); }
+        if (!providerResult?.reference) return res.status(503).json({ success: false, message: 'Paiement automatique non configure. Effectuez le transfert puis saisissez sa reference.' });
+        reference = providerResult.reference;
     }
     const connection = await pool.getConnection();
     try {
@@ -128,13 +136,18 @@ export const createClientMobilePayment = async (req, res) => {
         const reste = Number(invoice.montant_ttc) - Number(invoice.total_paye);
         if (montant > reste + 0.001) throw new Error(`Le montant depasse le reste a payer (${reste.toFixed(2)} USD).`);
         const id = await nextId(connection, 'demandes_paiement_mobile', 'MOB', 6);
+        const initialStatus = providerResult?.confirmed ? 'confirmee' : 'en_attente';
         await connection.query(
-            `INSERT INTO demandes_paiement_mobile (id_demande,vente_id,client_id,entreprise_id,operateur,telephone_payeur,montant,reference_externe)
-             VALUES (?,?,?,?,?,?,?,?)`,
-            [id, venteId, req.user.client_id, req.user.entreprise_id, operateur, telephone, montant, reference]
+            `INSERT INTO demandes_paiement_mobile (id_demande,vente_id,client_id,entreprise_id,operateur,telephone_payeur,montant,reference_externe,statut,date_traitement)
+             VALUES (?,?,?,?,?,?,?,?,?,?)`,
+            [id, venteId, req.user.client_id, req.user.entreprise_id, operateur, telephone, montant, reference, initialStatus, providerResult?.confirmed ? new Date() : null]
         );
+        if (providerResult?.confirmed) {
+            const paymentId = await nextId(connection, 'paiement', 'PAY', 5);
+            await connection.query(`INSERT INTO paiement (id_paiement,vente_id,montant,mode_paiement,reference_externe,telephone_payeur) VALUES (?,?,?,'mobile_money',?,?)`, [paymentId, venteId, montant, reference, telephone]);
+        }
         await connection.commit();
-        res.status(201).json({ success: true, message: 'Paiement Mobile Money recu et en cours de verification.', data: { id_demande: id, statut: 'en_attente' } });
+        res.status(201).json({ success: true, message: providerResult?.confirmed ? 'Paiement Mobile Money confirme automatiquement.' : 'Paiement Mobile Money recu et en cours de verification.', data: { id_demande: id, statut: initialStatus } });
     } catch (error) {
         await connection.rollback();
         res.status(400).json({ success: false, message: error.code === 'ER_DUP_ENTRY' ? 'Cette reference Mobile Money a deja ete utilisee.' : error.message });

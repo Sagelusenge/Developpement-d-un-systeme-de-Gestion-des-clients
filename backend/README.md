@@ -1,6 +1,6 @@
 # Backend - API Quincaillerie Centrale
 
-Ce dossier contient l'API Express du CRM PME. Il gere l'authentification, les roles, la base MySQL, les ventes, les paiements, les produits, les fournisseurs, les rapports et les notifications.
+Ce dossier contient l'API Express du CRM PME. Il gere aussi les comptes clients, commandes, reclamations, chat temps reel, emails professionnels et demandes Mobile Money.
 
 ## Structure
 
@@ -26,6 +26,44 @@ Ce dossier contient l'API Express du CRM PME. Il gere l'authentification, les ro
 5. Certaines routes verifient aussi le role: manager, caissier ou magasinier.
 6. Les controllers executent les requetes SQL.
 7. Les donnees sont renvoyees au frontend en JSON.
+
+## Fonctionnalites recentes
+
+- authentification unifiee des comptes equipe et client;
+- inscription client avec code email temporaire;
+- commandes calculees exclusivement avec le prix de vente catalogue;
+- chat persistant et flux SSE `GET /api/chat/stream`;
+- reponses automatiques sur commandes et factures, puis escalade au manager;
+- alerte du manager par notification et email lors d'une question complexe;
+- demande Mobile Money client, controle d'unicite de la reference et verification par le caissier;
+- table `demandes_paiement_mobile` creee par le schema d'execution.
+
+La description exhaustive des bodies et reponses se trouve dans `API_MOBILE.md`.
+
+## IA et secrets
+
+Le chat fonctionne en mode hybride: reponses SQL/FAQ locales, puis OpenAI Responses API pour les questions generales. La cle doit etre configuree uniquement dans l'environnement du backend:
+
+```text
+OPENAI_API_KEY=nouvelle_cle_non_publiee
+OPENAI_MODEL=gpt-4.1-mini
+```
+
+Ne jamais placer la cle dans `frontend`, Git, une capture ou une conversation. Une cle exposee doit etre revoquee avant utilisation.
+
+## Hebergement SPA
+
+Le fichier `frontend/public/_redirects` doit etre inclus dans le build afin que l'hebergeur renvoie les routes comme `/app` et `/contact` vers `index.html` lors d'une actualisation.
+
+## Relance email des prospects
+
+Le serveur controle les prospects toutes les heures. Un prospect est eligible si son compte est actif, son email a ete verifie, il n'a aucune vente et son inscription depasse le delai configure. La campagne n'est envoyee que si au moins trois produits vendables sont en stock.
+
+```text
+PROSPECT_FOLLOWUP_HOURS=24
+```
+
+Utiliser `168` apres la phase de test.
 
 ## Modules API
 

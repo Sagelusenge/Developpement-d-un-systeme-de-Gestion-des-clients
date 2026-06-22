@@ -23,13 +23,30 @@ export const sendPublicContact = async (req, res) => {
         );
         if (!company) return res.status(503).json({ success: false, message: 'Service de contact temporairement indisponible.' });
 
+        const [result] = await pool.query(`INSERT INTO public_contacts (entreprise_id,nom,email,sujet,message) VALUES (?,?,?,?,?)`, [company.id_entreprise, nom, email, sujet, message]);
         await notifyEnterpriseAdmins({
             entreprise_id: company.id_entreprise,
             titre: `Contact du site : ${sujet}`.slice(0, 160),
-            message: `${nom} (${email}) : ${message}`.slice(0, 3000)
+            message: `${nom} (${email}) : ${message}`.slice(0, 3000),
+            entity_type: 'commentaire',
+            entity_id: String(result.insertId)
         });
         res.status(201).json({ success: true, message: 'Votre message a bien ete transmis a notre equipe.' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
+};
+
+export const getPublicContacts = async (req, res) => {
+    try {
+        const [rows] = await pool.query(`SELECT * FROM public_contacts WHERE entreprise_id=? ORDER BY created_at DESC`, [req.user.entreprise_id]);
+        res.json({ success: true, data: rows });
+    } catch (error) { res.status(500).json({ success: false, message: error.message }); }
+};
+
+export const updatePublicContact = async (req, res) => {
+    const statut = String(req.body.statut || 'lu');
+    if (!['nouveau', 'lu', 'traite'].includes(statut)) return res.status(400).json({ success: false, message: 'Statut invalide.' });
+    await pool.query(`UPDATE public_contacts SET statut=? WHERE id_contact=? AND entreprise_id=?`, [statut, req.params.id, req.user.entreprise_id]);
+    res.json({ success: true, message: 'Commentaire mis a jour.' });
 };

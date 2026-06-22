@@ -8,6 +8,13 @@ Un service evite de dupliquer la meme logique dans plusieurs fichiers. Par exemp
 
 - `schemaService.js`: verifie que certaines tables et colonnes existent.
 - service mail: prepare l'envoi des emails et notifications quand la configuration SMTP est disponible.
+- `chatRealtimeService.js`: conserve les connexions SSE par entreprise et diffuse `chat-update` apres chaque message.
+- `mailService.js`: produit notamment l'alerte professionnelle envoyee au manager lors d'une escalade du chatbot.
+- `openaiService.js`: appelle la Responses API pour le chat et l'analyse manager, uniquement si la cle serveur existe.
+- `mobileMoneyService.js`: adapte l'appel vers le prestataire Mobile Money configure.
+- `clientLoyaltyService.js`: prepare la recommandation hebdomadaire du client et l'email unique du prospect sans achat apres le delai configure.
+
+Le schema d'execution cree aussi `chat_conversations`, `chat_messages`, `demandes_paiement_mobile`, `public_contacts` et `prospect_email_campaigns` lorsqu'elles sont absentes.
 
 ## Role dans l'architecture
 

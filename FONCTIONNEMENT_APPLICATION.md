@@ -51,9 +51,10 @@ Le prix d'achat est saisi au moment de l'approvisionnement, parce qu'un meme fou
 
 ## Roles
 
-- `manager`: gere presque tout le systeme.
+- `manager`: supervise les clients, commandes, reclamations, rapports, chat, emails et utilisateurs; il ne cree pas les ventes ni les encaissements.
 - `caissier`: gere les ventes, paiements, clients et rapports de caisse.
 - `magasinier`: gere les produits, fournisseurs, categories, stock et approvisionnements.
+- `client`: commande, consulte ses achats et factures, transmet un paiement Mobile Money, reclame et utilise le chat.
 
 ## Rapports
 
@@ -69,3 +70,51 @@ Les principaux rapports sont:
 - Inventaire.
 - Top clients.
 
+## Espace client, chat et Mobile Money
+
+1. Le nouveau client cree son compte depuis le site public et confirme son adresse avec le code recu par email.
+2. La connexion est unique; le backend reconnait automatiquement client, manager, caissier ou magasinier.
+3. Le client choisit les produits disponibles au prix de vente catalogue. Le backend recalcule lui-meme le total et bloque un prix de vente inferieur au cout.
+4. Une commande peut ensuite etre suivie jusqu'a sa facture. Les achats affichent montant, total paye et reste.
+5. Pour Mobile Money, le client selectionne M-Pesa, Airtel Money ou Orange Money, puis fournit telephone, montant et reference de transaction.
+6. La demande reste `en_attente`: elle n'entre pas dans la caisse avant confirmation du caissier. Le caissier peut la confirmer ou la rejeter.
+7. Dans le chat, le message apparait immediatement chez l'expediteur. Un flux temps reel avertit l'autre interlocuteur sans rechargement de page.
+8. Le bot repond aux questions fiables et consulte les references `CMD-...` ou `FAC-...`. Sinon, il transfere la question au manager, cree une notification et envoie un email professionnel.
+
+## Navigation actuelle
+
+Pour le manager, l'ordre de reference est: Tableau de bord, Clients, Fournisseurs, Categories, Produits, Ventes, Paiements, Commandes, Reclamations, Rapports, Chat, Emails, Utilisateurs, Deconnexion. Les entrees sont ensuite filtrees selon les permissions de chaque role.
+
+Le menu equipe est maintenant regroupe:
+
+- `Magasin`: Fournisseurs, Categories, Produits;
+- `Commercial`: Ventes, Paiements, Commandes, Reclamations;
+- `Messages`: Chat, Emails, Commentaires.
+
+Un seul bloc peut rester ouvert. L'espace client conserve ses petits boutons simples.
+
+## Intelligence, fidelisation et commentaires
+
+- Le formulaire Contact cree une ligne dans `public_contacts`, puis notifie le manager.
+- Le chatbot reconnait des variantes comme `bonhour` et cherche d'abord prix et stock dans MySQL.
+- OpenAI fonctionne seulement dans le backend avec `OPENAI_API_KEY`; aucune cle ne doit etre placee dans React.
+- Un nouveau client recoit un message de bienvenue, puis au maximum une recommandation par semaine fondee sur le stock reel.
+- Le manager peut demander une analyse IA de ses indicateurs.
+
+### Email du prospect sans achat
+
+Pour les tests, `PROSPECT_FOLLOWUP_HOURS=24`. Une fois ce delai atteint, un compte actif avec email verifie et aucune vente recoit un unique email de decouverte. L'email contient exactement trois produits disponibles, leur prix de vente, leur unite et un bouton vers la connexion. La campagne `prospect_discovery_v1` est journalisee dans `prospect_email_campaigns`, ce qui empeche un second envoi. En production, remplacer 24 par 168.
+
+### Segmentation du portefeuille client
+
+- `Prospect`: aucun achat;
+- `Nouveau client`: exactement un achat;
+- `Client regulier`: de 2 a 4 achats;
+- `Client fidele`: au moins 5 achats ou 1 000 USD de chiffre d'affaires;
+- `VIP`: au moins 10 achats ou 5 000 USD de chiffre d'affaires.
+
+Les niveaux les plus eleves sont prioritaires. Par exemple, un client avec seulement trois achats mais 5 000 USD de chiffre d'affaires est classe VIP. La page Clients peut etre filtree sur chacun de ces statuts.
+
+## Paiement Mobile Money automatique
+
+Avec `MOBILE_MONEY_PROVIDER_URL` et `MOBILE_MONEY_PROVIDER_KEY`, laisser la reference vide lance la demande chez le prestataire. Si celui-ci confirme immediatement, le paiement entre directement dans la caisse. Sans prestataire configure, le client saisit la reference de son transfert et le caissier la verifie. Une commande doit d'abord etre transformee en facture.

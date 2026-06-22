@@ -524,3 +524,59 @@ Ce guide explique comment les modules travaillent ensemble depuis la connexion j
 - Note 20: fonctionnement application doit rester simple, verifiable et utile pour un utilisateur non technique.
 - Note 21: fonctionnement application doit rester simple, verifiable et utile pour un utilisateur non technique.
 
+## Parcours actuels ajoutes - 21 juin 2026
+
+### Creation d'un compte client
+
+1. Le visiteur ouvre Inscription depuis l'accueil.
+2. Il saisit son identite, telephone, Gmail et mot de passe.
+3. Le backend envoie un code de confirmation professionnel valable pendant une duree limitee.
+4. Le client saisit le code; son compte devient utilisable et une session est ouverte.
+5. Au prochain acces, il utilise la meme page de connexion que l'equipe; le serveur detecte son role.
+
+### Commande et securite du montant
+
+1. Le catalogue ne montre que les produits disponibles dont le prix de vente couvre le cout d'achat.
+2. Le client selectionne produit et quantite.
+3. Le frontend affiche une estimation avec `prix_ht` et TVA.
+4. Le backend relit le produit et recalcule le montant; il n'accepte pas un prix fourni librement par le navigateur.
+5. La commande est transmise a l'equipe et peut devenir une facture lors de la conversion autorisee.
+
+### Paiement Mobile Money
+
+1. Depuis Mes achats, le client choisit une facture avec un reste a payer.
+2. Il selectionne M-Pesa, Airtel Money ou Orange Money.
+3. Il effectue le transfert depuis son telephone et fournit la reference recue.
+4. Le systeme enregistre une demande `en_attente`, sans augmenter la caisse.
+5. Le manager peut consulter la demande; le caissier compare la transaction et la confirme ou la rejette.
+6. En cas de confirmation, le backend reverifie le solde puis cree le paiement Mobile Money.
+
+### Conversation client-manager
+
+1. Le client envoie un message; celui-ci apparait immediatement sans ecran de chargement.
+2. Le backend le sauvegarde et diffuse un evenement temps reel.
+3. Le bot repond aux questions fiables, y compris les references de commande et facture appartenant au client.
+4. Pour une question complexe, le bot annonce le transfert en quelques minutes.
+5. Le manager recoit une notification dans l'application et un email indiquant client, conversation et question.
+6. Sa reponse est diffusee instantanement au client et reste conservee dans l'historique.
+
+### Notifications et navigation
+
+Cliquer sur une notification de commande, reclamation ou chat ouvre directement la page concernee avec sa reference. La notification lue est retiree de la cloche pour garder une liste utile.
+
+### Responsabilites finales
+
+- Manager: supervision et traitement; il ne cree pas une vente ou un encaissement.
+- Caissier: ventes, factures, encaissements et validation Mobile Money.
+- Magasinier: fournisseurs, categories, produits, approvisionnements et stock.
+- Client: commandes, achats, paiements soumis, reclamations et assistance.
+
+## Correctifs de parcours - 21 juin 2026
+
+- Actualisation: la regle `/* /index.html 200` renvoie `/about`, `/contact`, `/connexion`, `/inscription` et `/app` vers React.
+- Commentaire: le backend valide, stocke, notifie le manager, puis le manager classe le message lu ou traite.
+- Stock: les approvisionnements sont des entrees; chaque ligne de facture devient une sortie avec facture, produit, quantite, cout historique et date.
+- Prospect: apres confirmation de l'email, le client recoit un accueil personnalise. La relance attend sept jours et ne depasse pas une fois par semaine.
+- Prospect sans achat: apres 24 heures en environnement de test, il recoit une seule fois un email de presentation avec trois produits disponibles. En production, le delai recommande est 168 heures.
+- Chat: MySQL fournit les prix et stocks faisant autorite; OpenAI complete seulement les questions generales lorsque la cle serveur est configuree.
+

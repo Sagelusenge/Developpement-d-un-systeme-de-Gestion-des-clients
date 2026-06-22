@@ -52,6 +52,8 @@ CREATE TABLE client (
     email VARCHAR(150),
     mot_de_passe VARCHAR(255),
     actif BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    email_verified_at DATETIME NULL,
     entreprise_id VARCHAR(50) NOT NULL,
     FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE
 );
@@ -291,6 +293,34 @@ CREATE TABLE mail_messages (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_mail_entreprise (entreprise_id, created_at),
     INDEX idx_mail_user (user_id, created_at)
+);
+
+CREATE TABLE public_contacts (
+    id_contact INT AUTO_INCREMENT PRIMARY KEY,
+    entreprise_id VARCHAR(50) NOT NULL,
+    nom VARCHAR(160) NOT NULL,
+    email VARCHAR(160) NOT NULL,
+    sujet VARCHAR(180) NOT NULL,
+    message TEXT NOT NULL,
+    statut ENUM('nouveau','lu','traite') NOT NULL DEFAULT 'nouveau',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE,
+    INDEX idx_public_contacts_entreprise (entreprise_id, statut, created_at)
+);
+
+CREATE TABLE prospect_email_campaigns (
+    id_campaign INT AUTO_INCREMENT PRIMARY KEY,
+    client_id VARCHAR(50) NOT NULL,
+    entreprise_id VARCHAR(50) NOT NULL,
+    campaign_key VARCHAR(80) NOT NULL,
+    statut ENUM('en_cours','envoye','echec') NOT NULL DEFAULT 'en_cours',
+    provider_message_id VARCHAR(255),
+    erreur VARCHAR(500),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    sent_at TIMESTAMP NULL,
+    UNIQUE KEY uniq_prospect_campaign (client_id, campaign_key),
+    FOREIGN KEY (client_id) REFERENCES client(id_client) ON DELETE CASCADE,
+    FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE
 );
 
 INSERT INTO sequences (nom_table, derniere_valeur) VALUES

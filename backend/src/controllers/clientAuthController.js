@@ -82,12 +82,16 @@ export const verifyClientEmail = async (req, res) => {
         if (existing) { await connection.rollback(); return res.status(409).json({ success: false, message: 'Ce compte client existe deja.' }); }
         const clientId = await nextId(connection, 'client', 'CLI', 5);
         await connection.query(
-            `INSERT INTO client (id_client, nom, postnom, telephone, email, mot_de_passe, entreprise_id, actif)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
+            `INSERT INTO client (id_client, nom, postnom, telephone, email, mot_de_passe, entreprise_id, actif,email_verified_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 1,NOW())`,
             [clientId, pending.nom, pending.postnom, pending.telephone, pending.email, pending.password_hash, pending.entreprise_id]
         );
         await connection.query(`UPDATE client_registration_codes SET used_at = NOW() WHERE id_registration = ?`, [pending.id_registration]);
         await connection.commit();
+        const conversationId = await nextId(connection, 'chat_conversations', 'CHAT', 6);
+        const welcomeMessageId = await nextId(connection, 'chat_messages', 'MSG', 7);
+        await connection.query(`INSERT INTO chat_conversations (id_conversation,client_id,entreprise_id,statut) VALUES (?,?,?,'ouverte')`, [conversationId, clientId, pending.entreprise_id]);
+        await connection.query(`INSERT INTO chat_messages (id_message,conversation_id,sender_type,message) VALUES (?,?,'bot',?)`, [welcomeMessageId, conversationId, `Bienvenue ${pending.nom} chez Quincaillerie Centrale. Votre espace est pret. Je peux vous aider a trouver un materiel, verifier un prix ou suivre une commande.`]);
         const [[client]] = await pool.query(
             `SELECT c.*, e.raison_sociale AS entreprise_nom FROM client c JOIN entreprise e ON e.id_entreprise = c.entreprise_id WHERE c.id_client = ?`, [clientId]
         );

@@ -7,6 +7,7 @@ Ce dossier contient le code React de l'interface. Le projet est volontairement c
 `main.jsx` contient:
 
 - la connexion;
+- le site public multipage, l'inscription client et la verification email;
 - le layout principal;
 - le menu par role;
 - le tableau de bord;
@@ -14,6 +15,8 @@ Ce dossier contient le code React de l'interface. Le projet est volontairement c
 - les composants reutilisables: tableaux, badges, boutons, formulaires, modales et champs de recherche;
 - les appels API vers le backend;
 - les calculs d'affichage comme les totaux, statuts et filtres.
+- l'espace client: commandes, achats, Mobile Money, reclamations et assistance;
+- le chat temps reel avec message optimiste et flux SSE;
 
 ## Appels API
 
@@ -34,6 +37,22 @@ Les styles ne sont pas dans ce dossier mais dans `../styles.css`. Les composants
 - une vente directe lisible sur petit ecran;
 - des produits en grille adaptee;
 - des messages d'erreur visibles au-dessus des popups.
+- des pages publiques defilables avec footer et animations `IntersectionObserver`;
+- une sidebar defilable lorsque le menu contient beaucoup d'entrees.
+
+## Navigation et donnees instantanees
+
+Le menu est ordonne selon le parcours metier: tableau de bord, clients, fournisseurs, categories, produits, ventes, paiements, commandes, reclamations, rapports, chat, emails, utilisateurs et deconnexion. Les entrees non autorisees sont masquees selon le role.
+
+Le chat ajoute d'abord le message dans l'etat React, puis l'envoie au backend. Le flux `EventSource` ecoute `/api/chat/stream` et recharge silencieusement les conversations; aucun ecran de chargement global n'apparait pendant l'echange.
+
+Dans `Mes achats`, le client peut ouvrir la modale Mobile Money. Une demande en attente desactive un second paiement sur la meme facture jusqu'au traitement.
+
+## Blocs de navigation
+
+Pour l'equipe, la sidebar utilise trois accordeons exclusifs: Magasin, Commercial et Messages. Commentaires est place avec Chat et Emails. Le client conserve des boutons compacts sans accordeon.
+
+Le chatbot affiche les messages optimistes immédiatement, reconnait les fautes simples par le backend et ne contient aucune cle OpenAI. Le bouton d'analyse IA du manager appelle uniquement l'API protegee.
 
 ## Bonne pratique locale
 
