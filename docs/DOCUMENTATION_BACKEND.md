@@ -588,3 +588,7 @@ PROSPECT_FOLLOWUP_HOURS=24
 ### Statut commercial du client
 
 `GET /api/clients` retourne `segment_statut`. Le champ est calcule en SQL avec le nombre de factures et la somme TTC: `prospect`, `nouveau`, `regulier`, `fidele` ou `vip`. Les seuils de chiffre d'affaires sont exprimes en USD dans la configuration commerciale actuelle.
+
+### Script SQL principal
+
+`backend/crm_pme.sql` contient les 26 tables necessaires, notamment les chats, commentaires, campagnes prospects, demandes Mobile Money et codes de reinitialisation. Les anciens triggers et comptes de demonstration sont desactives: l'API est l'unique responsable des identifiants, montants, stocks et mouvements. Le script a ete execute avec succes sur une base temporaire neuve.

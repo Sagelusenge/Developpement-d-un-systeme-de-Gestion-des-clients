@@ -350,6 +350,13 @@ CREATE TABLE prospect_email_campaigns (
     FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE
 );
 
+/*
+ARCHIVE DES ANCIENS TRIGGERS, PROCEDURES ET COMPTES DE DEMONSTRATION
+-------------------------------------------------------------------
+Bloc desactive. L'API Express gere deja les identifiants, le stock,
+les mouvements, les factures et les paiements. Reactiver ce bloc
+provoquerait notamment une double diminution du stock.
+
 INSERT INTO sequences (nom_table, derniere_valeur) VALUES
 ('entreprise', 0),
 ('utilisateur', 0),
@@ -536,6 +543,7 @@ VALUES (
     'manager',
     TRUE
 );
+FIN DE L'ARCHIVE */
 
 CREATE OR REPLACE VIEW v_factures_complet AS
 SELECT
@@ -603,8 +611,15 @@ SELECT
     c.postnom AS "Postnom",
     c.entreprise_id,
     COUNT(v.id_ventes) AS "Nombre_Achats",
-    SUM(v.montant_ttc) AS "CA_Total_Genere",
-    MAX(v.date_vente) AS "Derniere_Visite"
+    IFNULL(SUM(v.montant_ttc), 0) AS "CA_Total_Genere",
+    MAX(v.date_vente) AS "Derniere_Visite",
+    CASE
+        WHEN COUNT(v.id_ventes) >= 10 OR IFNULL(SUM(v.montant_ttc),0) >= 5000 THEN 'vip'
+        WHEN COUNT(v.id_ventes) >= 5 OR IFNULL(SUM(v.montant_ttc),0) >= 1000 THEN 'fidele'
+        WHEN COUNT(v.id_ventes) >= 2 THEN 'regulier'
+        WHEN COUNT(v.id_ventes) = 1 THEN 'nouveau'
+        ELSE 'prospect'
+    END AS "Segment_Statut"
 FROM client c
 LEFT JOIN ventes v ON c.id_client = v.client_id
 GROUP BY c.id_client
@@ -619,7 +634,7 @@ SELECT
     p.nom AS "Produit",
     lv.quantite AS "Qte",
     lv.prix_unitaire_ht AS "Prix_Unitaire",
-    (lv.quantite * lv.prix_unitaire_ht * 1.16) AS "Total_TTC"
+    (lv.quantite * lv.prix_unitaire_ht * (1 + p.taux_tva / 100)) AS "Total_TTC"
 FROM client c
 JOIN ventes v ON c.id_client = v.client_id
 JOIN lignes_ventes lv ON v.id_ventes = lv.vente_id

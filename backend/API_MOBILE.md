@@ -2355,6 +2355,8 @@ Statuts: `ouverte`, `en_cours`, `resolue`, `cloturee`.
 
 Les messages sont conserves dans la base comme une messagerie. L'assistant repond automatiquement aux salutations et questions frequentes. Une question non reconnue passe la conversation au statut `en_attente_manager` et notifie le manager.
 
+Avant l'appel IA, le backend normalise plusieurs fautes usuelles. Exemples: `bonhour` devient `bonjour`, `paoement` devient `paiement` et `commade` devient `commande`. Les intentions connues restent donc disponibles lorsque OpenAI n'est pas configure ou temporairement indisponible.
+
 ## Flux temps reel
 
 ```http

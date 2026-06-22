@@ -64,13 +64,3 @@ VALUES (
     DATE_ADD(CURDATE(), INTERVAL 12 MONTH)
 );
 
-INSERT INTO utilisateur (id_utilisateur, entreprise_id, nom, email, mot_de_passe, role, actif)
-VALUES (
-    '',
-    (SELECT id_entreprise FROM entreprise WHERE num_id_nationale = 'CD-LSH-QC-2026-001'),
-    'KITSA LUSENGE Sage',
-    'sage.kitsa@quincaillerie-centrale.cd',
-    'ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f',
-    'manager',
-    TRUE
-);

@@ -6,8 +6,22 @@ import { publishChatUpdate, subscribeToChat } from '../services/chatRealtimeServ
 import { generateBusinessReply, generateManagerAnalysis } from '../services/openaiService.js';
 
 const isClient = (req) => req.user.type === 'client';
+const normalizeChatText = (value) => String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\b(bonhour|bonjor|bounjour)\b/g, 'bonjour')
+    .replace(/\b(paoement|paiemnt|paiemet|paiment|payement)\b/g, 'paiement')
+    .replace(/\b(commade|comande|commnde)\b/g, 'commande')
+    .replace(/\b(factur|facturre)\b/g, 'facture')
+    .replace(/\b(reclamtion|reclammation)\b/g, 'reclamation')
+    .replace(/\b(concernat|consernant)\b/g, 'concernant')
+    .replace(/\bkel\b/g, 'quel')
+    .replace(/\s+/g, ' ');
+
 const automaticReply = async (message, user) => {
-    const text = String(message || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const text = normalizeChatText(message);
     const commandRef = text.match(/cmd-\d+/i)?.[0]?.toUpperCase();
     if (commandRef) {
         const [[order]] = await pool.query(`SELECT statut, montant_ttc, vente_id FROM commandes WHERE id_commande = ? AND client_id = ? AND entreprise_id = ?`, [commandRef, user.client_id, user.entreprise_id]);
@@ -18,7 +32,7 @@ const automaticReply = async (message, user) => {
         const [[invoice]] = await pool.query(`SELECT v.montant_ttc, IFNULL(SUM(p.montant),0) AS total_paye FROM ventes v LEFT JOIN paiement p ON p.vente_id=v.id_ventes WHERE v.id_ventes=? AND v.client_id=? AND v.entreprise_id=? GROUP BY v.id_ventes`, [invoiceRef, user.client_id, user.entreprise_id]);
         if (invoice) return `La facture ${invoiceRef} est de ${Number(invoice.montant_ttc).toFixed(2)} USD TTC. Montant paye : ${Number(invoice.total_paye).toFixed(2)} USD ; reste : ${(Number(invoice.montant_ttc) - Number(invoice.total_paye)).toFixed(2)} USD.`;
     }
-    if (/^(bonjour|bonhour|bonsoir|salut|slt|hello|bjr|cc)[!. ]*$/.test(text)) return `Bonjour${String(user.nom || '').trim() ? ` ${String(user.nom).trim()}` : ''}. Je suis l’assistant de Quincaillerie Centrale. Je peux verifier un prix, le stock, une commande, une facture ou un paiement.`;
+    if (/^(bonjour|bonsoir|salut|slt|hello|bjr|cc)[!. ]*$/.test(text)) return `Bonjour${String(user.nom || '').trim() ? ` ${String(user.nom).trim()}` : ''}. Je suis l’assistant de Quincaillerie Centrale. Je peux verifier un prix, le stock, une commande, une facture ou un paiement.`;
     const ignored = new Set(['quel','quelle','quels','quelles','prix','combien','coute','cout','stock','disponible','avez','vous','produit','materiel','concernant','pour','dans','est','le','la','les','un','une','du','de','des']);
     const terms = text.replace(/[^a-z0-9 -]/g, ' ').split(/\s+/).filter((word) => word.length >= 3 && !ignored.has(word)).slice(0, 4);
     if (terms.length && /(prix|combien|coute|cout|stock|disponible|materiel|produit)/.test(text)) {
@@ -30,7 +44,8 @@ const automaticReply = async (message, user) => {
     if (/(adresse|situe|localisation|trouver)/.test(text)) return "Nous sommes sur l’Avenue du Commerce, quartier Murara, commune de Karisimbi à Goma.";
     if (/(commande|statut|livraison|suivre)/.test(text)) return "Ouvrez la rubrique Commandes pour voir le statut exact : en attente, confirmee, preparee ou livree. Donnez-moi la reference CMD si vous avez besoin d’aide supplementaire.";
     if (/(prix|catalogue|produit|stock|disponible)/.test(text)) return "Indiquez le nom du materiel recherche. Je consulterai directement le catalogue et le stock disponibles.";
-    if (/(facture|achat|paiement|reste|dette)/.test(text)) return "La rubrique Mes achats affiche vos factures, les montants payes et le reste à payer. Pour un cas precis, indiquez le numero de facture FAC.";
+    if (/(paiement|payer|mobile money|mpesa|airtel money|orange money)/.test(text)) return "Pour payer, ouvrez Mes achats puis choisissez une facture avec un reste à payer. Le bouton Payer Mobile Money permet un paiement complet ou partiel. Si aucune facture n'apparait, votre commande doit d'abord etre validee et transformee en facture par l'equipe.";
+    if (/(facture|achat|reste|dette)/.test(text)) return "La rubrique Mes achats affiche vos factures, les montants payes et le reste à payer. Pour un cas precis, indiquez le numero de facture FAC.";
     if (/(reclamation|plainte|probleme|endommage|erreur)/.test(text)) return "Vous pouvez ouvrir une reclamation depuis la rubrique Reclamations. Elle sera transmise au manager avec la reference de votre commande ou facture.";
     if (/(horaire|ouvert|ferme)/.test(text)) return "Les horaires ne sont pas encore publies dans le systeme. Votre question est transmise au manager pour une reponse confirmee.";
     const [catalogue] = await pool.query(`SELECT nom,reference_produit,unite,prix_ht,quantite_stock FROM produits WHERE entreprise_id=? AND quantite_stock>0 ORDER BY nom LIMIT 40`, [user.entreprise_id]);

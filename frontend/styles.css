@@ -8136,10 +8136,12 @@ button:disabled {
 .chat-list > button > span,.chat-avatar { align-items:center; background:#0b5ea8; border-radius:50%; color:#fff; display:flex; height:42px; justify-content:center; width:42px; }
 .chat-list button div { display:grid; gap:4px; min-width:0; }
 .chat-list button small { color:#64748b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.chat-window { display:grid; grid-template-rows:auto 1fr auto; min-width:0; }
+.chat-window { display:grid; grid-template-rows:auto auto 1fr auto; min-width:0; }
 .chat-window > header { align-items:center; border-bottom:1px solid #e2e8f0; display:flex; gap:12px; padding:16px 22px; }
 .chat-window > header > div:last-child { display:grid; gap:3px; }
 .chat-window > header span { color:#64748b; font-size:12px; }
+.chat-suggestions { background:#fff; border-bottom:1px solid #e2e8f0; display:flex; flex-wrap:wrap; gap:7px; padding:10px 16px; }
+.chat-suggestions button { background:#eef6ff; border:1px solid #c9e3fa; border-radius:999px; color:#0b5ea8; font-size:11px; font-weight:800; padding:7px 10px; }
 .chat-messages { background:#f3f6f9; display:flex; flex-direction:column; gap:11px; max-height:570px; min-height:470px; overflow-y:auto; padding:24px; }
 .chat-welcome { align-self:center; color:#526175; margin:auto; max-width:520px; text-align:center; }
 .chat-welcome svg { color:#0b5ea8; }
@@ -8159,6 +8161,11 @@ button:disabled {
 .mobile-money-note p { line-height:1.55; margin:0; }
 .mobile-pay-button { align-items:center; display:inline-flex; gap:7px; white-space:nowrap; }
 .mobile-pay-button:disabled { cursor:not-allowed; opacity:.62; }
+.role-client .nav button { font-size:12px!important; min-height:36px!important; padding:7px 12px!important; }
+.role-client .nav button svg { height:18px; width:18px; }
+.role-client .btn { font-size:12px; min-height:34px; padding:7px 11px; }
+.role-client .btn svg { height:16px; width:16px; }
+.role-client .client-quick-actions button { min-height:82px; padding:14px; }
 .purchase-empty { align-items:center; display:flex; flex-direction:column; gap:10px; justify-content:center; min-height:260px; text-align:center; }
 .purchase-empty p { color:#64748b; margin:0; max-width:520px; }
 .page-achats .nav button,.page-commandes .nav button,.page-reclamations .nav button,.page-chat .nav button { min-height:38px; padding-block:8px; }

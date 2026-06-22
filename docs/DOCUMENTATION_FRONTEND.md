@@ -571,4 +571,5 @@ Executer `npm run build`. Tester ensuite le defilement de l'accueil, l'apparitio
 - L'accueil n'affiche plus `16 %` et presente l'anciennete comme trois decennies depuis 1992.
 - Le bouton Avis IA au manager appelle uniquement le backend et n'expose jamais la cle.
 - La page Clients affiche le statut commercial, permet de filtrer Prospect, Nouveau, Regulier, Fidele ou VIP et ajoute le statut aux impressions.
+- L'accueil public ne mentionne plus la TVA. L'espace client n'affiche plus d'emoji, utilise des boutons compacts et propose trois raccourcis textuels dans le chat.
 

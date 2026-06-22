@@ -322,6 +322,8 @@ Les corrections recentes concernent:
 - avis IA facultatif pour le manager;
 - message de bienvenue et recommandation hebdomadaire limitee pour la fidelisation;
 - Mobile Money automatique lorsque le prestataire est configure, avec validation manuelle de secours;
+- script `crm_pme.sql` autonome valide sur une base neuve, sans triggers metier en double;
+- comprehension locale des fautes courantes du chat, meme sans appel IA;
 - espace client complet avec inscription et verification de l'email par code;
 - pages publiques distinctes avec footer, defilement et animations d'apparition;
 - connexion unique: le serveur detecte automatiquement le type de compte;

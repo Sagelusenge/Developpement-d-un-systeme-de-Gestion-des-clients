@@ -97,6 +97,7 @@ Un seul bloc peut rester ouvert. L'espace client conserve ses petits boutons sim
 
 - Le formulaire Contact cree une ligne dans `public_contacts`, puis notifie le manager.
 - Le chatbot reconnait des variantes comme `bonhour` et cherche d'abord prix et stock dans MySQL.
+- Les variantes `paoement`, `paiment`, `payement`, `commade`, `factur` et quelques fautes proches sont normalisees avant l'analyse. Une question comme `je veux savoir concernat ke paoement` recoit donc directement l'explication du paiement sans etre transferee au manager.
 - OpenAI fonctionne seulement dans le backend avec `OPENAI_API_KEY`; aucune cle ne doit etre placee dans React.
 - Un nouveau client recoit un message de bienvenue, puis au maximum une recommandation par semaine fondee sur le stock reel.
 - Le manager peut demander une analyse IA de ses indicateurs.
