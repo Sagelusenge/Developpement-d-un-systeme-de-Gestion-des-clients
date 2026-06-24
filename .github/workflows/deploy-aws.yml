@@ -1,0 +1,15 @@
+name: Déploiement automatique AWS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Déployer le CRM sur AWS
+        run: |
+          /usr/local/bin/deploy-crm
