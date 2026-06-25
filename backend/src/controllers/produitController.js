@@ -1,5 +1,6 @@
 import pool from '../config/db.js';
 import { nextId } from '../services/idService.js';
+import { notifyClientsForNewCategoryProduct } from '../services/clientLoyaltyService.js';
 
 const sanitizeReference = (value) => String(value || '')
     .trim()
@@ -57,7 +58,7 @@ export const getMouvementsStock = async (req, res) => {
              FROM lignes_ventes lv JOIN ventes v ON v.id_ventes=lv.vente_id
              JOIN produits p ON p.id_produit=lv.produit_id
              WHERE v.entreprise_id = ?) mouvements
-             ORDER BY date_mouvement DESC LIMIT 200`,
+             ORDER BY date_mouvement DESC LIMIT 1000`,
             [entreprise_id, entreprise_id]
         );
         res.json({ success: true, data: rows });
@@ -105,7 +106,18 @@ export const createProduit = async (req, res) => {
                 entreprise_id
             ]
         );
+        const stockInitial = Number(quantite_stock) || 0;
+        if (stockInitial > 0) {
+            const idMouvement = await nextId(connection, 'mouvements_stock', 'MVT', 6);
+            await connection.query(
+                `INSERT INTO mouvements_stock
+                    (id_mouvement, produit_id, type_mouvement, quantite, prix_achat_unitaire, prix_achat_total, note)
+                 VALUES (?, ?, 'entree', ?, ?, ?, ?)`,
+                [idMouvement, idProduit, stockInitial, Number(prix_achat) || 0, stockInitial * (Number(prix_achat) || 0), 'Stock initial a la creation du produit']
+            );
+        }
         await connection.commit();
+        notifyClientsForNewCategoryProduct({ productId: idProduit, entrepriseId: entreprise_id }).catch(() => null);
         res.status(201).json({ success: true, message: 'Produit cree avec succes', data: { id_produit: idProduit, reference_produit: reference } });
     } catch (error) {
         await connection.rollback();

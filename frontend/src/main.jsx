@@ -1234,6 +1234,7 @@ function Login({ authType, setAuthType, onLogin, notify, toast, goTo }) {
     <main className="login-page">
       <section className="login-panel">
         <div className="login-box">
+          <button className="login-home-link login-home-top" type="button" onClick={() => goTo('/')}><Home size={17} /> Retour a l'accueil</button>
           <div className="login-card-brand">
             <img className="login-logo" src={LOGO_URL} alt="" />
             <div>
@@ -1267,9 +1268,6 @@ function Login({ authType, setAuthType, onLogin, notify, toast, goTo }) {
               {loading ? 'Connexion...' : 'Se connecter'} <LogIn size={20} />
             </button>
           </form>
-          <p className="login-register-link">Nouveau client ? <button type="button" onClick={() => goTo('/inscription')}>Creer gratuitement mon compte</button></p>
-          <button className="login-home-link" type="button" onClick={() => goTo('/')}><Home size={17} /> Retour à l'accueil</button>
-          <div className="login-mini-footer"><span>© 2026 Quincaillerie Centrale</span><small>Connexion securisee • Goma, Nord-Kivu</small></div>
         </div>
       </section>
       {toast && <div className="toast">{toast}</div>}
@@ -1294,6 +1292,13 @@ function HelpModal({ page, role, onClose }) {
   };
 
   const byRole = {
+    client: [
+      ['Mon espace', 'Voir votre resume client, vos commandes recentes et vos raccourcis utiles.'],
+      ['Commandes', 'Choisir les produits disponibles, ajouter au panier et envoyer une commande.'],
+      ['Mes achats', 'Consulter vos factures, montants payes, restes a payer et paiements Mobile Money.'],
+      ['Reclamations', 'Envoyer une reclamation au manager avec les references de commande ou facture.'],
+      ['Assistance', 'Discuter avec le bot ou le manager pour obtenir une aide sur prix, paiement ou suivi.']
+    ],
     magasinier: [common.dashboard, common.produits, common.categories, common.fournisseurs, common.rapportsStock],
     caissier: [common.dashboard, common.clients, common.ventes, common.paiements, common.rapportsCaisse],
     manager: [common.dashboard, common.clients, common.ventes, common.paiements, common.produits, common.fournisseurs, common.rapportsManager, common.utilisateurs, common.mails]
@@ -2265,7 +2270,7 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
               <Select label="Unite" value={form.unite} onChange={(unite) => setForm({ ...form, unite })} options={unitOptions} />
               <Input label="Prix d'achat unitaire (CMP)" type="number" step="0.01" value={form.prix_achat} onChange={(prix_achat) => setForm({ ...form, prix_achat })} placeholder="Prix d'achat initial" />
             </div>
-            <PhotoInput label="URL de la photo du produit" value={form.photo_url} onChange={(photo_url) => setForm({ ...form, photo_url })} />
+            <PhotoInput label="URL de la photo du produit" value={form.photo_url} onChange={(photo_url) => setForm({ ...form, photo_url })} api={api} folder="products" notify={notify} />
             <div className="form-row">
               <Input label="Prix de vente HT" type="number" value={form.prix_ht} onChange={(prix_ht) => setForm({ ...form, prix_ht })} required />
               <Input label="TVA %" type="number" value={form.taux_tva} onChange={(taux_tva) => setForm({ ...form, taux_tva })} />
@@ -2306,7 +2311,7 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
               <Select label="Categorie" value={editing.categorie_id || ''} onChange={(categorie_id) => setEditing({ ...editing, categorie_id })} options={categoryOptions} required={false} />
               <Select label="Unite" value={editing.unite || 'piece'} onChange={(unite) => setEditing({ ...editing, unite })} options={unitOptions} />
             </div>
-            <PhotoInput label="URL de la photo du produit" value={editing.photo_url || ''} onChange={(photo_url) => setEditing({ ...editing, photo_url })} />
+            <PhotoInput label="URL de la photo du produit" value={editing.photo_url || ''} onChange={(photo_url) => setEditing({ ...editing, photo_url })} api={api} folder="products" notify={notify} />
             <div className="form-row">
               <Input label="Prix d'achat (CMP)" type="number" step="0.01" value={editing.prix_achat || ''} onChange={(prix_achat) => setEditing({ ...editing, prix_achat })} />
               <Input label="Prix de vente HT" type="number" value={editing.prix_ht || ''} onChange={(prix_ht) => setEditing({ ...editing, prix_ht })} required />
@@ -2681,9 +2686,9 @@ function Rapports({ data, searchQuery = '', user }) {
         {canStockReports && <div className="panel report-table-panel inventory-panel">
           <div className="panel-heading">
             <h3>Inventaire</h3>
-            <button className="btn print" onClick={() => printTableDocument('Fiche de stock', ['Produit', 'Libelle', 'Stock', 'P. Achat (CMP)', 'Valeur (Achat)', 'Statut'], stock.map((r) => [r.nom, `${r.reference_produit || 'Sans reference'} - ${r.categorie_nom || 'Sans categorie'}`, `${r.quantite_stock} ${r.unite || ''}`, moneySmart(r.prix_achat_moyen), moneySmart(r.valeur_stock_achat), r.statut]), { badge: 'INVENTAIRE', period: 'Inventaire courant', tableTitle: 'Etat du stock detaille' })}><Printer size={18} /> Imprimer</button>
+            <button className="btn print" onClick={() => printTableDocument('Fiche de stock', ['Produit', 'Libelle', 'Stock', 'Entrees', 'Sorties', 'Derniere entree', 'P. Achat (CMP)', 'Valeur (Achat)', 'Statut'], stock.map((r) => [r.nom, `${r.reference_produit || 'Sans reference'} - ${r.categorie_nom || 'Sans categorie'}`, `${r.quantite_stock} ${r.unite || ''}`, r.total_entrees || 0, r.total_sorties || 0, r.derniere_entree ? formatDate(r.derniere_entree) : '-', moneySmart(r.prix_achat_moyen), moneySmart(r.valeur_stock_achat), r.statut]), { badge: 'INVENTAIRE', period: 'Inventaire courant', tableTitle: 'Etat du stock detaille' })}><Printer size={18} /> Imprimer</button>
           </div>
-          <Table headers={['Produit', 'Libelle', 'Stock', 'P. Achat (CMP)', 'Valeur (Achat)', 'Statut']} rows={stock.map((r) => [r.nom, `${r.reference_produit || 'Sans reference'} - ${r.categorie_nom || 'Sans categorie'}`, `${r.quantite_stock} ${r.unite || ''}`, moneySmart(r.prix_achat_moyen), moneySmart(r.valeur_stock_achat), <Badge>{r.statut}</Badge>])} />
+          <Table headers={['Produit', 'Libelle', 'Stock', 'Entrees', 'Sorties', 'Derniere entree', 'P. Achat (CMP)', 'Valeur (Achat)', 'Statut']} rows={stock.map((r) => [r.nom, `${r.reference_produit || 'Sans reference'} - ${r.categorie_nom || 'Sans categorie'}`, `${r.quantite_stock} ${r.unite || ''}`, r.total_entrees || 0, r.total_sorties || 0, r.derniere_entree ? formatDate(r.derniere_entree) : '-', moneySmart(r.prix_achat_moyen), moneySmart(r.valeur_stock_achat), <Badge>{r.statut}</Badge>])} />
         </div>}
         {canStockReports && <div className="panel report-table-panel stock-movement-panel">
           <div className="panel-heading">
@@ -2923,6 +2928,7 @@ function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
   const term = searchQuery.trim().toLowerCase();
   const messages = (data.extra.mailMessages || []).filter((row) => `${row.to_email || ''} ${row.sender_email || ''} ${row.subject || ''} ${row.status || ''}`.toLowerCase().includes(term));
   const isTeamNotification = creating === 'team';
+  const isClientsMail = creating === 'clients';
 
   const openComposer = (type) => {
     setForm(emptyMailForm);
@@ -2948,7 +2954,8 @@ function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
         const timer = window.setTimeout(() => controller.abort(), 18000);
         let response;
         try {
-          response = await api(isTeamNotification ? '/mail/notify-team' : '/mail/send', {
+          const endpoint = isTeamNotification ? '/mail/notify-team' : isClientsMail ? '/mail/send-clients' : '/mail/send';
+          response = await api(endpoint, {
             method: 'POST',
             body: JSON.stringify(form),
             signal: controller.signal
@@ -2961,7 +2968,7 @@ function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
         } finally {
           window.clearTimeout(timer);
         }
-        sentMessage = response.message || (isTeamNotification ? 'Notification equipe envoyee' : 'Email envoye');
+        sentMessage = response.message || (isTeamNotification ? 'Notification equipe envoyee' : isClientsMail ? 'Email envoye aux clients' : 'Email envoye');
       });
       setForm(emptyMailForm);
       setCreating(null);
@@ -2982,6 +2989,7 @@ function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
           <h3>Communications envoyees</h3>
           <div className="actions">
             <button className="btn secondary small" type="button" onClick={() => openComposer('team')}><Bell size={16} /> Message equipe</button>
+            <button className="btn secondary small" type="button" onClick={() => openComposer('clients')}><Users size={16} /> Tous les clients</button>
             <button className="btn small" type="button" onClick={() => openComposer('email')}><Plus size={16} /> Nouveau message</button>
           </div>
         </div>
@@ -3009,16 +3017,16 @@ function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
         </div>
       </div>
       {creating && (
-        <Modal title={isTeamNotification ? "Message a toute l'equipe" : 'Nouveau message'} onClose={closeComposer}>
+        <Modal title={isTeamNotification ? "Message a toute l'equipe" : isClientsMail ? 'Message a tous les clients' : 'Nouveau message'} onClose={closeComposer}>
           <Form onSubmit={sendMessage}>
             <div className="debt-preview">
               <span>Expediteur</span>
               <strong>{status.sender || user?.email || 'Email serveur indisponible'}</strong>
             </div>
-            {isTeamNotification ? (
+            {isTeamNotification || isClientsMail ? (
               <div className="debt-preview">
                 <span>Destination</span>
-                <strong>Tous les utilisateurs actifs de l'entreprise</strong>
+                <strong>{isTeamNotification ? "Tous les utilisateurs actifs de l'entreprise" : 'Tous les clients actifs avec email'}</strong>
               </div>
             ) : (
               <Input label="Destinataire" type="email" value={form.to} onChange={(to) => setForm({ ...form, to })} required />
@@ -3034,7 +3042,7 @@ function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
               </div>
             )}
             <button className="btn modal-submit" type="submit" disabled={sending}>
-              {isTeamNotification ? <Bell size={18} /> : <Mail size={18} />}
+              {isTeamNotification ? <Bell size={18} /> : isClientsMail ? <Users size={18} /> : <Mail size={18} />}
               {sending ? 'Envoi en cours...' : 'Envoyer'}
             </button>
           </Form>
@@ -3201,7 +3209,7 @@ function Categories({ api, notify, data, submit, searchQuery = '', user }) {
           <Form onSubmit={save}>
             <Input label="Nom" value={form.nom} onChange={(nom) => setForm({ ...form, nom })} required />
             <Input label="Description" value={form.description} onChange={(description) => setForm({ ...form, description })} />
-            <PhotoInput label="URL de la photo de la categorie" value={form.photo_url} onChange={(photo_url) => setForm({ ...form, photo_url })} />
+            <PhotoInput label="URL de la photo de la categorie" value={form.photo_url} onChange={(photo_url) => setForm({ ...form, photo_url })} api={api} folder="categories" notify={notify} />
             <button className="btn modal-submit">Enregistrer <ArrowRight size={20} /></button>
           </Form>
         </Modal>
@@ -3211,7 +3219,7 @@ function Categories({ api, notify, data, submit, searchQuery = '', user }) {
           <Form onSubmit={saveEdit}>
             <Input label="Nom" value={editing.nom || ''} onChange={(nom) => setEditing({ ...editing, nom })} required />
             <Input label="Description" value={editing.description || ''} onChange={(description) => setEditing({ ...editing, description })} />
-            <PhotoInput label="URL de la photo de la categorie" value={editing.photo_url || ''} onChange={(photo_url) => setEditing({ ...editing, photo_url })} />
+            <PhotoInput label="URL de la photo de la categorie" value={editing.photo_url || ''} onChange={(photo_url) => setEditing({ ...editing, photo_url })} api={api} folder="categories" notify={notify} />
             <button className="btn">Mettre a jour</button>
           </Form>
         </Modal>
@@ -3405,6 +3413,34 @@ function ChatPage({ api, notify, data, user, searchQuery = '' }) {
     catch (error) { notify(error.message); }
     finally { setAnalysisLoading(false); }
   };
+  const renderChatMessage = (item) => {
+    const mine = item.sender_type === 'client'
+      ? user?.role === 'client'
+      : item.sender_type === 'manager' && user?.role === 'manager';
+    const roleLabel = item.sender_type === 'bot'
+      ? 'Bot'
+      : item.sender_type === 'manager'
+        ? 'Manager'
+        : (user?.role === 'client' ? 'Vous' : 'Client');
+    const initials = item.sender_type === 'bot'
+      ? 'QC'
+      : item.sender_type === 'manager'
+        ? 'MG'
+        : getInitials(selected?.client_nom || user?.nom || 'Client');
+    return (
+      <div key={item.id_message} className={`chat-message-row ${mine ? 'mine' : 'theirs'} ${item.sender_type === 'bot' ? 'bot-row' : ''}`}>
+        {!mine && <div className="chat-message-avatar">{initials}</div>}
+        <article className={`chat-bubble ${item.pending ? 'pending' : ''} ${mine ? 'mine' : 'theirs'} ${item.sender_type === 'bot' ? 'bot' : ''}`}>
+          <div className="chat-bubble-meta">
+            <small>{roleLabel}</small>
+            <time>{item.pending ? 'Envoi...' : new Date(item.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time>
+          </div>
+          <p>{item.message}</p>
+        </article>
+        {mine && <div className="chat-message-avatar mine-avatar">{initials}</div>}
+      </div>
+    );
+  };
   return (
     <><div className="chat-page-tools">{user?.role === 'manager' && <button className="btn secondary small" type="button" onClick={analyze} disabled={analysisLoading}><BarChart3 size={17} /> {analysisLoading ? 'Analyse...' : 'Avis IA au manager'}</button>}</div><div className={`chat-shell ${user?.role === 'client' ? 'client-chat-shell' : ''}`}>
       {user?.role === 'manager' && <aside className="chat-list"><div className="chat-list-head"><MessageCircle size={21} /><strong>Conversations</strong></div>{chats.length ? chats.map((chat) => <button key={chat.id_conversation} className={selected?.id_conversation === chat.id_conversation ? 'active' : ''} type="button" onClick={() => setSelectedId(chat.id_conversation)}><span>{getInitials(chat.client_nom)}</span><div><strong>{chat.client_nom} {chat.client_postnom || ''}</strong><small>{chat.dernier_message || 'Nouvelle conversation'}</small></div><Badge>{chat.statut}</Badge></button>) : <p className="empty compact">Aucune conversation</p>}</aside>}
@@ -3413,7 +3449,7 @@ function ChatPage({ api, notify, data, user, searchQuery = '' }) {
         {user?.role === 'client' && <div className="chat-suggestions"><button type="button" onClick={() => setMessage("Quel est le prix d'un produit ?")}>Prix d'un produit</button><button type="button" onClick={() => setMessage('Je veux suivre ma commande')}>Suivre une commande</button><button type="button" onClick={() => setMessage('Je veux savoir concernant le paiement')}>Comprendre le paiement</button></div>}
         <div className="chat-messages" ref={messagesRef}>
           {!selected && user?.role === 'client' && <div className="chat-welcome"><MessageCircle size={34} /><h3>Comment pouvons-nous vous aider ?</h3><p>L’assistant consulte vos references de commande et de facture, puis repond aux questions sur les prix, paiements, produits et reclamations. S’il ne dispose pas d’une information fiable, le manager est prevenu immediatement par notification et par email.</p></div>}
-          {(selected?.messages || []).map((item) => <article key={item.id_message} className={`chat-bubble ${item.pending ? 'pending' : ''} ${item.sender_type === 'client' ? (user?.role === 'client' ? 'mine' : 'theirs') : item.sender_type === 'manager' ? (user?.role === 'manager' ? 'mine' : 'theirs') : 'bot'}`}><small>{item.sender_type === 'bot' ? 'Assistant automatique' : item.sender_type === 'manager' ? 'Manager' : 'Client'}</small><p>{item.message}</p><time>{item.pending ? 'Envoi...' : new Date(item.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time></article>)}
+          {(selected?.messages || []).map(renderChatMessage)}
         </div>
         {(user?.role === 'client' || selected) && <Form onSubmit={send}><div className="chat-composer"><textarea value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Ecrivez votre question..." maxLength={2000} /><button className="btn" disabled={!message.trim()}><Send size={19} /> Envoyer</button></div></Form>}
       </section>
@@ -3447,12 +3483,41 @@ function Input({ label, value, onChange, type = 'text', required = false, ...pro
   return <label>{label}<input type={type} value={value} onChange={(e) => onChange(e.target.value)} required={required} {...props} /></label>;
 }
 
-function PhotoInput({ label, value, onChange }) {
-  const loadFile = (event) => {
+function PhotoInput({ label, value, onChange, api, folder = 'products', notify }) {
+  const [uploading, setUploading] = useState(false);
+  const loadFile = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      notify?.('Choisissez une image valide.');
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      notify?.('Image trop lourde. Taille maximum: 3 Mo.');
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = () => onChange(reader.result || '');
+    reader.onload = async () => {
+      const dataUrl = reader.result || '';
+      if (!api) {
+        onChange(dataUrl);
+        return;
+      }
+      setUploading(true);
+      try {
+        const response = await api('/uploads/image', {
+          method: 'POST',
+          body: JSON.stringify({ folder, data_url: dataUrl, file_name: file.name })
+        });
+        onChange(response.data?.url || '');
+        notify?.('Photo chargee avec succes.');
+      } catch (error) {
+        notify?.(error.message || "Impossible de charger la photo.");
+      } finally {
+        setUploading(false);
+        event.target.value = '';
+      }
+    };
     reader.readAsDataURL(file);
   };
 
@@ -3460,7 +3525,8 @@ function PhotoInput({ label, value, onChange }) {
     <label>{label}
       <div className="photo-input">
         <input type="url" value={value || ''} onChange={(e) => onChange(e.target.value)} placeholder="Coller le lien de la photo" />
-        <input type="file" accept="image/*" onChange={loadFile} />
+        <input type="file" accept="image/*" onChange={loadFile} disabled={uploading} />
+        {uploading && <small>Chargement de la photo...</small>}
         {value && (
           <div className="photo-preview">
             <img src={value} alt="" />

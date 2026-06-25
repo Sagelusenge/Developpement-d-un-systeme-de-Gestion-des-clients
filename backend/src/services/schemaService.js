@@ -303,6 +303,24 @@ export const ensureRuntimeSchema = async (pool) => {
     `);
 
     await pool.query(`
+        CREATE TABLE IF NOT EXISTS crm_email_campaigns (
+            id_campaign INT AUTO_INCREMENT PRIMARY KEY,
+            client_id VARCHAR(50) NOT NULL,
+            entreprise_id VARCHAR(50) NOT NULL,
+            campaign_key VARCHAR(120) NOT NULL,
+            statut ENUM('en_cours','envoye','echec') NOT NULL DEFAULT 'en_cours',
+            provider_message_id VARCHAR(255),
+            erreur VARCHAR(500),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            sent_at TIMESTAMP NULL,
+            UNIQUE KEY uniq_crm_email_campaign (client_id, campaign_key),
+            INDEX idx_crm_email_entreprise (entreprise_id, campaign_key, created_at),
+            FOREIGN KEY (client_id) REFERENCES client(id_client) ON DELETE CASCADE,
+            FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE
+        )
+    `);
+
+    await pool.query(`
         CREATE TABLE IF NOT EXISTS password_reset_codes (
             id_reset INT AUTO_INCREMENT PRIMARY KEY,
             user_id VARCHAR(50) NOT NULL,

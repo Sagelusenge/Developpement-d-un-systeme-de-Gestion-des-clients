@@ -9,12 +9,26 @@ Un service evite de dupliquer la meme logique dans plusieurs fichiers. Par exemp
 - `schemaService.js`: verifie que certaines tables et colonnes existent.
 - service mail: prepare l'envoi des emails et notifications quand la configuration SMTP est disponible.
 - `chatRealtimeService.js`: conserve les connexions SSE par entreprise et diffuse `chat-update` apres chaque message.
-- `mailService.js`: produit notamment l'alerte professionnelle envoyee au manager lors d'une escalade du chatbot.
-- `openaiService.js`: appelle la Responses API pour le chat et l'analyse manager, uniquement si la cle serveur existe.
+- `mailService.js`: centralise les emails professionnels du CRM: verification de compte, bienvenue, commande recue, statut de commande, facture disponible, relance client et nouveaute produit.
+- `openaiService.js`: appelle la Responses API pour le chat et l'analyse manager, uniquement si la cle serveur existe. Le chat garde d'abord les reponses fiables basees sur la base de donnees, puis utilise l'IA pour formuler une reponse naturelle.
 - `mobileMoneyService.js`: adapte l'appel vers le prestataire Mobile Money configure.
-- `clientLoyaltyService.js`: prepare la recommandation hebdomadaire du client et l'email unique du prospect sans achat apres le delai configure.
+- `clientLoyaltyService.js`: gere la fidelisation: email unique du prospect sans achat, relance des clients inactifs, recommandations dans le chat et notification des clients quand un nouveau produit arrive dans une categorie deja achetee.
 
-Le schema d'execution cree aussi `chat_conversations`, `chat_messages`, `demandes_paiement_mobile`, `public_contacts` et `prospect_email_campaigns` lorsqu'elles sont absentes.
+Le schema d'execution cree aussi `chat_conversations`, `chat_messages`, `demandes_paiement_mobile`, `public_contacts`, `prospect_email_campaigns` et `crm_email_campaigns` lorsqu'elles sont absentes.
+
+## Cycle CRM email
+
+Les emails sont declenches par des evenements precis:
+
+- inscription: code de verification puis email de bienvenue apres confirmation;
+- commande client: confirmation de reception;
+- changement de statut: information au client;
+- conversion en facture: email indiquant que la facture est disponible;
+- prospect sans achat: email apres `PROSPECT_FOLLOWUP_HOURS`;
+- client inactif: relance apres `INACTIVE_CLIENT_EMAIL_DAYS`, basee sur les categories deja achetees;
+- nouveau produit: email cible aux clients ayant deja achete dans la meme categorie.
+
+Les tables `prospect_email_campaigns` et `crm_email_campaigns` evitent les doublons.
 
 ## Role dans l'architecture
 

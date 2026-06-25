@@ -2654,6 +2654,20 @@ POST   /mail/send
 POST   /mail/notify-team
 ```
 
+## Emails automatiques du CRM
+
+Ces emails sont declenches par le backend; l'application mobile n'a pas besoin d'appeler un endpoint dedie:
+
+- inscription client: code de verification, puis email de bienvenue;
+- commande creee: confirmation de reception au client;
+- statut de commande modifie: notification email au client;
+- commande convertie en facture: email indiquant la facture disponible;
+- prospect sans achat: email unique apres `PROSPECT_FOLLOWUP_HOURS`;
+- client inactif: relance apres `INACTIVE_CLIENT_EMAIL_DAYS`, basee sur les categories deja achetees;
+- nouveau produit: email cible aux clients qui ont deja achete dans cette categorie.
+
+Les tables `prospect_email_campaigns` et `crm_email_campaigns` evitent les doublons. Si SMTP n'est pas configure, les envois sont ignores sans bloquer l'action principale.
+
 ---
 
 # ðŸ–¨ï¸ Impression

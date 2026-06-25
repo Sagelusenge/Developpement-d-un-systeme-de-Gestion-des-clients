@@ -9,7 +9,8 @@ const hiddenFields = new Set([
     'photo',
     'photo_url',
     'image',
-    'image_url'
+    'image_url',
+    'data_url'
 ]);
 
 const sanitizeValue = (value) => {

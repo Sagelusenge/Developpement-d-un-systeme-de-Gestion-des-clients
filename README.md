@@ -319,7 +319,9 @@ Les corrections recentes concernent:
 - module Commentaires pour conserver les formulaires du site public;
 - fiche de mouvements reunissant approvisionnements et sorties issues des ventes;
 - chatbot hybride: recherche SQL prioritaire, puis OpenAI si configure;
+- chat plus naturel: salutations, remerciements, fautes courantes et questions d'aide ne sont plus transferees inutilement;
 - avis IA facultatif pour le manager;
+- cycle email CRM: verification, bienvenue, commande recue, statut, facture disponible, prospect, client inactif et nouveaute produit ciblee;
 - message de bienvenue et recommandation hebdomadaire limitee pour la fidelisation;
 - Mobile Money automatique lorsque le prestataire est configure, avec validation manuelle de secours;
 - script `crm_pme.sql` autonome valide sur une base neuve, sans triggers metier en double;

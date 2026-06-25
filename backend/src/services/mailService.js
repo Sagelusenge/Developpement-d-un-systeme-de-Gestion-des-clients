@@ -88,6 +88,11 @@ export const sendClientWelcomeEmail = ({ to, name }) => sendMail({
     })
 });
 
+const productListHtml = (products = []) => `
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #dce4ee;border-radius:10px;border-collapse:separate;overflow:hidden">
+    ${products.map((product) => `<tr><td style="border-bottom:1px solid #e2e8f0;padding:13px 8px"><strong style="color:#06264a">${escapeHtml(product.nom)}</strong><br><span style="color:#64748b;font-size:13px">${escapeHtml(product.quantite_stock ?? product.quantite ?? '')} ${escapeHtml(product.unite || 'piece')}</span></td><td style="border-bottom:1px solid #e2e8f0;padding:13px 8px;text-align:right;white-space:nowrap"><strong>${escapeHtml(Number(product.prix_ht ?? product.prix_unitaire_ht ?? 0).toFixed(2))} USD</strong><br><span style="color:#64748b;font-size:12px">par ${escapeHtml(product.unite || 'piece')}</span></td></tr>`).join('')}
+  </table>`;
+
 export const sendProspectDiscoveryEmail = ({ to, name, products, catalogUrl }) => {
     const productRows = (products || []).map((product) => `<tr><td style="border-bottom:1px solid #e2e8f0;padding:13px 8px"><strong style="color:#06264a">${escapeHtml(product.nom)}</strong><br><span style="color:#64748b;font-size:13px">Disponible: ${escapeHtml(product.quantite_stock)} ${escapeHtml(product.unite || 'piece')}</span></td><td style="border-bottom:1px solid #e2e8f0;padding:13px 8px;text-align:right;white-space:nowrap"><strong>${escapeHtml(Number(product.prix_ht).toFixed(2))} USD</strong><br><span style="color:#64748b;font-size:12px">par ${escapeHtml(product.unite || 'piece')}</span></td></tr>`).join('');
     const safeUrl = escapeHtml(catalogUrl);
@@ -105,6 +110,86 @@ export const sendProspectDiscoveryEmail = ({ to, name, products, catalogUrl }) =
         })
     });
 };
+
+export const sendOrderReceivedEmail = ({ to, name, orderId, total, lines, espaceUrl }) => sendMail({
+    to,
+    subject: `Commande ${orderId} recue | ${APP_NAME}`,
+    text: `Bonjour ${name || 'cher client'},\n\nNous avons bien recu votre commande ${orderId}. Total estime: ${Number(total || 0).toFixed(2)} USD. Notre equipe va la verifier et vous pourrez suivre son statut dans votre espace client.\n\n${espaceUrl || ''}\n\nL'equipe ${APP_NAME}`,
+    html: brandedEmail({
+        eyebrow: 'COMMANDE RECUE',
+        title: `Votre commande ${orderId} est enregistree`,
+        greeting: `Bonjour ${name || 'cher client'}`,
+        intro: 'Merci pour votre confiance. Votre commande a ete transmise a notre equipe commerciale pour verification du stock et confirmation.',
+        content: `${productListHtml((lines || []).map((line) => ({ ...line, quantite_stock: `Quantite: ${line.quantite}` })))}<div style="background:#f8fafc;border:1px solid #dce4ee;border-radius:10px;margin-top:18px;padding:16px;text-align:right"><span style="color:#64748b">Total estime</span><br><strong style="color:#06264a;font-size:22px">${escapeHtml(Number(total || 0).toFixed(2))} USD</strong></div>${espaceUrl ? `<div style="margin-top:24px;text-align:center"><a href="${escapeHtml(espaceUrl)}" style="background:#0b5ea8;border-radius:8px;color:#ffffff;display:inline-block;font-size:14px;font-weight:700;padding:13px 22px;text-decoration:none">Suivre ma commande</a></div>` : ''}`,
+        notice: 'Le montant reste confirme par la facture definitive. Vous recevrez une notification lorsque la commande evolue.'
+    })
+});
+
+export const sendOrderStatusEmail = ({ to, name, orderId, status, espaceUrl }) => {
+    const labels = {
+        en_attente: 'en attente de verification',
+        confirmee: 'confirmee',
+        preparee: 'en preparation',
+        livree: 'livree',
+        annulee: 'annulee',
+        rejetee: 'rejetee'
+    };
+    return sendMail({
+        to,
+        subject: `Mise a jour de votre commande ${orderId} | ${APP_NAME}`,
+        text: `Bonjour ${name || 'cher client'},\n\nVotre commande ${orderId} est maintenant ${labels[status] || status}.\n\n${espaceUrl || ''}\n\nL'equipe ${APP_NAME}`,
+        html: brandedEmail({
+            eyebrow: 'SUIVI DE COMMANDE',
+            title: `Commande ${orderId} : ${labels[status] || status}`,
+            greeting: `Bonjour ${name || 'cher client'}`,
+            intro: `Le statut de votre commande vient d'etre mis a jour. Elle est maintenant ${labels[status] || status}.`,
+            content: espaceUrl ? `<div style="margin-top:8px;text-align:center"><a href="${escapeHtml(espaceUrl)}" style="background:#0b5ea8;border-radius:8px;color:#ffffff;display:inline-block;font-size:14px;font-weight:700;padding:13px 22px;text-decoration:none">Ouvrir mon espace client</a></div>` : '',
+            notice: 'Pour toute question, utilisez le chat de votre espace client afin de garder l’historique de la discussion.'
+        })
+    });
+};
+
+export const sendInvoiceAvailableEmail = ({ to, name, orderId, invoiceId, total, espaceUrl }) => sendMail({
+    to,
+    subject: `Facture ${invoiceId} disponible | ${APP_NAME}`,
+    text: `Bonjour ${name || 'cher client'},\n\nVotre commande ${orderId} a ete transformee en facture ${invoiceId}. Montant: ${Number(total || 0).toFixed(2)} USD. Vous pouvez consulter vos achats et paiements dans votre espace client.\n\n${espaceUrl || ''}\n\nL'equipe ${APP_NAME}`,
+    html: brandedEmail({
+        eyebrow: 'FACTURE DISPONIBLE',
+        title: `Votre facture ${invoiceId} est disponible`,
+        greeting: `Bonjour ${name || 'cher client'}`,
+        intro: `La commande ${orderId} a ete validee et transformee en facture. Vous pouvez maintenant consulter le montant, les paiements et le reste a payer.`,
+        content: `<div style="background:#f8fafc;border:1px solid #dce4ee;border-radius:10px;padding:18px"><p style="margin:0 0 8px"><strong>Facture :</strong> ${escapeHtml(invoiceId)}</p><p style="margin:0"><strong>Montant :</strong> ${escapeHtml(Number(total || 0).toFixed(2))} USD</p></div>${espaceUrl ? `<div style="margin-top:24px;text-align:center"><a href="${escapeHtml(espaceUrl)}" style="background:#0b5ea8;border-radius:8px;color:#ffffff;display:inline-block;font-size:14px;font-weight:700;padding:13px 22px;text-decoration:none">Consulter mes achats</a></div>` : ''}`,
+        notice: 'Si le paiement Mobile Money est active dans votre configuration, vous pourrez payer totalement ou partiellement depuis Mes achats.'
+    })
+});
+
+export const sendInactiveClientEmail = ({ to, name, products, espaceUrl, days }) => sendMail({
+    to,
+    subject: `Des produits utiles pour vos prochains achats | ${APP_NAME}`,
+    text: `Bonjour ${name || 'cher client'},\n\nCela fait environ ${days || 7} jours que nous ne vous avons pas accompagne. Voici quelques produits disponibles susceptibles de vous interesser: ${(products || []).map((p) => `${p.nom} a ${Number(p.prix_ht).toFixed(2)} USD/${p.unite || 'piece'}`).join(', ')}.\n\n${espaceUrl || ''}\n\nL'equipe ${APP_NAME}`,
+    html: brandedEmail({
+        eyebrow: 'FIDELISATION CLIENT',
+        title: 'Une selection basee sur vos achats',
+        greeting: `Bonjour ${name || 'cher client'}`,
+        intro: `Nous avons prepare une courte selection de produits disponibles, inspiree de vos achats precedents, pour vous aider a preparer vos prochains besoins.`,
+        content: `${productListHtml(products)}${espaceUrl ? `<div style="margin-top:24px;text-align:center"><a href="${escapeHtml(espaceUrl)}" style="background:#0b5ea8;border-radius:8px;color:#ffffff;display:inline-block;font-size:14px;font-weight:700;padding:13px 22px;text-decoration:none">Voir le catalogue</a></div>` : ''}`,
+        notice: 'Nous limitons volontairement ces rappels afin de rester utiles et non envahissants.'
+    })
+});
+
+export const sendCategoryNewProductEmail = ({ to, name, product, categoryName, espaceUrl }) => sendMail({
+    to,
+    subject: `Nouveau produit disponible en ${categoryName || 'magasin'} | ${APP_NAME}`,
+    text: `Bonjour ${name || 'cher client'},\n\nUn nouveau produit est disponible dans une categorie que vous avez deja achetee: ${product.nom}, ${Number(product.prix_ht || 0).toFixed(2)} USD/${product.unite || 'piece'}.\n\n${espaceUrl || ''}\n\nL'equipe ${APP_NAME}`,
+    html: brandedEmail({
+        eyebrow: 'NOUVEAUTE EN STOCK',
+        title: `${product.nom} est disponible`,
+        greeting: `Bonjour ${name || 'cher client'}`,
+        intro: `Nous vous informons car vous avez deja achete des produits de la categorie ${categoryName || 'concernee'}.`,
+        content: `${productListHtml([{ ...product, quantite_stock: `Stock: ${product.quantite_stock}` }])}${espaceUrl ? `<div style="margin-top:24px;text-align:center"><a href="${escapeHtml(espaceUrl)}" style="background:#0b5ea8;border-radius:8px;color:#ffffff;display:inline-block;font-size:14px;font-weight:700;padding:13px 22px;text-decoration:none">Consulter le produit</a></div>` : ''}`,
+        notice: 'Cet email est envoye uniquement aux clients ayant deja achete dans cette categorie.'
+    })
+});
 
 export const sendPasswordCodeEmail = ({ to, name, code }) => sendMail({
     to,

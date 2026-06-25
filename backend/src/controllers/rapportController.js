@@ -72,6 +72,9 @@ export const getStockInventaire = async (req, res) => {
                     p.prix_achat AS prix_achat_moyen,
                     p.quantite_stock,
                     p.seuil_alerte,
+                    IFNULL(entrees.total_entrees, 0) AS total_entrees,
+                    IFNULL(sorties.total_sorties, 0) AS total_sorties,
+                    dernier_entree.derniere_entree,
                     (p.quantite_stock * p.prix_achat) AS valeur_stock_achat,
                     (p.quantite_stock * p.prix_ht) AS valeur_stock_vente,
                     c.nom AS categorie_nom,
@@ -82,9 +85,28 @@ export const getStockInventaire = async (req, res) => {
                     END AS statut
              FROM produits p
              LEFT JOIN categorie_produit c ON c.id_categorie = p.categorie_id
+             LEFT JOIN (
+                SELECT produit_id, SUM(quantite) AS total_entrees
+                FROM mouvements_stock
+                WHERE type_mouvement='entree'
+                GROUP BY produit_id
+             ) entrees ON entrees.produit_id = p.id_produit
+             LEFT JOIN (
+                SELECT lv.produit_id, SUM(lv.quantite) AS total_sorties
+                FROM lignes_ventes lv
+                JOIN ventes v ON v.id_ventes = lv.vente_id
+                WHERE v.entreprise_id = ?
+                GROUP BY lv.produit_id
+             ) sorties ON sorties.produit_id = p.id_produit
+             LEFT JOIN (
+                SELECT produit_id, MAX(date_mouvement) AS derniere_entree
+                FROM mouvements_stock
+                WHERE type_mouvement='entree'
+                GROUP BY produit_id
+             ) dernier_entree ON dernier_entree.produit_id = p.id_produit
              WHERE p.entreprise_id = ?
              ORDER BY p.nom ASC`,
-            [entreprise_id]
+            [entreprise_id, entreprise_id]
         );
         res.json({ success: true, data: rows });
     } catch (error) {

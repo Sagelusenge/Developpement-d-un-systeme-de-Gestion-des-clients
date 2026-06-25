@@ -1,9 +1,37 @@
 import pool from '../config/db.js';
 import { nextId } from './idService.js';
 import { publishChatUpdate } from './chatRealtimeService.js';
-import { sendProspectDiscoveryEmail } from './mailService.js';
+import {
+    sendCategoryNewProductEmail,
+    sendInactiveClientEmail,
+    sendProspectDiscoveryEmail
+} from './mailService.js';
 
 const prospectCampaignKey = 'prospect_discovery_v1';
+const inactiveCampaignPrefix = 'inactive_client';
+const productCampaignPrefix = 'category_new_product';
+
+const getFrontendOrigin = () => String(process.env.FRONTEND_URL || 'http://127.0.0.1:5174')
+    .split(',')[0]
+    .trim()
+    .replace(/\/$/, '');
+
+const claimCampaign = async ({ clientId, entrepriseId, campaignKey }) => {
+    const [claim] = await pool.query(
+        `INSERT IGNORE INTO crm_email_campaigns (client_id,entreprise_id,campaign_key) VALUES (?,?,?)`,
+        [clientId, entrepriseId, campaignKey]
+    );
+    return Boolean(claim.affectedRows);
+};
+
+const markCampaign = async ({ clientId, campaignKey, status, messageId = null, error = null }) => {
+    await pool.query(
+        `UPDATE crm_email_campaigns
+         SET statut=?, provider_message_id=?, erreur=?, sent_at=IF(?='envoye',NOW(),sent_at)
+         WHERE client_id=? AND campaign_key=?`,
+        [status, messageId, error ? String(error).slice(0, 500) : null, status, clientId, campaignKey]
+    );
+};
 
 export const sendProspectFollowUpEmails = async () => {
     const hours = Math.max(1, Math.min(720, Number.parseInt(process.env.PROSPECT_FOLLOWUP_HOURS || '24', 10) || 24));
@@ -17,7 +45,7 @@ export const sendProspectFollowUpEmails = async () => {
          ORDER BY c.created_at ASC LIMIT 100`,
         [prospectCampaignKey]
     );
-    const frontendOrigin = String(process.env.FRONTEND_URL || 'http://127.0.0.1:5174').split(',')[0].trim().replace(/\/$/, '');
+    const frontendOrigin = getFrontendOrigin();
     for (const prospect of prospects) {
         const [products] = await pool.query(`SELECT nom,unite,prix_ht,quantite_stock FROM produits WHERE entreprise_id=? AND quantite_stock>0 AND prix_ht>=prix_achat ORDER BY quantite_stock DESC,nom ASC LIMIT 3`, [prospect.entreprise_id]);
         if (products.length < 3) continue;
@@ -50,5 +78,101 @@ export const sendWeeklyClientRecommendations = async () => {
             await connection.query(`INSERT INTO chat_messages (id_message,conversation_id,sender_type,message) VALUES (?,?,'bot',?)`, [messageId, conversation.id_conversation, `[Conseil de la semaine] Bonjour ${client.nom}. Voici une selection disponible, sans multiplier les messages: ${selection}. Ecrivez-moi le nom d'un produit pour verifier son stock.`]);
             publishChatUpdate(client.entreprise_id, { conversation_id: conversation.id_conversation, sender_type: 'bot' });
         } finally { connection.release(); }
+    }
+};
+
+export const sendInactiveClientEmails = async () => {
+    const days = Math.max(1, Math.min(365, Number.parseInt(process.env.INACTIVE_CLIENT_EMAIL_DAYS || '7', 10) || 7));
+    const campaignKey = `${inactiveCampaignPrefix}_${days}d`;
+    const frontendOrigin = getFrontendOrigin();
+    const [clients] = await pool.query(
+        `SELECT c.id_client,c.nom,c.email,c.entreprise_id,MAX(v.date_vente) AS last_purchase,COUNT(v.id_ventes) AS purchases
+         FROM client c
+         JOIN ventes v ON v.client_id=c.id_client
+         WHERE c.actif=1 AND c.email IS NOT NULL AND c.email<>'' AND c.email_verified_at IS NOT NULL
+         GROUP BY c.id_client
+         HAVING purchases > 0
+            AND last_purchase <= DATE_SUB(NOW(),INTERVAL ? DAY)
+            AND NOT EXISTS (
+                SELECT 1 FROM crm_email_campaigns ce
+                WHERE ce.client_id=c.id_client
+                  AND ce.campaign_key LIKE ?
+                  AND ce.created_at >= DATE_SUB(NOW(),INTERVAL ? DAY)
+            )
+         ORDER BY last_purchase ASC LIMIT 100`,
+        [days, `${campaignKey}_%`, days]
+    );
+
+    for (const client of clients) {
+        const [products] = await pool.query(
+            `SELECT DISTINCT p.nom,p.unite,p.prix_ht,p.quantite_stock
+             FROM produits p
+             WHERE p.entreprise_id=? AND p.quantite_stock>0 AND p.prix_ht>=p.prix_achat
+               AND p.categorie_id IS NOT NULL
+               AND EXISTS (
+                   SELECT 1
+                   FROM ventes v_old
+                   JOIN lignes_ventes lv_old ON lv_old.vente_id = v_old.id_ventes
+                   JOIN produits bought ON bought.id_produit = lv_old.produit_id
+                   WHERE v_old.client_id=? AND bought.categorie_id = p.categorie_id
+               )
+             ORDER BY p.quantite_stock DESC,p.nom ASC LIMIT 3`,
+            [client.entreprise_id, client.id_client]
+        );
+        if (!products.length) continue;
+        const uniqueKey = `${campaignKey}_${new Date().toISOString().slice(0, 10)}`;
+        if (!await claimCampaign({ clientId: client.id_client, entrepriseId: client.entreprise_id, campaignKey: uniqueKey })) continue;
+        try {
+            const result = await sendInactiveClientEmail({ to: client.email, name: client.nom, products, espaceUrl: `${frontendOrigin}/connexion`, days });
+            if (result?.skipped) {
+                await pool.query(`DELETE FROM crm_email_campaigns WHERE client_id=? AND campaign_key=? AND statut='en_cours'`, [client.id_client, uniqueKey]);
+                continue;
+            }
+            await markCampaign({ clientId: client.id_client, campaignKey: uniqueKey, status: 'envoye', messageId: result.messageId || null });
+        } catch (error) {
+            await markCampaign({ clientId: client.id_client, campaignKey: uniqueKey, status: 'echec', error: error.message || error });
+        }
+    }
+};
+
+export const notifyClientsForNewCategoryProduct = async ({ productId, entrepriseId }) => {
+    const frontendOrigin = getFrontendOrigin();
+    const [[product]] = await pool.query(
+        `SELECT p.id_produit,p.nom,p.unite,p.prix_ht,p.quantite_stock,p.categorie_id,c.nom AS categorie_nom
+         FROM produits p LEFT JOIN categorie_produit c ON c.id_categorie=p.categorie_id
+         WHERE p.id_produit=? AND p.entreprise_id=? AND p.categorie_id IS NOT NULL AND p.quantite_stock>0 AND p.prix_ht>=p.prix_achat`,
+        [productId, entrepriseId]
+    );
+    if (!product) return;
+    const [clients] = await pool.query(
+        `SELECT DISTINCT c.id_client,c.nom,c.email,c.entreprise_id
+         FROM client c
+         JOIN ventes v ON v.client_id=c.id_client
+         JOIN lignes_ventes lv ON lv.vente_id=v.id_ventes
+         JOIN produits bought ON bought.id_produit=lv.produit_id
+         WHERE c.entreprise_id=? AND c.actif=1 AND c.email IS NOT NULL AND c.email<>'' AND c.email_verified_at IS NOT NULL
+           AND bought.categorie_id=?
+         LIMIT 300`,
+        [entrepriseId, product.categorie_id]
+    );
+    for (const client of clients) {
+        const campaignKey = `${productCampaignPrefix}_${product.id_produit}`;
+        if (!await claimCampaign({ clientId: client.id_client, entrepriseId: client.entreprise_id, campaignKey })) continue;
+        try {
+            const result = await sendCategoryNewProductEmail({
+                to: client.email,
+                name: client.nom,
+                product,
+                categoryName: product.categorie_nom,
+                espaceUrl: `${frontendOrigin}/connexion`
+            });
+            if (result?.skipped) {
+                await pool.query(`DELETE FROM crm_email_campaigns WHERE client_id=? AND campaign_key=? AND statut='en_cours'`, [client.id_client, campaignKey]);
+                continue;
+            }
+            await markCampaign({ clientId: client.id_client, campaignKey, status: 'envoye', messageId: result.messageId || null });
+        } catch (error) {
+            await markCampaign({ clientId: client.id_client, campaignKey, status: 'echec', error: error.message || error });
+        }
     }
 };

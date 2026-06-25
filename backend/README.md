@@ -33,10 +33,12 @@ Ce dossier contient l'API Express du CRM PME. Il gere aussi les comptes clients,
 - inscription client avec code email temporaire;
 - commandes calculees exclusivement avec le prix de vente catalogue;
 - chat persistant et flux SSE `GET /api/chat/stream`;
-- reponses automatiques sur commandes et factures, puis escalade au manager;
+- reponses automatiques sur salutations, remerciements, prix, stock, commandes, factures et paiements, puis escalade au manager seulement si necessaire;
 - alerte du manager par notification et email lors d'une question complexe;
+- emails CRM transactionnels: bienvenue, commande recue, statut de commande et facture disponible;
+- emails CRM de fidelisation: prospect sans achat, client inactif et nouveau produit dans une categorie deja achetee;
 - demande Mobile Money client, controle d'unicite de la reference et verification par le caissier;
-- table `demandes_paiement_mobile` creee par le schema d'execution.
+- tables `demandes_paiement_mobile`, `prospect_email_campaigns` et `crm_email_campaigns` creees par le schema d'execution.
 
 La description exhaustive des bodies et reponses se trouve dans `API_MOBILE.md`.
 
@@ -55,15 +57,44 @@ Ne jamais placer la cle dans `frontend`, Git, une capture ou une conversation. U
 
 Le fichier `frontend/public/_redirects` doit etre inclus dans le build afin que l'hebergeur renvoie les routes comme `/app` et `/contact` vers `index.html` lors d'une actualisation.
 
-## Relance email des prospects
+## Upload des photos
 
-Le serveur controle les prospects toutes les heures. Un prospect est eligible si son compte est actif, son email a ete verifie, il n'a aucune vente et son inscription depasse le delai configure. La campagne n'est envoyee que si au moins trois produits vendables sont en stock.
+Les champs photo produit et categorie acceptent un lien externe ou un fichier local. Quand un fichier est choisi, le frontend appelle:
+
+```text
+POST /api/uploads/image
+```
+
+Le backend sauvegarde l'image dans `backend/src/uploads` et renvoie une URL publique de type `/uploads/products/...`.
+
+Variables utiles sur AWS/Render:
+
+```text
+API_PUBLIC_URL=https://votre-api.example.com
+JSON_BODY_LIMIT=8mb
+UPLOAD_MAX_BYTES=3145728
+```
+
+Pour une production AWS durable, l'ideal reste de remplacer ce stockage local par S3 afin que les images ne disparaissent pas lors d'un redeploiement ou changement d'instance.
+
+## Cycle email CRM
+
+Le serveur envoie des emails selon le cycle de vie client:
+
+- creation du compte: code de verification puis bienvenue apres validation;
+- commande: confirmation de reception;
+- statut de commande: email lorsque l'equipe change le statut;
+- facture: email lorsque la commande devient facture;
+- prospect sans achat: email unique apres le delai configure;
+- client inactif: relance apres le nombre de jours configure, basee sur ses categories d'achat;
+- nouveau produit: email cible aux clients ayant deja achete dans la meme categorie.
 
 ```text
 PROSPECT_FOLLOWUP_HOURS=24
+INACTIVE_CLIENT_EMAIL_DAYS=7
 ```
 
-Utiliser `168` apres la phase de test.
+Utiliser `PROSPECT_FOLLOWUP_HOURS=168` apres la phase de test. Les tables `prospect_email_campaigns` et `crm_email_campaigns` empechent les doublons.
 
 ## Modules API
 

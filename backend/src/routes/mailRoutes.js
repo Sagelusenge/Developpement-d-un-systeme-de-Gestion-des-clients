@@ -1,6 +1,6 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import { getMailStatus, getMailMessages, sendCustomMail, sendTeamNotification } from '../controllers/mailController.js';
+import { getMailStatus, getMailMessages, sendClientsMail, sendCustomMail, sendTeamNotification } from '../controllers/mailController.js';
 
 const router = express.Router();
 
@@ -31,6 +31,7 @@ const authorizeMailSender = (req, res, next) => {
 router.get('/status', protectAny, getMailStatus);
 router.get('/messages', protectAny, authorizeMailSender, getMailMessages);
 router.post('/send', protectAny, authorizeMailSender, sendCustomMail);
+router.post('/send-clients', protectAny, authorizeMailSender, sendClientsMail);
 router.post('/notify-team', protectAny, authorizeMailSender, sendTeamNotification);
 
 export default router;

@@ -580,3 +580,27 @@ Cliquer sur une notification de commande, reclamation ou chat ouvre directement 
 - Prospect sans achat: apres 24 heures en environnement de test, il recoit une seule fois un email de presentation avec trois produits disponibles. En production, le delai recommande est 168 heures.
 - Chat: MySQL fournit les prix et stocks faisant autorite; OpenAI complete seulement les questions generales lorsque la cle serveur est configuree.
 
+## Fidelisation CRM et IA - 25 juin 2026
+
+### Assistant intelligent
+
+1. Le chat comprend les salutations, remerciements et petites fautes courantes sans transferer inutilement au manager.
+2. Pour les prix, stocks, commandes et factures, le backend consulte d'abord MySQL.
+3. OpenAI est utilise ensuite pour formuler une reponse naturelle lorsque la question reste dans le cadre autorise.
+4. Le manager n'est sollicite que pour les questions complexes, sensibles ou sans contexte fiable.
+5. L'IA ne doit jamais inventer un prix, une disponibilite, un statut ou une information client.
+
+### Emails transactionnels
+
+1. Creation du compte: code de verification, puis email de bienvenue apres confirmation.
+2. Commande client: email de confirmation indiquant que la commande est recue.
+3. Statut de commande: email lorsque l'equipe marque la commande comme confirmee, preparee, livree, annulee ou rejetee.
+4. Facture: email lorsque la commande est transformee en facture.
+
+### Emails de fidelisation
+
+1. Prospect sans achat: email unique apres le delai configure avec trois produits en stock.
+2. Client inactif: email apres `INACTIVE_CLIENT_EMAIL_DAYS`, base sur les categories deja achetees.
+3. Nouveau produit: email cible aux clients ayant deja achete dans la meme categorie.
+4. Les tables `prospect_email_campaigns` et `crm_email_campaigns` empechent les doublons.
+

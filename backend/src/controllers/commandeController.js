@@ -1,6 +1,7 @@
 import pool from '../config/db.js';
 import { nextFactureId, nextId } from '../services/idService.js';
 import { notifyEnterpriseAdmins } from '../services/notificationService.js';
+import { sendInvoiceAvailableEmail, sendOrderReceivedEmail, sendOrderStatusEmail } from '../services/mailService.js';
 
 const isClient = (req) => req.user.type === 'client';
 const allowedStatuses = ['en_attente', 'confirmee', 'preparee', 'livree', 'annulee', 'rejetee'];
@@ -15,6 +16,8 @@ const attachLines = async (commandes) => {
     );
     return commandes.map((item) => ({ ...item, lignes: lines.filter((line) => line.commande_id === item.id_commande) }));
 };
+
+const espaceClientUrl = () => `${String(process.env.FRONTEND_URL || 'http://127.0.0.1:5174').split(',')[0].trim().replace(/\/$/, '')}/connexion`;
 
 export const getCatalogue = async (req, res) => {
     try {
@@ -99,6 +102,14 @@ export const createCommande = async (req, res) => {
         }
         await connection.commit();
         await notifyEnterpriseAdmins({ entreprise_id: req.user.entreprise_id, titre: 'Nouvelle commande client', message: `${req.user.nom || 'Un client'} a envoye la commande ${id}.`, entity_type: 'commande', entity_id: id }).catch(() => null);
+        sendOrderReceivedEmail({
+            to: req.user.email,
+            name: req.user.nom,
+            orderId: id,
+            total: Number(total.toFixed(2)),
+            lines,
+            espaceUrl: espaceClientUrl()
+        }).catch(() => null);
         res.status(201).json({ success: true, message: 'Commande envoyee.', id });
     } catch (error) {
         await connection.rollback();
@@ -111,11 +122,20 @@ export const updateCommandeStatus = async (req, res) => {
     const statut = String(req.body.statut || '');
     if (!allowedStatuses.includes(statut)) return res.status(400).json({ success: false, message: 'Statut invalide.' });
     try {
+        const [[order]] = await pool.query(
+            `SELECT co.id_commande,co.statut,c.nom AS client_nom,c.email AS client_email
+             FROM commandes co JOIN client c ON c.id_client=co.client_id
+             WHERE co.id_commande=? AND co.entreprise_id=? AND co.vente_id IS NULL`,
+            [req.params.id, req.user.entreprise_id]
+        );
         const [result] = await pool.query(
             `UPDATE commandes SET statut = ? WHERE id_commande = ? AND entreprise_id = ? AND vente_id IS NULL`,
             [statut, req.params.id, req.user.entreprise_id]
         );
         if (!result.affectedRows) return res.status(404).json({ success: false, message: 'Commande introuvable ou deja facturee.' });
+        if (order?.client_email && order.statut !== statut) {
+            sendOrderStatusEmail({ to: order.client_email, name: order.client_nom, orderId: order.id_commande, status: statut, espaceUrl: espaceClientUrl() }).catch(() => null);
+        }
         res.json({ success: true, message: 'Statut de la commande mis a jour.' });
     } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 };
@@ -158,6 +178,17 @@ export const convertCommande = async (req, res) => {
         await connection.query(`UPDATE ventes SET montant_ttc = ? WHERE id_ventes = ?`, [Number(total.toFixed(2)), invoiceId]);
         await connection.query(`UPDATE commandes SET statut = 'confirmee', vente_id = ? WHERE id_commande = ?`, [invoiceId, order.id_commande]);
         await connection.commit();
+        const [[client]] = await pool.query(`SELECT nom,email FROM client WHERE id_client=?`, [order.client_id]);
+        if (client?.email) {
+            sendInvoiceAvailableEmail({
+                to: client.email,
+                name: client.nom,
+                orderId: order.id_commande,
+                invoiceId,
+                total: Number(total.toFixed(2)),
+                espaceUrl: espaceClientUrl()
+            }).catch(() => null);
+        }
         res.json({ success: true, message: `Commande convertie en facture ${invoiceId}.`, facture: invoiceId });
     } catch (error) {
         await connection.rollback();

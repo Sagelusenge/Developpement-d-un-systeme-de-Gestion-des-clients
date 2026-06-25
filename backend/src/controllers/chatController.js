@@ -11,17 +11,28 @@ const normalizeChatText = (value) => String(value || '')
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\b(bonhour|bonjor|bounjour)\b/g, 'bonjour')
+    .replace(/\b(bonhour|bonjor|bounjour|bhonjour|bhnjour|bnjour)\b/g, 'bonjour')
+    .replace(/\b(vsa|vaz)\b/g, 'vas')
+    .replace(/\b(biem|b1|bain)\b/g, 'bien')
     .replace(/\b(paoement|paiemnt|paiemet|paiment|payement)\b/g, 'paiement')
     .replace(/\b(commade|comande|commnde)\b/g, 'commande')
     .replace(/\b(factur|facturre)\b/g, 'facture')
     .replace(/\b(reclamtion|reclammation)\b/g, 'reclamation')
     .replace(/\b(concernat|consernant)\b/g, 'concernant')
     .replace(/\bkel\b/g, 'quel')
+    .replace(/\bke\b/g, 'que')
+    .replace(/\bsvp\b/g, 's il vous plait')
     .replace(/\s+/g, ' ');
 
 const automaticReply = async (message, user) => {
     const text = normalizeChatText(message);
+    if (/^(merci|merci beaucoup|ok|daccord|d accord|parfait|super|bien recu|ca marche|c est bon|c bon|merci pour votre reponse)[!. ]*$/.test(text)
+        || /(merci|remercie).*(reponse|aide|information)/.test(text)) {
+        return "Avec plaisir. Je reste disponible si vous voulez verifier un prix, suivre une commande, consulter une facture ou comprendre un paiement.";
+    }
+    if (/(qui es tu|tu fais quoi|comment tu peux m aider|aide moi|besoin d aide)/.test(text)) {
+        return "Je suis l'assistant automatique de Quincaillerie Centrale. Je peux chercher un produit dans le stock, donner le prix catalogue, expliquer le paiement, suivre une commande avec sa reference CMD ou une facture avec sa reference FAC.";
+    }
     const commandRef = text.match(/cmd-\d+/i)?.[0]?.toUpperCase();
     if (commandRef) {
         const [[order]] = await pool.query(`SELECT statut, montant_ttc, vente_id FROM commandes WHERE id_commande = ? AND client_id = ? AND entreprise_id = ?`, [commandRef, user.client_id, user.entreprise_id]);
@@ -33,6 +44,12 @@ const automaticReply = async (message, user) => {
         if (invoice) return `La facture ${invoiceRef} est de ${Number(invoice.montant_ttc).toFixed(2)} USD TTC. Montant paye : ${Number(invoice.total_paye).toFixed(2)} USD ; reste : ${(Number(invoice.montant_ttc) - Number(invoice.total_paye)).toFixed(2)} USD.`;
     }
     if (/^(bonjour|bonsoir|salut|slt|hello|bjr|cc)[!. ]*$/.test(text)) return `Bonjour${String(user.nom || '').trim() ? ` ${String(user.nom).trim()}` : ''}. Je suis l’assistant de Quincaillerie Centrale. Je peux verifier un prix, le stock, une commande, une facture ou un paiement.`;
+    if (/(tu vas bien|vous allez bien|ca va|comment allez vous|comment vas tu)/.test(text)) {
+        return "Je vais bien, merci. Je suis disponible pour vous aider avec un produit, une commande, une facture, un paiement ou une reclamation.";
+    }
+    if (/(je suis fache|je suis decu|pas content|mauvais service|trop lent|enerve|colere)/.test(text)) {
+        return "Je comprends votre mecontentement et je suis desole pour cette experience. Donnez-moi la reference de la commande, de la facture ou expliquez le probleme; si la situation demande une decision humaine, je la transmettrai au manager.";
+    }
     const ignored = new Set(['quel','quelle','quels','quelles','prix','combien','coute','cout','stock','disponible','avez','vous','produit','materiel','concernant','pour','dans','est','le','la','les','un','une','du','de','des']);
     const terms = text.replace(/[^a-z0-9 -]/g, ' ').split(/\s+/).filter((word) => word.length >= 3 && !ignored.has(word)).slice(0, 4);
     if (terms.length && /(prix|combien|coute|cout|stock|disponible|materiel|produit)/.test(text)) {
@@ -48,8 +65,23 @@ const automaticReply = async (message, user) => {
     if (/(facture|achat|reste|dette)/.test(text)) return "La rubrique Mes achats affiche vos factures, les montants payes et le reste à payer. Pour un cas precis, indiquez le numero de facture FAC.";
     if (/(reclamation|plainte|probleme|endommage|erreur)/.test(text)) return "Vous pouvez ouvrir une reclamation depuis la rubrique Reclamations. Elle sera transmise au manager avec la reference de votre commande ou facture.";
     if (/(horaire|ouvert|ferme)/.test(text)) return "Les horaires ne sont pas encore publies dans le systeme. Votre question est transmise au manager pour une reponse confirmee.";
-    const [catalogue] = await pool.query(`SELECT nom,reference_produit,unite,prix_ht,quantite_stock FROM produits WHERE entreprise_id=? AND quantite_stock>0 ORDER BY nom LIMIT 40`, [user.entreprise_id]);
-    const aiReply = await generateBusinessReply({ question: message, clientName: user.nom, context: { catalogue } });
+    const [catalogue] = await pool.query(`SELECT p.nom,p.reference_produit,p.unite,p.prix_ht,p.quantite_stock,c.nom categorie_nom FROM produits p LEFT JOIN categorie_produit c ON c.id_categorie=p.categorie_id WHERE p.entreprise_id=? AND p.quantite_stock>0 AND p.prix_ht>=p.prix_achat ORDER BY p.nom LIMIT 60`, [user.entreprise_id]);
+    const [recentOrders] = await pool.query(`SELECT id_commande,statut,montant_ttc,date_commande FROM commandes WHERE client_id=? AND entreprise_id=? ORDER BY date_commande DESC LIMIT 5`, [user.client_id, user.entreprise_id]);
+    const [recentInvoices] = await pool.query(`SELECT v.id_ventes,v.numero_facture,v.montant_ttc,IFNULL(SUM(p.montant),0) total_paye FROM ventes v LEFT JOIN paiement p ON p.vente_id=v.id_ventes WHERE v.client_id=? AND v.entreprise_id=? GROUP BY v.id_ventes ORDER BY v.date_vente DESC LIMIT 5`, [user.client_id, user.entreprise_id]);
+    const aiReply = await generateBusinessReply({
+        question: message,
+        clientName: user.nom,
+        context: {
+            entreprise: {
+                nom: 'Quincaillerie Centrale',
+                ville: 'Goma',
+                espace_client: ['Commandes', 'Mes achats', 'Reclamations', 'Assistance', 'Paiement Mobile Money si active']
+            },
+            catalogue,
+            commandes_recentes: recentOrders,
+            factures_recentes: recentInvoices
+        }
+    });
     if (aiReply && !aiReply.includes('TRANSFERER_MANAGER')) return aiReply;
     return null;
 };
