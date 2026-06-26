@@ -90,7 +90,13 @@ export const sendClientWelcomeEmail = ({ to, name }) => sendMail({
 
 const productListHtml = (products = []) => `
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #dce4ee;border-radius:10px;border-collapse:separate;overflow:hidden">
-    ${products.map((product) => `<tr><td style="border-bottom:1px solid #e2e8f0;padding:13px 8px"><strong style="color:#06264a">${escapeHtml(product.nom)}</strong><br><span style="color:#64748b;font-size:13px">${escapeHtml(product.quantite_stock ?? product.quantite ?? '')} ${escapeHtml(product.unite || 'piece')}</span></td><td style="border-bottom:1px solid #e2e8f0;padding:13px 8px;text-align:right;white-space:nowrap"><strong>${escapeHtml(Number(product.prix_ht ?? product.prix_unitaire_ht ?? 0).toFixed(2))} USD</strong><br><span style="color:#64748b;font-size:12px">par ${escapeHtml(product.unite || 'piece')}</span></td></tr>`).join('')}
+    ${products.map((product) => {
+        const prixHt = Number(product.prix_ht ?? product.prix_unitaire_ht ?? 0);
+        const prixTtc = Number(product.prix_ttc ?? (prixHt * (1 + Number(product.taux_tva ?? 16) / 100)));
+        const quantity = product.quantite_stock ?? product.quantite ?? '';
+        const quantityLabel = typeof quantity === 'string' ? quantity : `${quantity} ${product.unite || 'piece'}`;
+        return `<tr><td style="border-bottom:1px solid #e2e8f0;padding:13px 8px"><strong style="color:#06264a">${escapeHtml(product.nom)}</strong><br><span style="color:#64748b;font-size:13px">${escapeHtml(quantityLabel)}</span></td><td style="border-bottom:1px solid #e2e8f0;padding:13px 8px;text-align:right;white-space:nowrap"><strong>${escapeHtml(prixTtc.toFixed(2))} USD TTC</strong><br><span style="color:#64748b;font-size:12px">par ${escapeHtml(product.unite || 'piece')}</span></td></tr>`;
+    }).join('')}
   </table>`;
 
 export const sendProspectDiscoveryEmail = ({ to, name, products, catalogUrl }) => {
@@ -257,7 +263,7 @@ export const getMailErrorMessage = (error) => {
     return rawMessage || "Impossible d'envoyer l'email pour le moment.";
 };
 
-export const sendWelcomeUserEmail = async ({ to, name, role, password, company }) => {
+export const sendWelcomeUserEmail = async ({ to, name, role, resetUrl, company }) => {
     if (!to) return { skipped: true, message: 'Destinataire absent' };
 
     const displayName = name || 'cher utilisateur';
@@ -272,9 +278,8 @@ export const sendWelcomeUserEmail = async ({ to, name, role, password, company }
         'Voici vos informations de connexion :',
         `Identifiant : ${to}`,
         `Role : ${displayRole}`,
-        password ? `Mot de passe temporaire : ${password}` : '',
         '',
-        'Pour votre securite, veuillez vous connecter puis remplacer ce mot de passe temporaire par un mot de passe personnel.',
+        resetUrl ? `Cliquez ici pour definir votre mot de passe personnel : ${resetUrl}` : 'Utilisez la fonction Mot de passe oublie pour definir votre mot de passe personnel.',
         '',
         `${APP_NAME} centralise les clients, factures, paiements et stocks de votre entreprise.`,
         '',
@@ -295,9 +300,9 @@ export const sendWelcomeUserEmail = async ({ to, name, role, password, company }
                     <div style="background:#f8fafc;border:1px solid #d8deea;border-radius:8px;padding:16px;margin:20px 0">
                         <p style="margin:0 0 8px"><strong>Identifiant :</strong> ${escapeHtml(to)}</p>
                         <p style="margin:0 0 8px"><strong>Role :</strong> ${escapeHtml(displayRole)}</p>
-                        ${password ? `<p style="margin:0"><strong>Mot de passe temporaire :</strong> ${escapeHtml(password)}</p>` : ''}
                     </div>
-                    <p style="margin:0 0 12px">Pour votre securite, connectez-vous puis remplacez ce mot de passe temporaire par un mot de passe personnel.</p>
+                    <p style="margin:0 0 18px">Pour votre securite, aucun mot de passe n'est envoye en clair. Definissez votre mot de passe personnel avec le bouton ci-dessous.</p>
+                    ${resetUrl ? `<p style="text-align:center;margin:22px 0"><a href="${escapeHtml(resetUrl)}" style="background:#0b5ea8;border-radius:8px;color:#ffffff;display:inline-block;font-size:14px;font-weight:700;padding:13px 22px;text-decoration:none">Cliquez ici pour reinitialiser mon mot de passe</a></p>` : ''}
                     <p style="margin:0">${APP_NAME} vous permet de centraliser les clients, factures, paiements et stocks de votre entreprise.</p>
                     <p style="margin:24px 0 0">Cordialement,<br><strong>Equipe ${APP_NAME}</strong></p>
                 </div>

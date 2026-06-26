@@ -196,6 +196,7 @@ CREATE TABLE lignes_commandes (
     produit_id VARCHAR(50) NOT NULL,
     quantite INT NOT NULL,
     prix_unitaire_ht DECIMAL(10,2) NOT NULL,
+    taux_tva DECIMAL(5,2) DEFAULT 16.00,
     FOREIGN KEY (commande_id) REFERENCES commandes(id_commande) ON DELETE CASCADE,
     FOREIGN KEY (produit_id) REFERENCES produits(id_produit)
 );

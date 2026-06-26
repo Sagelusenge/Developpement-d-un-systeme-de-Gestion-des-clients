@@ -188,6 +188,7 @@ export const ensureRuntimeSchema = async (pool) => {
             produit_id VARCHAR(50) NOT NULL,
             quantite INT NOT NULL,
             prix_unitaire_ht DECIMAL(10,2) NOT NULL,
+            taux_tva DECIMAL(5,2) DEFAULT 16.00,
             FOREIGN KEY (commande_id) REFERENCES commandes(id_commande) ON DELETE CASCADE,
             FOREIGN KEY (produit_id) REFERENCES produits(id_produit)
         )
@@ -501,6 +502,7 @@ export const ensureRuntimeSchema = async (pool) => {
     await addColumnIfMissing('mouvements_stock', 'prix_achat_total', 'DECIMAL(12,2) NULL');
     await addColumnIfMissing('mouvements_stock', 'note', 'VARCHAR(255) NULL');
     await addColumnIfMissing('lignes_ventes', 'prix_achat_unitaire', 'DECIMAL(10,2) NOT NULL DEFAULT 0');
+    await addColumnIfMissing('lignes_commandes', 'taux_tva', 'DECIMAL(5,2) DEFAULT 16.00');
     await addColumnIfMissing('categorie_produit', 'reference_categorie', 'VARCHAR(50) NULL');
     await addColumnIfMissing('categorie_produit', 'photo_url', 'TEXT NULL');
 

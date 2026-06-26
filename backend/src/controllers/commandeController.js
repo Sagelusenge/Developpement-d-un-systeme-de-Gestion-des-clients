@@ -78,14 +78,16 @@ export const createCommande = async (req, res) => {
         for (const article of articles) {
             const quantite = Number(article.quantite);
             const [[product]] = await connection.query(
-                `SELECT id_produit, nom, prix_ht, prix_achat, quantite_stock FROM produits
+                `SELECT id_produit, nom, unite, prix_ht, prix_achat, taux_tva, quantite_stock FROM produits
                  WHERE id_produit = ? AND entreprise_id = ?`, [article.produit_id, req.user.entreprise_id]
             );
             if (!product || !Number.isInteger(quantite) || quantite <= 0) throw new Error('Produit ou quantite invalide.');
             if (quantite > product.quantite_stock) throw new Error(`Stock disponible insuffisant pour ${product.nom}.`);
             if (Number(product.prix_ht) < Number(product.prix_achat || 0)) throw new Error(`${product.nom} est temporairement indisponible: son prix catalogue est inferieur à son cout d'achat.`);
-            lines.push({ ...product, quantite });
-            total += quantite * Number(product.prix_ht) * 1.16;
+            const tauxTva = Number(product.taux_tva ?? 16);
+            const prixTtc = Number(product.prix_ht) * (1 + tauxTva / 100);
+            lines.push({ ...product, quantite, taux_tva: tauxTva, prix_ttc: Number(prixTtc.toFixed(2)) });
+            total += quantite * prixTtc;
         }
         const id = await nextId(connection, 'commandes', 'CMD', 6);
         await connection.query(
@@ -96,8 +98,8 @@ export const createCommande = async (req, res) => {
         for (const line of lines) {
             const lineId = await nextId(connection, 'lignes_commandes', 'LCM', 7);
             await connection.query(
-                `INSERT INTO lignes_commandes (id_ligne_commande, commande_id, produit_id, quantite, prix_unitaire_ht)
-                 VALUES (?, ?, ?, ?, ?)`, [lineId, id, line.id_produit, line.quantite, line.prix_ht]
+                `INSERT INTO lignes_commandes (id_ligne_commande, commande_id, produit_id, quantite, prix_unitaire_ht, taux_tva)
+                 VALUES (?, ?, ?, ?, ?, ?)`, [lineId, id, line.id_produit, line.quantite, line.prix_ht, line.taux_tva]
             );
         }
         await connection.commit();
@@ -173,7 +175,8 @@ export const convertCommande = async (req, res) => {
                 [saleLineId, invoiceId, line.produit_id, line.quantite, line.prix_unitaire_ht, product.prix_achat || 0]
             );
             await connection.query(`UPDATE produits SET quantite_stock = quantite_stock - ? WHERE id_produit = ?`, [line.quantite, line.produit_id]);
-            total += Number(line.quantite) * Number(line.prix_unitaire_ht) * 1.16;
+            const tauxTva = Number(line.taux_tva ?? 16);
+            total += Number(line.quantite) * Number(line.prix_unitaire_ht) * (1 + tauxTva / 100);
         }
         await connection.query(`UPDATE ventes SET montant_ttc = ? WHERE id_ventes = ?`, [Number(total.toFixed(2)), invoiceId]);
         await connection.query(`UPDATE commandes SET statut = 'confirmee', vente_id = ? WHERE id_commande = ?`, [invoiceId, order.id_commande]);

@@ -1031,6 +1031,16 @@ function Login({ authType, setAuthType, onLogin, notify, toast, goTo }) {
   const [resetLoading, setResetLoading] = useState(false);
   const passwordRef = useRef(null);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('reset') !== '1') return;
+    const email = String(params.get('email') || '').trim().toLowerCase();
+    const code = String(params.get('code') || '').replace(/\D/g, '').slice(0, 6);
+    setShowForgot(true);
+    setResetForm({ email, code, new_password: '', confirm_password: '' });
+    setResetStep(email && code.length === 6 ? 'password' : 'email');
+  }, []);
+
   const submit = async (event) => {
     event.preventDefault();
     if (loading) return;
@@ -2735,7 +2745,7 @@ function Rapports({ data, searchQuery = '', user }) {
 }
 
 function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
-  const emptyUserForm = { nom: '', email: '', mot_de_passe: 'User@123', role: 'vendeur' };
+  const emptyUserForm = { nom: '', email: '', role: 'vendeur' };
   const [form, setForm] = useState(emptyUserForm);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -2885,7 +2895,6 @@ function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
           <Form onSubmit={create}>
             <Input label="Nom" value={form.nom} onChange={(nom) => setForm({ ...form, nom })} required />
             <Input label="Email" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} required />
-            <Input label="Mot de passe temporaire" type="password" value={form.mot_de_passe} onChange={(mot_de_passe) => setForm({ ...form, mot_de_passe })} required />
             <Select label="Role" value={form.role} onChange={(role) => setForm({ ...form, role })} options={roles} />
             <button className="btn modal-submit">Creer et notifier <ArrowRight size={20} /></button>
           </Form>

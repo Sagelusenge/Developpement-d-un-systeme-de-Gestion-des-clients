@@ -1,9 +1,19 @@
 import pool from '../config/db.js';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { sendWelcomeUserEmail } from '../services/mailService.js';
 import { nextId } from '../services/idService.js';
 
 const rolesAutorises = ['manager', 'vendeur', 'magasinier'];
+const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
+const createResetCode = () => String(crypto.randomInt(100000, 1000000));
+const hashResetCode = (email, code) => crypto
+    .createHash('sha256')
+    .update(`${normalizeEmail(email)}:${String(code || '').trim()}:${process.env.JWT_SECRET || 'crm-pme-reset'}`)
+    .digest('hex');
+
+const getFrontendUrl = () => String(process.env.FRONTEND_URL || 'http://127.0.0.1:5174').split(',')[0].trim().replace(/\/$/, '');
+const resetPasswordUrl = ({ email, code }) => `${getFrontendUrl()}/connexion?reset=1&email=${encodeURIComponent(normalizeEmail(email))}&code=${encodeURIComponent(code)}`;
 
 // GET /api/utilisateurs
 export const getAllUtilisateurs = async (req, res) => {
@@ -65,13 +75,13 @@ export const getHistoriqueUtilisateur = async (req, res) => {
 
 // POST /api/utilisateurs
 export const createUtilisateur = async (req, res) => {
-    const { nom, email, mot_de_passe, role } = req.body;
+    const { nom, email, role } = req.body;
     const entreprise_id = req.user.entreprise_id;
 
-    if (!nom || !email || !mot_de_passe || !role) {
+    if (!nom || !email || !role) {
         return res.status(400).json({
             success: false,
-            message: 'Tous les champs sont requis'
+            message: 'Nom, email et role sont requis'
         });
     }
 
@@ -87,28 +97,37 @@ export const createUtilisateur = async (req, res) => {
         await connection.beginTransaction();
 
         const id_utilisateur = await nextId(connection, 'utilisateur', 'USR', 5);
-        const hashedMdp = await bcrypt.hash(mot_de_passe, 10);
+        const initialPassword = crypto.randomBytes(24).toString('base64url');
+        const hashedMdp = await bcrypt.hash(initialPassword, 10);
+        const resetCode = createResetCode();
+        const normalizedEmail = normalizeEmail(email);
 
         await connection.query(
             `INSERT INTO utilisateur
                 (id_utilisateur, entreprise_id, nom, email, mot_de_passe, role, actif)
              VALUES (?, ?, ?, ?, ?, ?, TRUE)`,
-            [id_utilisateur, entreprise_id, nom, email, hashedMdp, role]
+            [id_utilisateur, entreprise_id, nom, normalizedEmail, hashedMdp, role]
+        );
+
+        await connection.query(
+            `INSERT INTO password_reset_codes (user_id, email, code_hash, expires_at)
+             VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 24 HOUR))`,
+            [id_utilisateur, normalizedEmail, hashResetCode(normalizedEmail, resetCode)]
         );
 
         await connection.commit();
 
         sendWelcomeUserEmail({
-            to: email,
+            to: normalizedEmail,
             name: nom,
             role,
-            password: mot_de_passe
+            resetUrl: resetPasswordUrl({ email: normalizedEmail, code: resetCode })
         }).catch((error) => console.error('Erreur email utilisateur:', error.message));
 
         res.status(201).json({
             success: true,
             message: `Utilisateur ${nom} cree avec le role ${role}`,
-            data: { id_utilisateur, nom, email, role }
+            data: { id_utilisateur, nom, email: normalizedEmail, role }
         });
     } catch (error) {
         await connection.rollback();
