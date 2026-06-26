@@ -366,6 +366,22 @@ CREATE TABLE crm_email_campaigns (
     FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE
 );
 
+CREATE TABLE documents_archive (
+    id_document VARCHAR(50) PRIMARY KEY,
+    entreprise_id VARCHAR(50) NOT NULL,
+    uploaded_by VARCHAR(50) NOT NULL,
+    titre VARCHAR(180) NOT NULL,
+    type_document VARCHAR(80) NOT NULL DEFAULT 'document',
+    description VARCHAR(500),
+    file_url TEXT NOT NULL,
+    file_name VARCHAR(255),
+    mime_type VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_archive_entreprise_date (entreprise_id, created_at),
+    INDEX idx_archive_type (entreprise_id, type_document),
+    FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE
+);
+
 /*
 ARCHIVE DES ANCIENS TRIGGERS, PROCEDURES ET COMPTES DE DEMONSTRATION
 -------------------------------------------------------------------

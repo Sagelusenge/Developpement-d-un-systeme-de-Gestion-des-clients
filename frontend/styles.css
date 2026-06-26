@@ -8308,6 +8308,64 @@ body:has(.login-page),
 .stock-movement-panel .table-wrap { max-height: 540px; overflow-y: auto; }
 .email-card-list { max-height: 520px; overflow-y: auto; }
 .modal .form textarea { min-height: 96px; }
+.archive-list { display:grid; gap:12px; max-height:70vh; overflow-y:auto; }
+.archive-card { align-items:center; background:#f8fafc; border:1px solid #dbe3ec; border-radius:12px; display:grid; gap:14px; grid-template-columns:1fr auto; padding:15px; }
+.archive-card strong { color:#06264a; display:block; }
+.archive-card span,.archive-card small { color:#64748b; display:block; font-size:12px; margin-top:4px; }
+.archive-card p { color:#334155; line-height:1.55; margin:8px 0 0; }
+.archive-modal { max-width:900px; }
+
+/* Clear professional chatbot */
+.chat-window { background:#f6f8fb !important; }
+.chat-messages {
+  background:linear-gradient(180deg,#f8fafc 0%,#eef4fa 100%) !important;
+}
+.chat-welcome {
+  background:#ffffff !important;
+  border:1px solid #dbe3ec !important;
+  color:#526175 !important;
+}
+.chat-welcome h3 { color:#06264a !important; }
+.chat-bubble {
+  background:#ffffff !important;
+  border:1px solid #dbe3ec !important;
+  box-shadow:0 8px 22px rgba(6,38,74,.08) !important;
+  color:#172033 !important;
+}
+.chat-bubble.mine {
+  background:#e7f1ff !important;
+  border-color:#bdd7f4 !important;
+  color:#06264a !important;
+}
+.chat-bubble.bot {
+  background:#fffaf0 !important;
+  border-left:4px solid #f5b942 !important;
+}
+.chat-bubble small { color:#0b5ea8 !important; }
+.chat-bubble.bot small { color:#8a5a00 !important; }
+.chat-bubble time { color:#64748b !important; }
+.chat-message-avatar { border-color:#ffffff !important; }
+
+/* Compact client navigation */
+.role-client .sidebar .nav {
+  align-content:start;
+  display:grid;
+  gap:4px;
+  padding-top:12px;
+}
+.role-client .sidebar .nav button {
+  font-size:12px!important;
+  justify-content:flex-start;
+  min-height:38px!important;
+  padding:8px 18px!important;
+}
+.role-client .sidebar .nav button svg { height:17px!important; width:17px!important; }
+.role-client .nav-logout { margin-top:8px!important; }
+
+.nav-group.open .nav-group-items {
+  max-height: 230px;
+  overflow-y: auto;
+}
 
 @media (max-width: 980px) {
   .public-header { height:72px; }

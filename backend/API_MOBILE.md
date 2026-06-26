@@ -2668,6 +2668,67 @@ Ces emails sont declenches par le backend; l'application mobile n'a pas besoin d
 
 Les tables `prospect_email_campaigns` et `crm_email_campaigns` evitent les doublons. Si SMTP n'est pas configure, les envois sont ignores sans bloquer l'action principale.
 
+## Archivage documentaire mobile
+
+Le manager mobile peut scanner une facture, un document administratif ou une preuve, puis l'envoyer au backend. Le document apparait ensuite dans Rapports > Archivage.
+
+### Envoyer un document scanne
+
+```http
+POST /api/archives
+Authorization: Bearer <token_manager>
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "titre": "Facture fournisseur juin",
+  "type_document": "facture_fournisseur",
+  "description": "Document scanne depuis le mobile",
+  "file_name": "facture-juin.jpg",
+  "data_url": "data:image/jpeg;base64,/9j/4AAQSkZJRg..."
+}
+```
+
+Reponse 201:
+
+```json
+{
+  "success": true,
+  "message": "Document archive.",
+  "data": {
+    "id_document": "ARC-000001",
+    "file_url": "https://votre-api/uploads/archives/..."
+  }
+}
+```
+
+### Lister les archives
+
+```http
+GET /api/archives
+Authorization: Bearer <token_manager_ou_caissier>
+```
+
+Reponse:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id_document": "ARC-000001",
+      "titre": "Facture fournisseur juin",
+      "type_document": "facture_fournisseur",
+      "file_url": "https://votre-api/uploads/archives/...",
+      "created_at": "2026-06-26T10:00:00.000Z"
+    }
+  ]
+}
+```
+
 ---
 
 # ðŸ–¨ï¸ Impression

@@ -384,6 +384,24 @@ export const ensureRuntimeSchema = async (pool) => {
         )
     `);
 
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS documents_archive (
+            id_document VARCHAR(50) PRIMARY KEY,
+            entreprise_id VARCHAR(50) NOT NULL,
+            uploaded_by VARCHAR(50) NOT NULL,
+            titre VARCHAR(180) NOT NULL,
+            type_document VARCHAR(80) NOT NULL DEFAULT 'document',
+            description VARCHAR(500),
+            file_url TEXT NOT NULL,
+            file_name VARCHAR(255),
+            mime_type VARCHAR(100),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_archive_entreprise_date (entreprise_id, created_at),
+            INDEX idx_archive_type (entreprise_id, type_document),
+            FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE
+        )
+    `);
+
     const addColumnIfMissing = async (table, column, definition) => {
         const [rows] = await pool.query(
             `SELECT COLUMN_NAME
@@ -443,6 +461,16 @@ export const ensureRuntimeSchema = async (pool) => {
     await addColumnIfMissing('user_activity_logs', 'description', "VARCHAR(255) NOT NULL DEFAULT 'Action utilisateur'");
     await addColumnIfMissing('user_activity_logs', 'metadata', 'JSON NULL');
     await addColumnIfMissing('user_activity_logs', 'created_at', 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
+
+    await addColumnIfMissing('documents_archive', 'entreprise_id', 'VARCHAR(50) NOT NULL');
+    await addColumnIfMissing('documents_archive', 'uploaded_by', 'VARCHAR(50) NOT NULL');
+    await addColumnIfMissing('documents_archive', 'titre', "VARCHAR(180) NOT NULL DEFAULT 'Document archive'");
+    await addColumnIfMissing('documents_archive', 'type_document', "VARCHAR(80) NOT NULL DEFAULT 'document'");
+    await addColumnIfMissing('documents_archive', 'description', 'VARCHAR(500) NULL');
+    await addColumnIfMissing('documents_archive', 'file_url', 'TEXT NULL');
+    await addColumnIfMissing('documents_archive', 'file_name', 'VARCHAR(255) NULL');
+    await addColumnIfMissing('documents_archive', 'mime_type', 'VARCHAR(100) NULL');
+    await addColumnIfMissing('documents_archive', 'created_at', 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
 
     const [productColumns] = await pool.query(`
         SELECT COLUMN_NAME

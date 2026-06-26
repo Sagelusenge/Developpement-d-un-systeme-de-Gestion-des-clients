@@ -24,7 +24,42 @@ const normalizeChatText = (value) => String(value || '')
     .replace(/\bsvp\b/g, 's il vous plait')
     .replace(/\s+/g, ' ');
 
-const automaticReply = async (message, user) => {
+const managerLocalAnalysis = ({ stats, meilleurs_clients = [], stock = [] }) => {
+    const alertes = Number(stats?.alertes_stock || 0);
+    const commandes = Number(stats?.commandes_attente || 0);
+    const reclamations = Number(stats?.reclamations_ouvertes || 0);
+    const clients = Number(stats?.clients || 0);
+    const topClient = meilleurs_clients.find((client) => Number(client.chiffre_affaires || 0) > 0);
+    const stockDisponible = stock.filter((item) => Number(item.quantite_stock || 0) > 0).slice(0, 3);
+    return [
+        'Constats',
+        `- Le systeme suit actuellement ${clients} client(s).`,
+        `- ${commandes} commande(s) sont encore en attente de traitement.`,
+        `- ${reclamations} reclamation(s) restent ouvertes ou en cours.`,
+        `- ${alertes} produit(s) demandent une attention stock.`,
+        topClient ? `- Le meilleur client visible est ${topClient.nom}, avec ${Number(topClient.chiffre_affaires || 0).toFixed(2)} USD de chiffre d'affaires.` : '- Aucun meilleur client significatif ne ressort encore des donnees.',
+        '',
+        'Risques a surveiller',
+        commandes > 0 ? '- Les commandes en attente peuvent ralentir la satisfaction client si elles ne sont pas traitees rapidement.' : '- Les commandes semblent sous controle pour le moment.',
+        reclamations > 0 ? '- Les reclamations ouvertes doivent etre suivies pour eviter une perte de confiance.' : '- Les reclamations ne montrent pas de pression immediate.',
+        alertes > 0 ? '- Les alertes de stock peuvent provoquer des ruptures sur les articles demandes.' : '- Le stock ne montre pas d’alerte critique dans les donnees recues.',
+        '',
+        'Actions prioritaires',
+        '- Traiter les commandes en attente avant les nouvelles actions commerciales.',
+        '- Relancer les clients actifs avec des produits disponibles et pertinents.',
+        '- Surveiller les produits en alerte et prioriser les approvisionnements.',
+        '- Repondre aux reclamations avec une trace claire dans le systeme.',
+        '',
+        'Perspectives des 30 prochains jours',
+        stockDisponible.length
+            ? `- Mettre en avant les produits disponibles comme ${stockDisponible.map((p) => p.nom).join(', ')}.`
+            : '- Reconstituer d’abord les produits vendables avant de lancer une campagne commerciale.',
+        '- Transformer les prospects en clients par des messages courts, utiles et limites.',
+        '- Utiliser les archives documentaires pour conserver les preuves commerciales et administratives.'
+    ].join('\n');
+};
+
+const automaticReply = async (message, user, conversationId = null) => {
     const text = normalizeChatText(message);
     if (/^(merci|merci beaucoup|ok|daccord|d accord|parfait|super|bien recu|ca marche|c est bon|c bon|merci pour votre reponse)[!. ]*$/.test(text)
         || /(merci|remercie).*(reponse|aide|information)/.test(text)) {
@@ -50,6 +85,18 @@ const automaticReply = async (message, user) => {
     if (/(je suis fache|je suis decu|pas content|mauvais service|trop lent|enerve|colere)/.test(text)) {
         return "Je comprends votre mecontentement et je suis desole pour cette experience. Donnez-moi la reference de la commande, de la facture ou expliquez le probleme; si la situation demande une decision humaine, je la transmettrai au manager.";
     }
+    if (/(manager|responsable|gerant|parler a quelqu un|humain|agent)/.test(text)) {
+        return null;
+    }
+    if (/(je viendrai demain|je vais venir demain|je passerai demain|je viens demain|demain je passe|je viendrais demain|je passerais demain)/.test(text)) {
+        return "C'est note. Vous pouvez passer demain; si cela concerne une commande, gardez sa reference CMD ou votre facture FAC pour que l'equipe retrouve rapidement votre dossier.";
+    }
+    if (/(je vais passer|je passerai|je viens recuperer|je viens prendre|je viendrai|je passerais)/.test(text)) {
+        return "Tres bien. Pensez a venir avec votre reference de commande ou de facture afin que l'equipe retrouve rapidement votre dossier.";
+    }
+    if (/(merci.*demain|a demain|ok demain)/.test(text)) {
+        return "Parfait, a demain. Je reste disponible si vous voulez verifier une commande, une facture ou le stock avant votre passage.";
+    }
     const ignored = new Set(['quel','quelle','quels','quelles','prix','combien','coute','cout','stock','disponible','avez','vous','produit','materiel','concernant','pour','dans','est','le','la','les','un','une','du','de','des']);
     const terms = text.replace(/[^a-z0-9 -]/g, ' ').split(/\s+/).filter((word) => word.length >= 3 && !ignored.has(word)).slice(0, 4);
     if (terms.length && /(prix|combien|coute|cout|stock|disponible|materiel|produit)/.test(text)) {
@@ -68,6 +115,9 @@ const automaticReply = async (message, user) => {
     const [catalogue] = await pool.query(`SELECT p.nom,p.reference_produit,p.unite,p.prix_ht,p.quantite_stock,c.nom categorie_nom FROM produits p LEFT JOIN categorie_produit c ON c.id_categorie=p.categorie_id WHERE p.entreprise_id=? AND p.quantite_stock>0 AND p.prix_ht>=p.prix_achat ORDER BY p.nom LIMIT 60`, [user.entreprise_id]);
     const [recentOrders] = await pool.query(`SELECT id_commande,statut,montant_ttc,date_commande FROM commandes WHERE client_id=? AND entreprise_id=? ORDER BY date_commande DESC LIMIT 5`, [user.client_id, user.entreprise_id]);
     const [recentInvoices] = await pool.query(`SELECT v.id_ventes,v.numero_facture,v.montant_ttc,IFNULL(SUM(p.montant),0) total_paye FROM ventes v LEFT JOIN paiement p ON p.vente_id=v.id_ventes WHERE v.client_id=? AND v.entreprise_id=? GROUP BY v.id_ventes ORDER BY v.date_vente DESC LIMIT 5`, [user.client_id, user.entreprise_id]);
+    const [history] = conversationId
+        ? await pool.query(`SELECT sender_type,message,created_at FROM chat_messages WHERE conversation_id=? ORDER BY created_at DESC LIMIT 8`, [conversationId])
+        : [[]];
     const aiReply = await generateBusinessReply({
         question: message,
         clientName: user.nom,
@@ -79,11 +129,12 @@ const automaticReply = async (message, user) => {
             },
             catalogue,
             commandes_recentes: recentOrders,
-            factures_recentes: recentInvoices
+            factures_recentes: recentInvoices,
+            conversation_recente: history.reverse()
         }
     });
     if (aiReply && !aiReply.includes('TRANSFERER_MANAGER')) return aiReply;
-    return null;
+    return "Je comprends votre message. Pour vous aider correctement, je peux verifier un prix ou un stock, suivre une commande avec sa reference CMD, expliquer une facture FAC, orienter le paiement ou vous guider pour une reclamation. Donnez-moi simplement la reference ou le produit concerne.";
 };
 
 const loadMessages = async (conversationId) => {
@@ -126,8 +177,14 @@ export const getManagerAiAnalysis = async (req, res) => {
     const [top] = await pool.query(`SELECT c.nom,COUNT(v.id_ventes) achats,IFNULL(SUM(v.montant_ttc),0) chiffre_affaires FROM client c LEFT JOIN ventes v ON v.client_id=c.id_client WHERE c.entreprise_id=? GROUP BY c.id_client ORDER BY chiffre_affaires DESC LIMIT 5`, [req.user.entreprise_id]);
     const [slowStock] = await pool.query(`SELECT nom,quantite_stock,prix_ht FROM produits WHERE entreprise_id=? ORDER BY quantite_stock DESC LIMIT 10`, [req.user.entreprise_id]);
     const analysis = await generateManagerAnalysis({ stats, meilleurs_clients: top, stock: slowStock });
-    if (!analysis) return res.status(503).json({ success: false, message: 'Analyse IA indisponible. Configurez OPENAI_API_KEY sur le backend.' });
-    res.json({ success: true, data: { analysis, generated_at: new Date().toISOString() } });
+    res.json({
+        success: true,
+        data: {
+            analysis: analysis || managerLocalAnalysis({ stats, meilleurs_clients: top, stock: slowStock }),
+            generated_at: new Date().toISOString(),
+            mode: analysis ? 'openai' : 'local'
+        }
+    });
 };
 
 export const sendChatMessage = async (req, res) => {
@@ -158,7 +215,7 @@ export const sendChatMessage = async (req, res) => {
         await connection.query(`INSERT INTO chat_messages (id_message, conversation_id, sender_type, sender_id, message) VALUES (?, ?, ?, ?, ?)`, [messageId, conversationId, senderType, req.user.id, message]);
         let reply = null;
         if (isClient(req)) {
-            reply = await automaticReply(message, req.user);
+            reply = await automaticReply(message, req.user, conversationId);
             if (reply) {
                 const botId = await nextId(connection, 'chat_messages', 'MSG', 7);
                 await connection.query(`INSERT INTO chat_messages (id_message, conversation_id, sender_type, sender_id, message) VALUES (?, ?, 'bot', NULL, ?)`, [botId, conversationId, reply]);

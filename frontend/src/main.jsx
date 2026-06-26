@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
+  Archive,
   ArrowRight,
   AlertTriangle,
   BarChart3,
@@ -1440,6 +1441,7 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
         tasks.push(api('/paiements/rapport-caisse').then((r) => { next.extra.caisse = r.data || []; }).catch(() => {}));
         tasks.push(api('/rapports/journal').then((r) => { next.extra.journal = r.data || []; }).catch(() => {}));
         tasks.push(api('/rapports/livre-caisse').then((r) => { next.extra.livreCaisse = r.data || []; }).catch(() => {}));
+        tasks.push(api('/archives').then((r) => { next.extra.archives = r.data || []; }).catch(() => {}));
       }
       await Promise.all(tasks);
       setData(next);
@@ -2066,7 +2068,7 @@ function Clients({ api, notify, data, submit, searchQuery = '' }) {
               <option value="fidele">Clients fideles</option>
               <option value="vip">VIP</option>
             </select>
-            <button className="btn secondary small" type="button" onClick={() => printTableDocument('Archive clients', ['Nom', 'Telephone', 'Statut', 'Achats', 'CA'], clients.map((c) => [`${c.nom} ${c.postnom || ''}`, c.telephone || '-', clientSegmentLabel(clientSegment(c)), c.nombre_achats || 0, moneySmart(c.ca_total)]), { badge: 'ARCHIVE', tableTitle: 'Liste complete des clients', paper: 'page' })}><Printer size={16} /> Archiver</button>
+            <button className="btn secondary small" type="button" onClick={() => printTableDocument('Liste clients', ['Nom', 'Telephone', 'Statut', 'Achats', 'CA'], clients.map((c) => [`${c.nom} ${c.postnom || ''}`, c.telephone || '-', clientSegmentLabel(clientSegment(c)), c.nombre_achats || 0, moneySmart(c.ca_total)]), { badge: 'LISTE CLIENTS', tableTitle: 'Liste complete des clients', paper: 'page' })}><Printer size={16} /> Liste clients</button>
             <button className="btn small" type="button" onClick={() => { setForm(emptyClientForm); setCreating(true); }}><Plus size={16} /> Ajouter client</button>
           </div>
         </div>
@@ -2600,6 +2602,7 @@ function Rapports({ data, searchQuery = '', user }) {
   const term = searchQuery.trim().toLowerCase();
   const [period, setPeriod] = useState('mensuel');
   const [dateRange, setDateRange] = useState({ debut: '', fin: '' });
+  const [showArchives, setShowArchives] = useState(false);
   const role = user?.role || 'manager';
   const canSalesReports = ['manager', 'caissier'].includes(role);
   const canStockReports = ['manager', 'magasinier'].includes(role);
@@ -2634,6 +2637,7 @@ function Rapports({ data, searchQuery = '', user }) {
   const livreCaisse = byPeriod(source.livreCaisse || [], ['date_paiement']).filter((r) => !term || `${r.numero_facture} ${r.client_nom || ''} ${r.mode_paiement || ''}`.toLowerCase().includes(term));
   const mouvementsStock = byPeriod(source.mouvementsStock || [], ['date_mouvement'])
     .filter((r) => !term || `${r.produit_nom || ''} ${r.reference_produit || ''} ${r.type_mouvement || ''} ${r.fournisseur_nom || ''}`.toLowerCase().includes(term));
+  const archives = (source.archives || []).filter((r) => !term || `${r.titre || ''} ${r.type_document || ''} ${r.description || ''}`.toLowerCase().includes(term));
   const stockValue = stock.reduce((sum, row) => sum + Number(row.valeur_stock_achat || 0), 0);
   const stockRisks = stock.filter((row) => String(row.statut || '').toUpperCase() !== 'OK').length;
   const reportTitle = role === 'magasinier' ? 'Rapports produits' : role === 'caissier' ? 'Rapports caisse' : 'Rapports';
@@ -2653,6 +2657,7 @@ function Rapports({ data, searchQuery = '', user }) {
             <p>Etat de sortie {periodText.toLowerCase()} pret pour impression.</p>
           </div>
           <div className="actions">
+            {role === 'manager' && <button className="btn secondary small" type="button" onClick={() => setShowArchives(true)}><Archive size={16} /> Archivage</button>}
             <select className="compact-filter" value={period} onChange={(event) => setPeriod(event.target.value)}>
               <option value="journalier">Journalier</option>
               <option value="hebdomadaire">Hebdomadaire</option>
@@ -2678,6 +2683,23 @@ function Rapports({ data, searchQuery = '', user }) {
           {canStockReports && <Stat label="A surveiller" value={stockRisks} />}
         </div>
       </div>
+      {showArchives && (
+        <Modal title="Archivage documentaire" onClose={() => setShowArchives(false)} className="archive-modal">
+          <div className="archive-list">
+            {archives.length ? archives.map((item) => (
+              <article key={item.id_document} className="archive-card">
+                <div>
+                  <strong>{item.titre}</strong>
+                  <span>{item.type_document || 'document'} • {formatDate(item.created_at)}</span>
+                  {item.description && <p>{item.description}</p>}
+                  <small>Ajoute par {item.uploaded_by_name || item.uploaded_by || '-'}</small>
+                </div>
+                <a className="btn secondary small" href={item.file_url} target="_blank" rel="noreferrer">Ouvrir</a>
+              </article>
+            )) : <div className="empty large">Aucun document archive pour le moment.</div>}
+          </div>
+        </Modal>
+      )}
       {canSalesReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Dettes clients</h3><button className="btn print" onClick={() => printRows(`Dettes clients - ${periodText}`, ['Facture', 'Libelle', 'Client', 'Du', 'Paye', 'Reste'], creances.map((r) => [r.numero_facture, `Dette client - ${r.numero_facture}`, r.client_nom, moneySmart(r.montant_du), moneySmart(r.montant_paye), moneySmart(r.reste_a_payer)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Facture', 'Libelle', 'Client', 'Du', 'Paye', 'Reste']} rows={creances.map((r) => [r.numero_facture, `Dette client - ${r.numero_facture}`, r.client_nom, moneySmart(r.montant_du), moneySmart(r.montant_paye), moneySmart(r.reste_a_payer)])} /></div>}
       {canSalesReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Ventes</h3><button className="btn print" onClick={() => printRows('Ventes', ['Facture', 'Libelle', 'Client', 'Montant', 'Reste'], factures.map((r) => [r.numero_facture, `Vente facturee - ${r.numero_facture}`, `${r.client_nom} ${r.client_postnom || ''}`, moneySmart(r.montant_ttc), moneySmart(r.reste_a_payer)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Facture', 'Libelle', 'Client', 'Montant', 'Reste']} rows={factures.map((r) => [r.numero_facture, `Vente facturee - ${r.numero_facture}`, `${r.client_nom} ${r.client_postnom || ''}`, moneySmart(r.montant_ttc), moneySmart(r.reste_a_payer)])} /></div>}
       {canCashReports && <div className="panel report-table-panel"><div className="panel-heading"><h3>Livre de caisse</h3><button className="btn print" onClick={() => printRows(`Livre de caisse - ${periodText}`, ['Date', 'Libelle', 'Facture', 'Client', 'Mode', 'Montant'], livreCaisse.map((r) => [formatDate(r.date_paiement), `Paiement ${r.mode_paiement} - ${r.numero_facture}`, r.numero_facture, r.client_nom, r.mode_paiement, moneySmart(r.montant)]))}><Printer size={18} /> Imprimer</button></div><Table headers={['Date', 'Libelle', 'Facture', 'Client', 'Mode', 'Montant']} rows={livreCaisse.map((r) => [formatDate(r.date_paiement), `Paiement ${r.mode_paiement} - ${r.numero_facture}`, r.numero_facture, r.client_nom, r.mode_paiement, moneySmart(r.montant)])} /></div>}
