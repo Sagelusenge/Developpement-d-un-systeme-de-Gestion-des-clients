@@ -1,6 +1,6 @@
 import pool from '../config/db.js';
 import { nextFactureId, nextId } from '../services/idService.js';
-import { notifyEnterpriseAdmins } from '../services/notificationService.js';
+import { notifyEnterpriseRoles } from '../services/notificationService.js';
 import { sendInvoiceAvailableEmail, sendOrderReceivedEmail, sendOrderStatusEmail } from '../services/mailService.js';
 
 const isClient = (req) => req.user.type === 'client';
@@ -103,7 +103,7 @@ export const createCommande = async (req, res) => {
             );
         }
         await connection.commit();
-        await notifyEnterpriseAdmins({ entreprise_id: req.user.entreprise_id, titre: 'Nouvelle commande client', message: `${req.user.nom || 'Un client'} a envoye la commande ${id}.`, entity_type: 'commande', entity_id: id }).catch(() => null);
+        await notifyEnterpriseRoles({ entreprise_id: req.user.entreprise_id, roles: ['manager', 'vendeur'], titre: 'Nouvelle commande client', message: `${req.user.nom || 'Un client'} a envoye la commande ${id}.`, entity_type: 'commande', entity_id: id }).catch(() => null);
         sendOrderReceivedEmail({
             to: req.user.email,
             name: req.user.nom,

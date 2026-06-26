@@ -6,6 +6,18 @@ Base URL:
 https://votre-backend/api
 ```
 
+Base URL AWS actuelle:
+
+```text
+https://13.61.230.65/api
+```
+
+URL du site AWS:
+
+```text
+https://13.61.230.65/
+```
+
 Toutes les routes protegees utilisent:
 
 ```http
@@ -329,4 +341,3 @@ GET /chat/stream?token=<token_client>
 ```
 
 Le mobile doit afficher le message sortant immediatement, puis rafraichir la conversation quand un evenement `chat-update` arrive.
-

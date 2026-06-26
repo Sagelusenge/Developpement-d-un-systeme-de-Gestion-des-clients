@@ -127,6 +127,7 @@ const searchPlaceholders = {
   achats: 'Rechercher une facture...',
   chat: 'Rechercher un client ou une conversation...',
   commentaires: 'Rechercher un visiteur, sujet ou message...',
+  audit: 'Rechercher une action, utilisateur, module...',
 };
 
 const fallbackProductPhotos = [
@@ -251,6 +252,7 @@ const iconMap = {
   paiements: CreditCard,
   rapports: BarChart3,
   utilisateurs: UserCog,
+  audit: ShieldCheck,
   mails: Mail,
   commandes: ShoppingCart,
   reclamations: HelpCircle,
@@ -842,7 +844,8 @@ function App() {
       { id: 'chat', label: role === 'client' ? 'Assistance' : 'Chat', roles: ['manager', 'client'] },
       { id: 'mails', label: tr(lang, 'mails'), roles: ['manager'] },
       { id: 'commentaires', label: 'Commentaires', roles: ['manager'] },
-      { id: 'utilisateurs', label: tr(lang, 'utilisateurs'), roles: ['manager'] }
+      { id: 'utilisateurs', label: tr(lang, 'utilisateurs'), roles: ['manager'] },
+      { id: 'audit', label: 'Audit', roles: ['manager'] }
     ].filter((item) => item.roles.includes(role));
   }, [authType, user, lang]);
 
@@ -895,6 +898,7 @@ function App() {
     ventes: ['Ventes', 'Factures, details et reste a payer.'],
     paiements: ['Paiements', 'Argent recu et rapport de caisse.'],
     utilisateurs: ['Utilisateurs', 'Comptes, roles et acces de votre equipe.'],
+    audit: ['Journal d’audit', 'Suivi des actions sensibles effectuees dans le systeme.'],
     mails: ['Emails', 'Envoyer des notifications et messages clients.'],
     categories: ['Categories', 'Classification simple des produits et services.'],
     fournisseurs: ['Fournisseurs', 'Contacts et historique des approvisionnements.'],
@@ -1309,13 +1313,13 @@ function HelpModal({ page, role, onClose }) {
     client: [
       ['Mon espace', 'Voir votre resume client, vos commandes recentes et vos raccourcis utiles.'],
       ['Commandes', 'Choisir les produits disponibles, ajouter au panier et envoyer une commande.'],
-      ['Mes achats', 'Consulter vos factures, montants payes, restes a payer et paiements Mobile Money.'],
+      ['Mes achats', 'Consulter vos factures, montants payes et restes a payer.'],
       ['Reclamations', 'Envoyer une reclamation au manager avec les references de commande ou facture.'],
       ['Assistance', 'Discuter avec le bot ou le manager pour obtenir une aide sur prix, paiement ou suivi.']
     ],
     magasinier: [common.dashboard, common.produits, common.categories, common.fournisseurs, common.rapportsStock],
     vendeur: [common.dashboard, common.clients, common.ventes, common.paiements, common.rapportsCaisse],
-    manager: [common.dashboard, common.clients, common.ventes, common.paiements, common.produits, common.fournisseurs, common.rapportsManager, common.utilisateurs, common.mails]
+    manager: [common.dashboard, common.clients, common.ventes, common.paiements, common.produits, common.fournisseurs, common.rapportsManager, common.utilisateurs, common.mails, ['Journal d’audit', 'Voir qui a cree, modifie ou supprime des donnees sensibles.']]
   };
 
   const pageAliases = {
@@ -1425,9 +1429,9 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
       if (page === 'produits') tasks.push(api('/produits/mouvements-recents').then((r) => { next.extra.mouvementsStock = r.data || []; }).catch(() => {}));
       if (page === 'paiements') {
         tasks.push(api('/paiements/rapport-caisse').then((r) => { next.extra.caisse = r.data || []; }).catch(() => {}));
-        tasks.push(api('/paiements/mobile-money/demandes').then((r) => { next.extra.mobilePaymentRequests = r.data || []; }).catch(() => {}));
       }
       if (page === 'utilisateurs') tasks.push(api('/utilisateurs').then((r) => { next.extra.utilisateurs = r.data || []; }));
+      if (page === 'audit') tasks.push(api('/utilisateurs/audit/journal').then((r) => { next.extra.auditLogs = r.data || []; }).catch(() => {}));
       if (page === 'mails') {
         tasks.push(api('/mail/status').then((r) => { next.extra.mailStatus = r.data || {}; }).catch(() => {}));
         tasks.push(api('/mail/messages').then((r) => { next.extra.mailMessages = r.data || []; }).catch(() => {}));
@@ -1491,6 +1495,7 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
   if (page === 'ventes') return <Ventes {...props} />;
   if (page === 'paiements') return <Paiements {...props} />;
   if (page === 'utilisateurs') return <Utilisateurs {...props} />;
+  if (page === 'audit') return <AuditJournal {...props} />;
   if (page === 'mails') return <Mails {...props} />;
   if (page === 'categories') return <Categories {...props} />;
   if (page === 'rapports') return <Rapports data={data} searchQuery={searchQuery} user={user} />;
@@ -1517,13 +1522,10 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
     .slice(0, 5);
   const chartMonths = (ventes.length ? ventes : ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Juin'].map((mois) => ({ mois, total: 0 })));
   const maxVente = Math.max(...chartMonths.map((v) => Number(v.total || 0)), 1);
-  const paymentRows = (data.extra.repartitionPaiements || []).map((row) => ({
+  const paymentRows = (data.extra.repartitionPaiements || []).filter((row) => (row.mode_paiement || row.Mode_Paiement) === 'especes').map((row) => ({
     mode: row.mode_paiement || row.Mode_Paiement || 'autre',
     label: {
-      mobile_money: 'Mobile Money',
       especes: 'Especes',
-      virement: 'Virement',
-      carte: 'Carte'
     }[row.mode_paiement || row.Mode_Paiement] || (row.mode_paiement || row.Mode_Paiement || 'Autre'),
     total: Number(row.total || row.Total_Encaisse || 0),
     transactions: Number(row.transactions || row.Nombre_Transactions || 0)
@@ -2468,7 +2470,6 @@ function Paiements({ api, notify, data, submit, searchQuery = '', user }) {
   const [dateRange, setDateRange] = useState({ debut: '', fin: '' });
   const filteredFactures = factures.filter((v) => `${v.numero_facture} ${v.client_nom || ''} ${v.reste_a_payer || ''}`.toLowerCase().includes(invoiceQuery.toLowerCase()));
   const selectedFacture = filteredFactures.find((v) => v.id_ventes === (form.vente_id || filteredFactures[0]?.id_ventes)) || factures.find((v) => v.id_ventes === form.vente_id);
-  const mobileMoneyRequired = form.mode_paiement === 'mobile_money';
   const term = `${searchQuery} ${query}`.trim().toLowerCase();
   const byPeriod = (rows) => {
     if (period !== 'personnalise') return filterRowsByPeriod(rows, period, ['Date']);
@@ -2487,23 +2488,15 @@ function Paiements({ api, notify, data, submit, searchQuery = '', user }) {
     ? `${dateRange.debut || 'debut'} au ${dateRange.fin || 'fin'}`
     : periodLabel(period);
   const caisseRows = byPeriod(data.extra.caisse || [])
+    .filter((r) => String(r.Mode_Paiement || '').toLowerCase() === 'especes')
     .filter((r) => `${r.Date} ${r.Mode_Paiement} ${r.Total_Encaisse}`.toLowerCase().includes(term));
   const caisseTotal = caisseRows.reduce((sum, row) => sum + Number(row.Total_Encaisse || 0), 0);
   const transactionsTotal = caisseRows.reduce((sum, row) => sum + Number(row.Nombre_Transactions || 0), 0);
-  const mobileRequests = (data.extra.mobilePaymentRequests || []).filter((item) => `${item.id_demande} ${item.numero_facture} ${item.client_nom} ${item.reference_externe}`.toLowerCase().includes(term));
-  const reviewMobile = (item, statut) => submit(async () => {
-    await api(`/paiements/mobile-money/demandes/${item.id_demande}`, { method: 'PUT', body: JSON.stringify({ statut }) });
-    notify(statut === 'confirmee' ? 'Paiement Mobile Money confirme.' : 'Demande Mobile Money rejetee.');
-  });
   const savePayment = () => {
-    if (mobileMoneyRequired && (!form.reference_externe.trim() || !form.telephone_payeur.trim())) {
-      notify('Reference et numero obligatoires pour Mobile Money');
-      return;
-    }
     submit(async () => {
       await api('/paiements', {
         method: 'POST',
-        body: JSON.stringify({ ...form, vente_id: form.vente_id || filteredFactures[0]?.id_ventes || factures[0]?.id_ventes })
+        body: JSON.stringify({ ...form, mode_paiement: 'especes', vente_id: form.vente_id || filteredFactures[0]?.id_ventes || factures[0]?.id_ventes })
       });
       closeCreate();
       notify('Paiement enregistre');
@@ -2541,10 +2534,6 @@ function Paiements({ api, notify, data, submit, searchQuery = '', user }) {
         </div>
         <Table headers={['Date', 'Mode', 'Transactions', 'Total']} rows={caisseRows.map((r) => [formatDate(r.Date), r.Mode_Paiement, r.Nombre_Transactions, money(r.Total_Encaisse)])} />
       </div>
-      <div className="panel mobile-review-panel">
-        <div className="panel-heading"><div><h3>Paiements Mobile Money a verifier</h3><p>{mobileRequests.filter((item) => item.statut === 'en_attente').length} demande(s) en attente</p></div></div>
-        <Table headers={['Reference', 'Facture', 'Client', 'Operateur', 'Telephone', 'Transaction', 'Montant', 'Statut', 'Actions']} rows={mobileRequests.map((item) => [item.id_demande, item.numero_facture, `${item.client_nom} ${item.client_postnom || ''}`, item.operateur, item.telephone_payeur, item.reference_externe, money(item.montant), <Badge>{item.statut}</Badge>, item.statut === 'en_attente' && user?.role === 'vendeur' ? <div className="actions"><button className="btn small" type="button" onClick={() => reviewMobile(item, 'confirmee')}>Confirmer</button><button className="action delete" type="button" title="Rejeter" onClick={() => reviewMobile(item, 'rejetee')}><X size={17} /></button></div> : '-'])} />
-      </div>
       {creating && (
         <Modal title="Encaisser un paiement" onClose={closeCreate}>
           <Form onSubmit={savePayment}>
@@ -2552,7 +2541,7 @@ function Paiements({ api, notify, data, submit, searchQuery = '', user }) {
             <Select label="Facture" value={form.vente_id} onChange={(vente_id) => setForm({ ...form, vente_id })} options={filteredFactures.map((v) => [v.id_ventes, `${v.numero_facture} - ${v.client_nom} - reste ${money(v.reste_a_payer)}`])} />
             <div className="form-row">
               <Input label="Montant" type="number" value={form.montant} onChange={(montant) => setForm({ ...form, montant })} required />
-              <Select label="Mode" value={form.mode_paiement} onChange={(mode_paiement) => setForm({ ...form, mode_paiement })} options={[['especes', 'Especes'], ['mobile_money', 'Mobile Money'], ['carte', 'Carte'], ['virement', 'Virement']]} />
+              <Select label="Mode" value="especes" onChange={() => {}} options={[['especes', 'Especes']]} />
             </div>
             {selectedFacture && (
               <div className="debt-preview">
@@ -2561,10 +2550,6 @@ function Paiements({ api, notify, data, submit, searchQuery = '', user }) {
                 <em>Reste a payer: {money(selectedFacture.reste_a_payer)}</em>
               </div>
             )}
-            <div className="form-row">
-              <Input label={mobileMoneyRequired ? 'Reference Mobile Money' : 'Reference'} value={form.reference_externe} onChange={(reference_externe) => setForm({ ...form, reference_externe })} required={mobileMoneyRequired} />
-              <Input label={mobileMoneyRequired ? 'Numero Mobile Money' : 'Telephone payeur'} value={form.telephone_payeur} onChange={(telephone_payeur) => setForm({ ...form, telephone_payeur })} required={mobileMoneyRequired} />
-            </div>
             <button className="btn modal-submit">Enregistrer paiement <ArrowRight size={20} /></button>
           </Form>
         </Modal>
@@ -2647,7 +2632,9 @@ function Rapports({ data, searchQuery = '', user }) {
     .filter((r) => !term || `${r.nom} ${r.postnom || ''}`.toLowerCase().includes(term));
   const caisse = byPeriod(source.caisse || [], ['Date']).filter((r) => !term || `${r.Date} ${r.Mode_Paiement} ${r.Total_Encaisse}`.toLowerCase().includes(term));
   const journal = byPeriod(source.journal || [], ['date_operation']).filter((r) => !term || `${r.reference} ${r.libelle || ''} ${r.type_operation || ''}`.toLowerCase().includes(term));
-  const livreCaisse = byPeriod(source.livreCaisse || [], ['date_paiement']).filter((r) => !term || `${r.numero_facture} ${r.client_nom || ''} ${r.mode_paiement || ''}`.toLowerCase().includes(term));
+  const livreCaisse = byPeriod(source.livreCaisse || [], ['date_paiement'])
+    .filter((r) => String(r.mode_paiement || '').toLowerCase() === 'especes')
+    .filter((r) => !term || `${r.numero_facture} ${r.client_nom || ''} ${r.mode_paiement || ''}`.toLowerCase().includes(term));
   const mouvementsStock = byPeriod(source.mouvementsStock || [], ['date_mouvement'])
     .filter((r) => !term || `${r.produit_nom || ''} ${r.reference_produit || ''} ${r.type_mouvement || ''} ${r.fournisseur_nom || ''}`.toLowerCase().includes(term));
   const archives = (source.archives || []).filter((r) => !term || `${r.titre || ''} ${r.type_document || ''} ${r.description || ''}`.toLowerCase().includes(term));
@@ -2952,6 +2939,126 @@ function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
   );
 }
 
+function AuditJournal({ data, searchQuery = '' }) {
+  const [moduleFilter, setModuleFilter] = useState('tous');
+  const [actionFilter, setActionFilter] = useState('tous');
+  const [selected, setSelected] = useState(null);
+  const logs = data.extra.auditLogs || [];
+  const moduleLabels = {
+    clients: 'Clients',
+    client: 'Clients',
+    produits: 'Produits',
+    categories: 'Categories',
+    fournisseurs: 'Fournisseurs',
+    ventes: 'Ventes',
+    paiements: 'Paiements',
+    commandes: 'Commandes',
+    reclamations: 'Reclamations',
+    utilisateurs: 'Utilisateurs',
+    mail: 'Emails',
+    archives: 'Archivage',
+    chat: 'Chat',
+    public: 'Accueil / Contact'
+  };
+  const actionLabels = {
+    POST: 'Creation',
+    PUT: 'Modification',
+    PATCH: 'Modification',
+    DELETE: 'Suppression'
+  };
+  const parseMetadata = (metadata) => {
+    if (!metadata) return {};
+    if (typeof metadata === 'object') return metadata;
+    try { return JSON.parse(metadata); } catch { return { brut: metadata }; }
+  };
+  const metadataText = (metadata) => {
+    const parsed = parseMetadata(metadata);
+    return Object.keys(parsed).length ? JSON.stringify(parsed, null, 2) : 'Aucune donnee detaillee.';
+  };
+  const modules = Array.from(new Set(logs.map((log) => log.module).filter(Boolean))).sort();
+  const actions = Array.from(new Set(logs.map((log) => log.action_type).filter(Boolean))).sort();
+  const term = searchQuery.trim().toLowerCase();
+  const filtered = logs
+    .filter((log) => moduleFilter === 'tous' || log.module === moduleFilter)
+    .filter((log) => actionFilter === 'tous' || log.action_type === actionFilter)
+    .filter((log) => !term || `${log.user_name} ${log.user_role} ${log.description} ${log.module} ${log.entity_id}`.toLowerCase().includes(term));
+  const printAudit = () => printRows(
+    'Journal d’audit',
+    ['Date', 'Utilisateur', 'Role', 'Action', 'Module', 'Reference', 'Description'],
+    filtered.map((log) => [
+      formatDate(log.created_at),
+      log.user_name || '-',
+      log.user_role || '-',
+      actionLabels[log.action_type] || log.action_type,
+      moduleLabels[log.module] || log.module || '-',
+      log.entity_id || '-',
+      log.description || '-'
+    ])
+  );
+
+  return (
+    <div className="grid audit-page">
+      <section className="panel">
+        <div className="panel-heading client-toolbar">
+          <div>
+            <h3>Journal d’audit</h3>
+            <p>{filtered.length} action{filtered.length > 1 ? 's' : ''} affichee{filtered.length > 1 ? 's' : ''}</p>
+          </div>
+          <div className="actions">
+            <select className="compact-filter" value={moduleFilter} onChange={(event) => setModuleFilter(event.target.value)}>
+              <option value="tous">Tous les modules</option>
+              {modules.map((module) => <option key={module} value={module}>{moduleLabels[module] || module}</option>)}
+            </select>
+            <select className="compact-filter" value={actionFilter} onChange={(event) => setActionFilter(event.target.value)}>
+              <option value="tous">Toutes les actions</option>
+              {actions.map((action) => <option key={action} value={action}>{actionLabels[action] || action}</option>)}
+            </select>
+            <button className="btn print small" type="button" onClick={printAudit}><Printer size={16} /> Imprimer</button>
+          </div>
+        </div>
+        <Table headers={['Date', 'Utilisateur', 'Role', 'Action', 'Module', 'Reference', 'Details']} rows={filtered.map((log) => [
+          formatDate(log.created_at),
+          log.user_name || '-',
+          log.user_role || '-',
+          <Badge>{actionLabels[log.action_type] || log.action_type}</Badge>,
+          moduleLabels[log.module] || log.module || '-',
+          log.entity_id || '-',
+          <button className="btn small secondary" type="button" onClick={() => setSelected(log)}><Eye size={15} /> Voir</button>
+        ])} />
+      </section>
+      <section className="panel audit-summary">
+        <h3>Lecture rapide</h3>
+        <div className="stats-row">
+          <article><ShieldCheck /><span>Total actions</span><strong>{logs.length}</strong></article>
+          <article><Plus /><span>Creations</span><strong>{logs.filter((log) => log.action_type === 'POST').length}</strong></article>
+          <article><Edit3 /><span>Modifications</span><strong>{logs.filter((log) => ['PUT', 'PATCH'].includes(log.action_type)).length}</strong></article>
+          <article><Trash2 /><span>Suppressions</span><strong>{logs.filter((log) => log.action_type === 'DELETE').length}</strong></article>
+        </div>
+        <p className="muted-note">Les donnees detaillees affichent les parametres, le corps de la requete et la reference concernee quand ils sont disponibles. Les mots de passe, codes et images sont masques automatiquement.</p>
+      </section>
+      {selected && (
+        <Modal title={`Action ${selected.id_log}`} onClose={() => setSelected(null)}>
+          <div className="audit-detail">
+            <div className="debt-preview">
+              <span>Utilisateur</span>
+              <strong>{selected.user_name || '-'}</strong>
+              <em>{selected.user_role || '-'}</em>
+            </div>
+            <div className="form-row">
+              <div className="debt-preview"><span>Action</span><strong>{actionLabels[selected.action_type] || selected.action_type}</strong></div>
+              <div className="debt-preview"><span>Module</span><strong>{moduleLabels[selected.module] || selected.module || '-'}</strong></div>
+            </div>
+            <div className="debt-preview"><span>Description</span><strong>{selected.description || '-'}</strong><em>{formatDate(selected.created_at)}</em></div>
+            <label>Donnees de l’action / avant-apres disponible
+              <textarea readOnly value={metadataText(selected.metadata)} />
+            </label>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
 function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
   const status = data.extra.mailStatus || {};
   const emptyMailForm = { to: '', subject: '', message: '' };
@@ -3047,7 +3154,7 @@ function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
           <Badge>{status.ready ? 'actif' : 'configuration requise'}</Badge>
           <p>Expediteur SMTP: <strong>{status.sender || 'Email serveur indisponible'}</strong></p>
           {!status.ready && <p className="mail-warning">Ajoutez EMAIL_USER et EMAIL_PASS dans Render puis redeployez le backend.</p>}
-          <p>Les nouveaux utilisateurs et managers recoivent automatiquement un email de bienvenue avec leurs acces temporaires.</p>
+          <p>Les nouveaux utilisateurs recoivent un email de bienvenue avec un lien securise pour definir leur mot de passe.</p>
         </div>
       </div>
       {creating && (
@@ -3312,6 +3419,46 @@ function Commandes({ api, notify, data, submit, user, searchQuery = '' }) {
     const result = await api(`/commandes/${item.id_commande}/convertir`, { method: 'POST', body: '{}' });
     notify(result.message);
   });
+  const printOrder = (item) => {
+    const clientName = `${item.client_nom || ''} ${item.client_postnom || ''}`.trim() || '-';
+    const articles = (item.lignes || []).map((line) => [
+      line.produit_nom || line.produit_id || '-',
+      line.quantite,
+      moneySmart(Number(line.prix_unitaire_ht || 0) * (1 + Number(line.taux_tva ?? 16) / 100)),
+      moneySmart(Number(line.quantite || 0) * Number(line.prix_unitaire_ht || 0) * (1 + Number(line.taux_tva ?? 16) / 100))
+    ]);
+    printLayout({
+      title: `Commande ${item.id_commande}`,
+      badge: item.statut,
+      sections: [
+        {
+          title: 'Informations commande',
+          rows: [
+            ['Reference', item.id_commande],
+            ['Date', formatDate(item.date_commande)],
+            ['Statut', item.statut],
+            ['Facture', item.numero_facture || 'Non facturee']
+          ]
+        },
+        {
+          title: 'Client',
+          rows: [
+            ['Nom', clientName],
+            ['Telephone', item.client_telephone || '-'],
+            ['Montant TTC', moneySmart(item.montant_ttc)]
+          ]
+        }
+      ],
+      table: {
+        title: 'Articles commandes',
+        headers: ['Produit', 'Quantite', 'Prix vente TTC', 'Total TTC'],
+        rows: articles.length ? articles : [['Aucun article detaille', '-', '-', '-']]
+      },
+      note: item.note_client ? `Note client: ${item.note_client}` : 'Document imprime depuis le module Commandes.',
+      paper: 'page',
+      generatedLine: `Commande imprimee par ${user?.nom || user?.email || 'vendeur'}`
+    });
+  };
 
   if (user?.role === 'client') return (
     <div className="client-order-layout">
@@ -3345,6 +3492,7 @@ function Commandes({ api, notify, data, submit, user, searchQuery = '' }) {
         item.id_commande, `${item.client_nom} ${item.client_postnom || ''}`, formatDate(item.date_commande), item.lignes?.map((line) => `${line.produit_nom} × ${line.quantite}`).join(', '), money(item.montant_ttc), <Badge>{item.statut}</Badge>,
         <div className="actions order-actions">
           {!item.vente_id && !['annulee', 'rejetee'].includes(item.statut) && <select value={item.statut} onChange={(event) => updateStatus(item, event.target.value)}><option value="en_attente">En attente</option><option value="confirmee">Confirmee</option><option value="preparee">Preparee</option><option value="livree">Livree</option><option value="annulee">Annulee</option><option value="rejetee">Rejetee</option></select>}
+          {user?.role === 'vendeur' && <button className="action print-action" type="button" title="Imprimer la commande" onClick={() => printOrder(item)}><Printer size={17} /></button>}
           {user?.role === 'vendeur' && !item.vente_id && !['annulee', 'rejetee'].includes(item.statut) && <button className="btn small" type="button" onClick={() => convert(item)}>Facturer</button>}
           {item.numero_facture && <Badge>{item.numero_facture}</Badge>}
         </div>
@@ -3354,18 +3502,9 @@ function Commandes({ api, notify, data, submit, user, searchQuery = '' }) {
 }
 
 function AchatsClient({ api, notify, data, submit, setPage, searchQuery = '' }) {
-  const [payment, setPayment] = useState(null);
-  const [form, setForm] = useState({ operateur: 'mpesa', telephone_payeur: '+243', montant: '', reference_externe: '' });
   const rows = (data.extra.achats || []).filter((item) => `${item.numero_facture} ${item.montant_ttc}`.toLowerCase().includes(searchQuery.toLowerCase()));
-  const openPayment = (item) => { setPayment(item); setForm({ operateur: 'mpesa', telephone_payeur: '+243', montant: Number(item.reste_a_payer).toFixed(2), reference_externe: '' }); };
-  const pay = () => submit(async () => {
-    const result = await api('/paiements/mobile-money/client', { method: 'POST', body: JSON.stringify({ ...form, vente_id: payment.id_ventes }) });
-    setPayment(null);
-    notify(result.message || 'Paiement Mobile Money transmis.');
-  });
   return <>
-    <section className="panel"><div className="panel-heading"><div><h3>Mes achats et factures</h3><p>Payez votre solde par M-Pesa, Airtel Money ou Orange Money.</p></div></div>{rows.length ? <Table headers={['Facture', 'Date', 'Montant', 'Paye', 'Reste', 'Statut', 'Paiement']} rows={rows.map((item) => [item.numero_facture, formatDate(item.date_vente), money(item.montant_ttc), money(item.total_paye), money(item.reste_a_payer), <Badge>{Number(item.reste_a_payer) <= 0 ? 'Paye' : item.paiement_mobile_statut === 'en_attente' ? 'Verification Mobile Money' : Number(item.total_paye) > 0 ? 'Partiel' : 'Impaye'}</Badge>, Number(item.reste_a_payer) > 0 ? <button className="btn small mobile-pay-button" type="button" disabled={item.paiement_mobile_statut === 'en_attente'} onClick={() => openPayment(item)}><WalletCards size={16} /> {item.paiement_mobile_statut === 'en_attente' ? 'En verification' : 'Payer Mobile Money'}</button> : '-'])} /> : <div className="empty purchase-empty"><WalletCards size={32} /><strong>Aucune facture disponible</strong><p>Le bouton Mobile Money apparait des qu'une commande est transformee en facture avec un solde a payer.</p><button className="btn small" type="button" onClick={() => setPage('commandes')}>Voir mes commandes</button></div>}</section>
-    {payment && <Modal title={`Payer ${payment.numero_facture}`} onClose={() => setPayment(null)}><div className="mobile-money-note"><ShieldCheck size={22} /><p>Laissez la reference vide pour lancer automatiquement la demande sur votre telephone. Si le prestataire n'est pas configure, effectuez le transfert puis saisissez la reference recue.</p></div><Form onSubmit={pay}><Select label="Operateur" value={form.operateur} onChange={(operateur) => setForm({ ...form, operateur })} options={[["mpesa","M-Pesa"],["airtel_money","Airtel Money"],["orange_money","Orange Money"]]} /><Input label="Numero Mobile Money" type="tel" value={form.telephone_payeur} onChange={(telephone_payeur) => setForm({ ...form, telephone_payeur })} required /><Input label="Montant (USD)" type="number" min="0.01" max={payment.reste_a_payer} step="0.01" value={form.montant} onChange={(montant) => setForm({ ...form, montant })} required /><Input label="Reference de transaction (optionnel)" value={form.reference_externe} onChange={(reference_externe) => setForm({ ...form, reference_externe })} placeholder="Vide = demande automatique" /><button className="btn modal-submit"><ShieldCheck size={18} /> Payer par Mobile Money</button></Form></Modal>}
+    <section className="panel"><div className="panel-heading"><div><h3>Mes achats et factures</h3><p>Consultez vos factures, les montants deja payes et le reste a payer.</p></div></div>{rows.length ? <Table headers={['Facture', 'Date', 'Montant', 'Paye', 'Reste', 'Statut']} rows={rows.map((item) => [item.numero_facture, formatDate(item.date_vente), money(item.montant_ttc), money(item.total_paye), money(item.reste_a_payer), <Badge>{Number(item.reste_a_payer) <= 0 ? 'Paye' : Number(item.total_paye) > 0 ? 'Partiel' : 'Impaye'}</Badge>])} /> : <div className="empty purchase-empty"><WalletCards size={32} /><strong>Aucune facture disponible</strong><p>Vos factures apparaitront ici des qu'une commande sera transformee en facture.</p><button className="btn small" type="button" onClick={() => setPage('commandes')}>Voir mes commandes</button></div>}</section>
   </>;
 }
 

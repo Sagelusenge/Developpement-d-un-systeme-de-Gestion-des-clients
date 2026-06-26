@@ -8557,3 +8557,99 @@ body:has(.login-page),
   color: #063b72;
   text-decoration: underline;
 }
+
+.audit-page {
+  align-items: start;
+}
+
+.audit-summary .stats-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.audit-summary .muted-note {
+  background: #f8fafc;
+  border: 1px solid #dbe3ec;
+  border-radius: 12px;
+  color: #526175;
+  font-weight: 650;
+  line-height: 1.65;
+  margin: 18px 0 0;
+  padding: 14px 16px;
+}
+
+.audit-detail textarea {
+  background: #0f172a;
+  border-radius: 12px;
+  color: #e2e8f0;
+  font-family: Consolas, Monaco, monospace;
+  min-height: 260px;
+  white-space: pre;
+}
+
+/* Extra professional admin motion */
+@media (prefers-reduced-motion:no-preference) {
+  .shell .content-heading,
+  .shell .panel {
+    animation: adminPanelIn 520ms cubic-bezier(.2,.8,.2,1) both;
+  }
+
+  .shell .panel:nth-of-type(2) { animation-delay: 70ms; }
+  .shell .panel:nth-of-type(3) { animation-delay: 120ms; }
+  .shell .panel:nth-of-type(4) { animation-delay: 170ms; }
+
+  .shell table tbody tr {
+    animation: adminRowIn 360ms ease both;
+  }
+
+  .shell table tbody tr:nth-child(2) { animation-delay: 25ms; }
+  .shell table tbody tr:nth-child(3) { animation-delay: 50ms; }
+  .shell table tbody tr:nth-child(4) { animation-delay: 75ms; }
+  .shell table tbody tr:nth-child(5) { animation-delay: 100ms; }
+  .shell table tbody tr:nth-child(n+6) { animation-delay: 120ms; }
+
+  .shell .btn,
+  .shell .action,
+  .shell .icon-button,
+  .sidebar .nav button {
+    transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease, color 180ms ease;
+  }
+
+  .shell .btn:hover,
+  .shell .action:hover,
+  .shell .icon-button:hover {
+    transform: translateY(-2px);
+  }
+
+  .sidebar .nav button:hover {
+    transform: translateX(3px);
+  }
+
+  .notification-menu,
+  .modal {
+    animation: adminPopIn 220ms ease both;
+  }
+
+  .badge {
+    transition: transform 160ms ease, box-shadow 160ms ease;
+  }
+
+  .badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(6,38,74,.09);
+  }
+
+  @keyframes adminPanelIn {
+    from { opacity: 0; transform: translateY(18px) scale(.992); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes adminRowIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes adminPopIn {
+    from { opacity: 0; transform: translateY(8px) scale(.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+}

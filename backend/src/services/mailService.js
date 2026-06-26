@@ -155,6 +155,56 @@ export const sendOrderStatusEmail = ({ to, name, orderId, status, espaceUrl }) =
     });
 };
 
+export const sendPublicContactReceivedEmail = ({ to, name, subject, espaceUrl }) => sendMail({
+    to,
+    subject: `Votre message a ete recu | ${APP_NAME}`,
+    text: `Bonjour ${name || 'cher client'},\n\nNous avons bien recu votre message: ${subject || 'Demande depuis le site'}. Notre equipe va le consulter et vous repondra si une suite est necessaire.\n\n${espaceUrl || ''}\n\nL'equipe ${APP_NAME}`,
+    html: brandedEmail({
+        eyebrow: 'MESSAGE RECU',
+        title: 'Votre demande est bien arrivee',
+        greeting: `Bonjour ${name || 'cher client'}`,
+        intro: `Nous avons bien recu votre message${subject ? ` concernant "${subject}"` : ''}. Il sera consulte par notre equipe dans les meilleurs delais.`,
+        content: espaceUrl ? `<div style="margin-top:8px;text-align:center"><a href="${escapeHtml(espaceUrl)}" style="background:#0b5ea8;border-radius:8px;color:#ffffff;display:inline-block;font-size:14px;font-weight:700;padding:13px 22px;text-decoration:none">Acceder au site</a></div>` : '',
+        notice: 'Cet email confirme uniquement la reception de votre demande. Pour le suivi des commandes, utilisez votre espace client.'
+    })
+});
+
+export const sendReclamationReceivedEmail = ({ to, name, complaintId, subject, espaceUrl }) => sendMail({
+    to,
+    subject: `Reclamation ${complaintId} recue | ${APP_NAME}`,
+    text: `Bonjour ${name || 'cher client'},\n\nNous avons bien recu votre reclamation ${complaintId}: ${subject}. Le manager pourra la traiter depuis l'application.\n\n${espaceUrl || ''}\n\nL'equipe ${APP_NAME}`,
+    html: brandedEmail({
+        eyebrow: 'RECLAMATION RECUE',
+        title: `Votre reclamation ${complaintId} est enregistree`,
+        greeting: `Bonjour ${name || 'cher client'}`,
+        intro: `Votre reclamation a ete transmise au manager. Elle porte sur: ${subject || 'demande client'}.`,
+        content: `<div style="background:#f8fafc;border:1px solid #dce4ee;border-radius:10px;padding:18px"><p style="margin:0 0 8px"><strong>Reference :</strong> ${escapeHtml(complaintId)}</p><p style="margin:0"><strong>Statut initial :</strong> Ouverte</p></div>${espaceUrl ? `<div style="margin-top:24px;text-align:center"><a href="${escapeHtml(espaceUrl)}" style="background:#0b5ea8;border-radius:8px;color:#ffffff;display:inline-block;font-size:14px;font-weight:700;padding:13px 22px;text-decoration:none">Suivre dans mon espace</a></div>` : ''}`,
+        notice: 'Vous recevrez une information lorsque le statut de la reclamation evolue.'
+    })
+});
+
+export const sendReclamationStatusEmail = ({ to, name, complaintId, status, response, espaceUrl }) => {
+    const labels = {
+        ouverte: 'ouverte',
+        en_cours: 'en cours de traitement',
+        resolue: 'resolue',
+        cloturee: 'cloturee'
+    };
+    return sendMail({
+        to,
+        subject: `Mise a jour reclamation ${complaintId} | ${APP_NAME}`,
+        text: `Bonjour ${name || 'cher client'},\n\nVotre reclamation ${complaintId} est maintenant ${labels[status] || status}.${response ? `\n\nReponse: ${response}` : ''}\n\n${espaceUrl || ''}\n\nL'equipe ${APP_NAME}`,
+        html: brandedEmail({
+            eyebrow: 'SUIVI DE RECLAMATION',
+            title: `Reclamation ${complaintId} : ${labels[status] || status}`,
+            greeting: `Bonjour ${name || 'cher client'}`,
+            intro: `Le statut de votre reclamation vient d'etre mis a jour: ${labels[status] || status}.`,
+            content: `${response ? `<div style="background:#ffffff;border-left:4px solid #f5b942;color:#334155;line-height:1.7;padding:13px 15px">${escapeHtml(response)}</div>` : ''}${espaceUrl ? `<div style="margin-top:24px;text-align:center"><a href="${escapeHtml(espaceUrl)}" style="background:#0b5ea8;border-radius:8px;color:#ffffff;display:inline-block;font-size:14px;font-weight:700;padding:13px 22px;text-decoration:none">Ouvrir mon espace client</a></div>` : ''}`,
+            notice: 'Pour ajouter des precisions, utilisez votre espace client ou le chat afin de conserver l historique.'
+        })
+    });
+};
+
 export const sendInvoiceAvailableEmail = ({ to, name, orderId, invoiceId, total, espaceUrl }) => sendMail({
     to,
     subject: `Facture ${invoiceId} disponible | ${APP_NAME}`,
@@ -165,7 +215,7 @@ export const sendInvoiceAvailableEmail = ({ to, name, orderId, invoiceId, total,
         greeting: `Bonjour ${name || 'cher client'}`,
         intro: `La commande ${orderId} a ete validee et transformee en facture. Vous pouvez maintenant consulter le montant, les paiements et le reste a payer.`,
         content: `<div style="background:#f8fafc;border:1px solid #dce4ee;border-radius:10px;padding:18px"><p style="margin:0 0 8px"><strong>Facture :</strong> ${escapeHtml(invoiceId)}</p><p style="margin:0"><strong>Montant :</strong> ${escapeHtml(Number(total || 0).toFixed(2))} USD</p></div>${espaceUrl ? `<div style="margin-top:24px;text-align:center"><a href="${escapeHtml(espaceUrl)}" style="background:#0b5ea8;border-radius:8px;color:#ffffff;display:inline-block;font-size:14px;font-weight:700;padding:13px 22px;text-decoration:none">Consulter mes achats</a></div>` : ''}`,
-        notice: 'Si le paiement Mobile Money est active dans votre configuration, vous pourrez payer totalement ou partiellement depuis Mes achats.'
+        notice: 'Pour toute question sur le paiement ou le solde restant, consultez votre espace client ou contactez notre equipe.'
     })
 });
 

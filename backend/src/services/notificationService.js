@@ -27,3 +27,24 @@ export const notifyEnterpriseAdmins = async ({ entreprise_id, titre, message, en
         });
     }
 };
+
+export const notifyEnterpriseRoles = async ({ entreprise_id, roles = ['manager'], titre, message, entity_type = null, entity_id = null }) => {
+    const safeRoles = Array.isArray(roles) && roles.length ? roles : ['manager'];
+    const [users] = await pool.query(
+        `SELECT id_utilisateur FROM utilisateur
+         WHERE entreprise_id = ? AND role IN (?) AND actif = 1`,
+        [entreprise_id, safeRoles]
+    );
+
+    for (const user of users) {
+        await createNotification({
+            recipient_type: 'user',
+            recipient_user_id: user.id_utilisateur,
+            entreprise_id,
+            titre,
+            message,
+            entity_type,
+            entity_id
+        });
+    }
+};

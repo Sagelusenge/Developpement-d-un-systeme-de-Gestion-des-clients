@@ -1,5 +1,8 @@
 import pool from '../config/db.js';
 import { notifyEnterpriseAdmins } from '../services/notificationService.js';
+import { sendPublicContactReceivedEmail } from '../services/mailService.js';
+
+const publicSiteUrl = () => String(process.env.FRONTEND_URL || 'http://127.0.0.1:5174').split(',')[0].trim().replace(/\/$/, '');
 
 export const sendPublicContact = async (req, res) => {
     const nom = String(req.body.nom || '').trim();
@@ -31,6 +34,7 @@ export const sendPublicContact = async (req, res) => {
             entity_type: 'commentaire',
             entity_id: String(result.insertId)
         });
+        sendPublicContactReceivedEmail({ to: email, name: nom, subject: sujet, espaceUrl: publicSiteUrl() }).catch(() => null);
         res.status(201).json({ success: true, message: 'Votre message a bien ete transmis a notre equipe.' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

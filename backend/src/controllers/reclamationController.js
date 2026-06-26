@@ -1,8 +1,10 @@
 import pool from '../config/db.js';
 import { nextId } from '../services/idService.js';
 import { notifyEnterpriseAdmins } from '../services/notificationService.js';
+import { sendReclamationReceivedEmail, sendReclamationStatusEmail } from '../services/mailService.js';
 
 const isClient = (req) => req.user.type === 'client';
+const espaceClientUrl = () => `${String(process.env.FRONTEND_URL || 'http://127.0.0.1:5174').split(',')[0].trim().replace(/\/$/, '')}/connexion`;
 export const getReclamations = async (req, res) => {
     try {
         if (!isClient(req) && req.user.role !== 'manager') return res.status(403).json({ success: false, message: 'Acces reserve au manager.' });
@@ -34,6 +36,7 @@ export const createReclamation = async (req, res) => {
         );
         await connection.commit();
         await notifyEnterpriseAdmins({ entreprise_id: req.user.entreprise_id, titre: 'Nouvelle reclamation client', message: `${req.user.nom || 'Un client'} a envoye la reclamation ${id}: ${sujet}.`, entity_type: 'reclamation', entity_id: id }).catch(() => null);
+        sendReclamationReceivedEmail({ to: req.user.email, name: req.user.nom, complaintId: id, subject: sujet, espaceUrl: espaceClientUrl() }).catch(() => null);
         res.status(201).json({ success: true, message: 'Reclamation envoyee au manager.', id });
     } catch (error) {
         await connection.rollback(); res.status(400).json({ success: false, message: error.message });
@@ -45,11 +48,27 @@ export const updateReclamation = async (req, res) => {
     const statuses = ['ouverte', 'en_cours', 'resolue', 'cloturee'];
     if (!statuses.includes(req.body.statut)) return res.status(400).json({ success: false, message: 'Statut invalide.' });
     try {
+        const [[reclamation]] = await pool.query(
+            `SELECT r.id_reclamation, r.statut, c.nom AS client_nom, c.email AS client_email
+             FROM reclamations r JOIN client c ON c.id_client = r.client_id
+             WHERE r.id_reclamation = ? AND r.entreprise_id = ?`,
+            [req.params.id, req.user.entreprise_id]
+        );
         const [result] = await pool.query(
             `UPDATE reclamations SET statut = ?, reponse = ? WHERE id_reclamation = ? AND entreprise_id = ?`,
             [req.body.statut, String(req.body.reponse || '').trim() || null, req.params.id, req.user.entreprise_id]
         );
         if (!result.affectedRows) return res.status(404).json({ success: false, message: 'Reclamation introuvable.' });
+        if (reclamation?.client_email && reclamation.statut !== req.body.statut) {
+            sendReclamationStatusEmail({
+                to: reclamation.client_email,
+                name: reclamation.client_nom,
+                complaintId: reclamation.id_reclamation,
+                status: req.body.statut,
+                response: String(req.body.reponse || '').trim(),
+                espaceUrl: espaceClientUrl()
+            }).catch(() => null);
+        }
         res.json({ success: true, message: 'Reclamation mise a jour.' });
     } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 };

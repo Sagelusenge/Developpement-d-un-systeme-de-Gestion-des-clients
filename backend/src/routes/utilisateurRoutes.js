@@ -3,6 +3,7 @@ import {
     getAllUtilisateurs,
     createUtilisateur,
     updateUtilisateur,
+    getJournalAudit,
     getHistoriqueUtilisateur,
     toggleUtilisateur,
     deleteUtilisateur
@@ -22,6 +23,12 @@ router.post('/',
     protect,
     authorizeRoles('manager'),
     createUtilisateur
+);
+
+router.get('/audit/journal',
+    protect,
+    authorizeRoles('manager'),
+    getJournalAudit
 );
 
 router.get('/:id/historique',

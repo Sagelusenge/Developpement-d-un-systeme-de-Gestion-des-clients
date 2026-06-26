@@ -18,6 +18,12 @@ Pour la production Render:
 VITE_API_URL=https://developpement-d-un-systeme-de-gestion.onrender.com/api
 ```
 
+Pour la production AWS actuelle:
+
+```env
+VITE_API_URL=https://13.61.230.65/api
+```
+
 Notes:
 - En local, le backend tourne par defaut sur `http://localhost:5000`.
 - Dans le code frontend, `VITE_API_URL` doit contenir le prefixe `/api`.
@@ -36,6 +42,18 @@ Base URL production:
 
 ```text
 https://developpement-d-un-systeme-de-gestion.onrender.com/api
+```
+
+Base URL AWS actuelle:
+
+```text
+https://13.61.230.65/api
+```
+
+URL du site AWS:
+
+```text
+https://13.61.230.65/
 ```
 
 Pour un telephone physique sur le meme reseau que le PC, remplacer `localhost` par l'adresse IP du PC:
