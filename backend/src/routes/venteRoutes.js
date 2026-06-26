@@ -1,7 +1,7 @@
 import express from 'express';
-import { 
-    getAllVentes, 
-    getVenteById, 
+import {
+    getAllVentes,
+    getVenteById,
     createVente,
     updateVente,
     deleteVente
@@ -10,34 +10,34 @@ import { protect, authorizeRoles } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// ✅ MANAGER + CAISSIER peuvent voir et créer des ventes
-router.get('/',    
-    protect, 
-    authorizeRoles('manager', 'caissier'), 
+// ✅ MANAGER + VENDEUR peuvent voir et créer des ventes
+router.get('/',
+    protect,
+    authorizeRoles('manager', 'vendeur'),
     getAllVentes
 );
 
-router.get('/:id', 
-    protect, 
-    authorizeRoles('manager', 'caissier'), 
+router.get('/:id',
+    protect,
+    authorizeRoles('manager', 'vendeur'),
     getVenteById
 );
 
-router.post('/',   
-    protect, 
-    authorizeRoles('caissier'),
+router.post('/',
+    protect,
+    authorizeRoles('vendeur'),
     createVente
 );
 
 router.put('/:id',
     protect,
-    authorizeRoles('caissier'),
+    authorizeRoles('vendeur'),
     updateVente
 );
 
 router.delete('/:id',
     protect,
-    authorizeRoles('caissier'),
+    authorizeRoles('vendeur'),
     deleteVente
 );
 

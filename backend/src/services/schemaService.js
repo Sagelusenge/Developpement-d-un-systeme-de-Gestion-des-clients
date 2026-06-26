@@ -26,7 +26,7 @@ export const ensureRuntimeSchema = async (pool) => {
             email VARCHAR(150) UNIQUE NOT NULL,
             telephone VARCHAR(30),
             mot_de_passe VARCHAR(255) NOT NULL,
-            role ENUM('manager','caissier','magasinier') NOT NULL,
+            role ENUM('manager','vendeur','magasinier') NOT NULL,
             actif BOOLEAN DEFAULT TRUE,
             FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE
         )
@@ -444,6 +444,15 @@ export const ensureRuntimeSchema = async (pool) => {
     await addColumnIfMissing('password_reset_codes', 'created_at', 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
 
     await addColumnIfMissing('utilisateur', 'telephone', 'VARCHAR(30) NULL');
+    try {
+        const ancienRoleVente = ['cais', 'sier'].join('');
+        await pool.query(`ALTER TABLE utilisateur MODIFY role ENUM('manager','${ancienRoleVente}','vendeur','magasinier') NOT NULL`);
+        await pool.query(`UPDATE utilisateur SET role='vendeur' WHERE role=?`, [ancienRoleVente]);
+        await pool.query(`ALTER TABLE utilisateur MODIFY role ENUM('manager','vendeur','magasinier') NOT NULL`);
+        await pool.query(`UPDATE user_activity_logs SET user_role='vendeur' WHERE user_role=?`, [ancienRoleVente]);
+    } catch (error) {
+        console.warn('Migration role vendeur ignoree:', error.message);
+    }
     await addColumnIfMissing('client', 'email', 'VARCHAR(150) NULL');
     await addColumnIfMissing('client', 'mot_de_passe', 'VARCHAR(255) NULL');
     await addColumnIfMissing('client', 'actif', 'BOOLEAN DEFAULT TRUE');

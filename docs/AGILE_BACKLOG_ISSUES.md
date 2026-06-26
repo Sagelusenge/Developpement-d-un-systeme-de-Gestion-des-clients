@@ -26,7 +26,7 @@ En tant qu'utilisateur autorise, je veux me connecter avec mon email et mon mot 
 - Generer un token JWT.
 - Limiter la duree du token a 2 heures.
 - Proteger les routes backend.
-- Gerer les roles manager, caissier et magasinier.
+- Gerer les roles manager, vendeur et magasinier.
 
 ### Criteres d'acceptation
 
@@ -69,7 +69,7 @@ Gerer les fiches clients et leur historique commercial.
 
 ### Description
 
-En tant que caissier ou manager, je veux ajouter, rechercher, modifier et consulter les clients afin de suivre les ventes et les dettes.
+En tant que vendeur ou manager, je veux ajouter, rechercher, modifier et consulter les clients afin de suivre les ventes et les dettes.
 
 ### Taches
 
@@ -94,7 +94,7 @@ Permettre la creation de factures avec plusieurs produits.
 
 ### Description
 
-En tant que caissier, je veux creer une facture en recherchant un client et des produits afin d'enregistrer une vente.
+En tant que vendeur, je veux creer une facture en recherchant un client et des produits afin d'enregistrer une vente.
 
 ### Taches
 
@@ -119,7 +119,7 @@ Suivre l'argent reellement encaisse.
 
 ### Description
 
-En tant que caissier, je veux enregistrer les paiements et filtrer la caisse par periode afin de connaitre l'argent recu.
+En tant que vendeur, je veux enregistrer les paiements et filtrer la caisse par periode afin de connaitre l'argent recu.
 
 ### Taches
 

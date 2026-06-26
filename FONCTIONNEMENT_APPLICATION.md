@@ -52,7 +52,7 @@ Le prix d'achat est saisi au moment de l'approvisionnement, parce qu'un meme fou
 ## Roles
 
 - `manager`: supervise les clients, commandes, reclamations, rapports, chat, emails et utilisateurs; il ne cree pas les ventes ni les encaissements.
-- `caissier`: gere les ventes, paiements, clients et rapports de caisse.
+- `vendeur`: gere les ventes, paiements, clients et rapports de caisse.
 - `magasinier`: gere les produits, fournisseurs, categories, stock et approvisionnements.
 - `client`: commande, consulte ses achats et factures, transmet un paiement Mobile Money, reclame et utilise le chat.
 
@@ -73,11 +73,11 @@ Les principaux rapports sont:
 ## Espace client, chat et Mobile Money
 
 1. Le nouveau client cree son compte depuis le site public et confirme son adresse avec le code recu par email.
-2. La connexion est unique; le backend reconnait automatiquement client, manager, caissier ou magasinier.
+2. La connexion est unique; le backend reconnait automatiquement client, manager, vendeur ou magasinier.
 3. Le client choisit les produits disponibles au prix de vente catalogue. Le backend recalcule lui-meme le total et bloque un prix de vente inferieur au cout.
 4. Une commande peut ensuite etre suivie jusqu'a sa facture. Les achats affichent montant, total paye et reste.
 5. Pour Mobile Money, le client selectionne M-Pesa, Airtel Money ou Orange Money, puis fournit telephone, montant et reference de transaction.
-6. La demande reste `en_attente`: elle n'entre pas dans la caisse avant confirmation du caissier. Le caissier peut la confirmer ou la rejeter.
+6. La demande reste `en_attente`: elle n'entre pas dans la caisse avant confirmation du vendeur. Le vendeur peut la confirmer ou la rejeter.
 7. Dans le chat, le message apparait immediatement chez l'expediteur. Un flux temps reel avertit l'autre interlocuteur sans rechargement de page.
 8. Le bot repond aux questions fiables et consulte les references `CMD-...` ou `FAC-...`. Sinon, il transfere la question au manager, cree une notification et envoie un email professionnel.
 
@@ -118,4 +118,4 @@ Les niveaux les plus eleves sont prioritaires. Par exemple, un client avec seule
 
 ## Paiement Mobile Money automatique
 
-Avec `MOBILE_MONEY_PROVIDER_URL` et `MOBILE_MONEY_PROVIDER_KEY`, laisser la reference vide lance la demande chez le prestataire. Si celui-ci confirme immediatement, le paiement entre directement dans la caisse. Sans prestataire configure, le client saisit la reference de son transfert et le caissier la verifie. Une commande doit d'abord etre transformee en facture.
+Avec `MOBILE_MONEY_PROVIDER_URL` et `MOBILE_MONEY_PROVIDER_KEY`, laisser la reference vide lance la demande chez le prestataire. Si celui-ci confirme immediatement, le paiement entre directement dans la caisse. Sans prestataire configure, le client saisit la reference de son transfert et le vendeur la verifie. Une commande doit d'abord etre transformee en facture.

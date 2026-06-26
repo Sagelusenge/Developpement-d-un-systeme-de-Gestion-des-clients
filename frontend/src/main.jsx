@@ -827,18 +827,18 @@ function App() {
   const navItems = useMemo(() => {
     const role = user?.role;
     return [
-      { id: 'dashboard', label: tr(lang, 'dashboard'), roles: ['manager', 'caissier', 'magasinier'] },
+      { id: 'dashboard', label: tr(lang, 'dashboard'), roles: ['manager', 'vendeur', 'magasinier'] },
       { id: 'dashboard', label: 'Mon espace', roles: ['client'] },
-      { id: 'clients', label: tr(lang, 'clients'), roles: ['manager', 'caissier'] },
+      { id: 'clients', label: tr(lang, 'clients'), roles: ['manager', 'vendeur'] },
       { id: 'fournisseurs', label: tr(lang, 'fournisseurs'), roles: ['manager', 'magasinier'] },
       { id: 'categories', label: tr(lang, 'categories'), roles: ['manager', 'magasinier'] },
-      { id: 'produits', label: 'Produits', roles: ['manager', 'caissier', 'magasinier'] },
-      { id: 'ventes', label: 'Ventes', roles: ['manager', 'caissier'] },
-      { id: 'paiements', label: tr(lang, 'paiements'), roles: ['manager', 'caissier'] },
-      { id: 'commandes', label: 'Commandes', roles: ['manager', 'caissier', 'client'] },
+      { id: 'produits', label: 'Produits', roles: ['manager', 'vendeur', 'magasinier'] },
+      { id: 'ventes', label: 'Ventes', roles: ['manager', 'vendeur'] },
+      { id: 'paiements', label: tr(lang, 'paiements'), roles: ['manager', 'vendeur'] },
+      { id: 'commandes', label: 'Commandes', roles: ['manager', 'vendeur', 'client'] },
       { id: 'achats', label: 'Mes achats', roles: ['client'] },
       { id: 'reclamations', label: 'Reclamations', roles: ['manager', 'client'] },
-      { id: 'rapports', label: tr(lang, 'rapports'), roles: ['manager', 'caissier', 'magasinier'] },
+      { id: 'rapports', label: tr(lang, 'rapports'), roles: ['manager', 'vendeur', 'magasinier'] },
       { id: 'chat', label: role === 'client' ? 'Assistance' : 'Chat', roles: ['manager', 'client'] },
       { id: 'mails', label: tr(lang, 'mails'), roles: ['manager'] },
       { id: 'commentaires', label: 'Commentaires', roles: ['manager'] },
@@ -900,7 +900,7 @@ function App() {
     fournisseurs: ['Fournisseurs', 'Contacts et historique des approvisionnements.'],
     rapports: user?.role === 'magasinier'
       ? ['Rapports produits', 'Inventaire, stock et entrees de stock.']
-      : user?.role === 'caissier'
+      : user?.role === 'vendeur'
         ? ['Rapports caisse', 'Factures, dettes et paiements recus.']
         : ['Rapports', 'Factures, creances, stock et meilleurs clients.'],
     commandes: ['Commandes', user?.role === 'client' ? 'Passez et suivez vos commandes.' : 'Suivi et traitement des commandes clients.'],
@@ -1269,6 +1269,9 @@ function Login({ authType, setAuthType, onLogin, notify, toast, goTo }) {
               {loading ? 'Connexion...' : 'Se connecter'} <LogIn size={20} />
             </button>
           </form>
+          <p className="login-signup-link">
+            Vous n'avez pas de compte ? <button type="button" onClick={() => goTo('/inscription')}>S'inscrire</button>
+          </p>
         </div>
       </section>
       {toast && <div className="toast">{toast}</div>}
@@ -1301,12 +1304,12 @@ function HelpModal({ page, role, onClose }) {
       ['Assistance', 'Discuter avec le bot ou le manager pour obtenir une aide sur prix, paiement ou suivi.']
     ],
     magasinier: [common.dashboard, common.produits, common.categories, common.fournisseurs, common.rapportsStock],
-    caissier: [common.dashboard, common.clients, common.ventes, common.paiements, common.rapportsCaisse],
+    vendeur: [common.dashboard, common.clients, common.ventes, common.paiements, common.rapportsCaisse],
     manager: [common.dashboard, common.clients, common.ventes, common.paiements, common.produits, common.fournisseurs, common.rapportsManager, common.utilisateurs, common.mails]
   };
 
   const pageAliases = {
-    rapports: role === 'magasinier' ? 'rapportsStock' : role === 'caissier' ? 'rapportsCaisse' : 'rapportsManager'
+    rapports: role === 'magasinier' ? 'rapportsStock' : role === 'vendeur' ? 'rapportsCaisse' : 'rapportsManager'
   };
   const currentKey = pageAliases[page] || page;
   const currentHelp = common[currentKey];
@@ -1535,10 +1538,10 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
     return 'IMPAYE';
   };
   const role = user?.role || 'manager';
-  const canSales = ['manager', 'caissier'].includes(role);
+  const canSales = ['manager', 'vendeur'].includes(role);
   const canStock = ['manager', 'magasinier'].includes(role);
-  const canClients = ['manager', 'caissier'].includes(role);
-  const canPayments = ['manager', 'caissier'].includes(role);
+  const canClients = ['manager', 'vendeur'].includes(role);
+  const canPayments = ['manager', 'vendeur'].includes(role);
   const stockTotal = (data.produits || []).reduce((sum, produit) => sum + Number(produit.quantite_stock || 0), 0);
   const stockAlerts = alertes.length || (data.produits || []).filter((produit) => produit.statut_stock && produit.statut_stock !== 'OK').length;
   const monthlyCash = Number(stats.argent_recu_mois ?? paymentTotal);
@@ -2397,7 +2400,7 @@ function Ventes({ api, notify, data, submit, searchQuery = '', user }) {
               <option value="partiel">Partielles</option>
               <option value="impaye">Impayees</option>
             </select>
-            {user?.role === 'caissier' && <button className="btn small" type="button" onClick={() => { setForm(emptySaleForm()); setCreating(true); }}><Plus size={16} /> Nouvelle facture</button>}
+            {user?.role === 'vendeur' && <button className="btn small" type="button" onClick={() => { setForm(emptySaleForm()); setCreating(true); }}><Plus size={16} /> Nouvelle facture</button>}
           </div>
         </div>
         <Table headers={['Facture', 'Client', 'Montant', 'Paye', 'Reste', 'Actions']} rows={ventesList.map((v) => [
@@ -2407,9 +2410,9 @@ function Ventes({ api, notify, data, submit, searchQuery = '', user }) {
           money(v.total_paye),
           money(v.reste_a_payer),
           <RowActions
-            onEdit={user?.role === 'caissier' ? () => startEdit(v) : null}
+            onEdit={user?.role === 'vendeur' ? () => startEdit(v) : null}
             onPrint={() => printDocument('Facture', [['Facture', v.numero_facture], ['Client', v.client_nom], ['Montant', money(v.montant_ttc)], ['Paye', money(v.total_paye)], ['Reste', money(v.reste_a_payer)]], { paper: 'page' })}
-            onDelete={user?.role === 'caissier' ? () => remove(v) : null}
+            onDelete={user?.role === 'vendeur' ? () => remove(v) : null}
           />
         ])} />
       </div>
@@ -2523,14 +2526,14 @@ function Paiements({ api, notify, data, submit, searchQuery = '', user }) {
                 <input className="date-filter" type="date" value={dateRange.fin} onChange={(event) => setDateRange({ ...dateRange, fin: event.target.value })} />
               </>
             )}
-            {user?.role === 'caissier' && <button className="btn small" type="button" onClick={() => { setForm(emptyPaymentForm); setInvoiceQuery(''); setCreating(true); }}><Plus size={16} /> Nouveau paiement</button>}
+            {user?.role === 'vendeur' && <button className="btn small" type="button" onClick={() => { setForm(emptyPaymentForm); setInvoiceQuery(''); setCreating(true); }}><Plus size={16} /> Nouveau paiement</button>}
           </div>
         </div>
         <Table headers={['Date', 'Mode', 'Transactions', 'Total']} rows={caisseRows.map((r) => [formatDate(r.Date), r.Mode_Paiement, r.Nombre_Transactions, money(r.Total_Encaisse)])} />
       </div>
       <div className="panel mobile-review-panel">
         <div className="panel-heading"><div><h3>Paiements Mobile Money a verifier</h3><p>{mobileRequests.filter((item) => item.statut === 'en_attente').length} demande(s) en attente</p></div></div>
-        <Table headers={['Reference', 'Facture', 'Client', 'Operateur', 'Telephone', 'Transaction', 'Montant', 'Statut', 'Actions']} rows={mobileRequests.map((item) => [item.id_demande, item.numero_facture, `${item.client_nom} ${item.client_postnom || ''}`, item.operateur, item.telephone_payeur, item.reference_externe, money(item.montant), <Badge>{item.statut}</Badge>, item.statut === 'en_attente' && user?.role === 'caissier' ? <div className="actions"><button className="btn small" type="button" onClick={() => reviewMobile(item, 'confirmee')}>Confirmer</button><button className="action delete" type="button" title="Rejeter" onClick={() => reviewMobile(item, 'rejetee')}><X size={17} /></button></div> : '-'])} />
+        <Table headers={['Reference', 'Facture', 'Client', 'Operateur', 'Telephone', 'Transaction', 'Montant', 'Statut', 'Actions']} rows={mobileRequests.map((item) => [item.id_demande, item.numero_facture, `${item.client_nom} ${item.client_postnom || ''}`, item.operateur, item.telephone_payeur, item.reference_externe, money(item.montant), <Badge>{item.statut}</Badge>, item.statut === 'en_attente' && user?.role === 'vendeur' ? <div className="actions"><button className="btn small" type="button" onClick={() => reviewMobile(item, 'confirmee')}>Confirmer</button><button className="action delete" type="button" title="Rejeter" onClick={() => reviewMobile(item, 'rejetee')}><X size={17} /></button></div> : '-'])} />
       </div>
       {creating && (
         <Modal title="Encaisser un paiement" onClose={closeCreate}>
@@ -2604,9 +2607,9 @@ function Rapports({ data, searchQuery = '', user }) {
   const [dateRange, setDateRange] = useState({ debut: '', fin: '' });
   const [showArchives, setShowArchives] = useState(false);
   const role = user?.role || 'manager';
-  const canSalesReports = ['manager', 'caissier'].includes(role);
+  const canSalesReports = ['manager', 'vendeur'].includes(role);
   const canStockReports = ['manager', 'magasinier'].includes(role);
-  const canCashReports = ['manager', 'caissier'].includes(role);
+  const canCashReports = ['manager', 'vendeur'].includes(role);
   const byPeriod = (rows, keys) => {
     if (period !== 'personnalise') return filterRowsByPeriod(rows, period, keys);
     if (!dateRange.debut && !dateRange.fin) return rows;
@@ -2640,7 +2643,7 @@ function Rapports({ data, searchQuery = '', user }) {
   const archives = (source.archives || []).filter((r) => !term || `${r.titre || ''} ${r.type_document || ''} ${r.description || ''}`.toLowerCase().includes(term));
   const stockValue = stock.reduce((sum, row) => sum + Number(row.valeur_stock_achat || 0), 0);
   const stockRisks = stock.filter((row) => String(row.statut || '').toUpperCase() !== 'OK').length;
-  const reportTitle = role === 'magasinier' ? 'Rapports produits' : role === 'caissier' ? 'Rapports caisse' : 'Rapports';
+  const reportTitle = role === 'magasinier' ? 'Rapports produits' : role === 'vendeur' ? 'Rapports caisse' : 'Rapports';
   const printRows = (title, headers, rows) => {
     printTableDocument(title, headers, rows, {
       badge: periodText.toUpperCase(),
@@ -2732,7 +2735,7 @@ function Rapports({ data, searchQuery = '', user }) {
 }
 
 function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
-  const emptyUserForm = { nom: '', email: '', mot_de_passe: 'User@123', role: 'caissier' };
+  const emptyUserForm = { nom: '', email: '', mot_de_passe: 'User@123', role: 'vendeur' };
   const [form, setForm] = useState(emptyUserForm);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -2741,7 +2744,7 @@ function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('tous');
-  const roles = [['manager', 'Manager'], ['caissier', 'Caissier'], ['magasinier', 'Magasinier']];
+  const roles = [['manager', 'Manager'], ['vendeur', 'Vendeur'], ['magasinier', 'Magasinier']];
   const term = `${searchQuery} ${query}`.trim().toLowerCase();
   const users = (data.extra.utilisateurs || [])
     .filter((u) => `${u.nom} ${u.email} ${u.role}`.toLowerCase().includes(term))
@@ -2859,7 +2862,7 @@ function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
           <h3>Utilisateurs et clients</h3>
           <div className="actions">
             <SearchInput value={query} onChange={setQuery} placeholder="Rechercher utilisateur" />
-            <select className="compact-filter" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}><option value="tous">Tous les roles</option><option value="manager">Managers</option><option value="caissier">Caissiers</option><option value="magasinier">Magasiniers</option><option value="client">Clients</option></select>
+            <select className="compact-filter" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}><option value="tous">Tous les roles</option><option value="manager">Managers</option><option value="vendeur">Vendeurs</option><option value="magasinier">Magasiniers</option><option value="client">Clients</option></select>
             <button className="btn small" type="button" onClick={() => { setForm(emptyUserForm); setCreating(true); }}><Plus size={16} /> Nouvel utilisateur</button>
           </div>
         </div>
@@ -3333,7 +3336,7 @@ function Commandes({ api, notify, data, submit, user, searchQuery = '' }) {
         item.id_commande, `${item.client_nom} ${item.client_postnom || ''}`, formatDate(item.date_commande), item.lignes?.map((line) => `${line.produit_nom} × ${line.quantite}`).join(', '), money(item.montant_ttc), <Badge>{item.statut}</Badge>,
         <div className="actions order-actions">
           {!item.vente_id && !['annulee', 'rejetee'].includes(item.statut) && <select value={item.statut} onChange={(event) => updateStatus(item, event.target.value)}><option value="en_attente">En attente</option><option value="confirmee">Confirmee</option><option value="preparee">Preparee</option><option value="livree">Livree</option><option value="annulee">Annulee</option><option value="rejetee">Rejetee</option></select>}
-          {user?.role === 'caissier' && !item.vente_id && !['annulee', 'rejetee'].includes(item.statut) && <button className="btn small" type="button" onClick={() => convert(item)}>Facturer</button>}
+          {user?.role === 'vendeur' && !item.vente_id && !['annulee', 'rejetee'].includes(item.statut) && <button className="btn small" type="button" onClick={() => convert(item)}>Facturer</button>}
           {item.numero_facture && <Badge>{item.numero_facture}</Badge>}
         </div>
       ])} />

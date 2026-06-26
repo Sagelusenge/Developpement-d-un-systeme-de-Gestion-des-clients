@@ -30,7 +30,7 @@ CREATE TABLE utilisateur (
     email VARCHAR(150) UNIQUE NOT NULL,
     telephone VARCHAR(30),
     mot_de_passe VARCHAR(255) NOT NULL,
-    role ENUM('manager','caissier','magasinier') NOT NULL,
+    role ENUM('manager','vendeur','magasinier') NOT NULL,
     actif BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE
 );

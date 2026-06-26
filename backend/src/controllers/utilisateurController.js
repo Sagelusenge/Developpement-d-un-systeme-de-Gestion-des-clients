@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { sendWelcomeUserEmail } from '../services/mailService.js';
 import { nextId } from '../services/idService.js';
 
-const rolesAutorises = ['manager', 'caissier', 'magasinier'];
+const rolesAutorises = ['manager', 'vendeur', 'magasinier'];
 
 // GET /api/utilisateurs
 export const getAllUtilisateurs = async (req, res) => {

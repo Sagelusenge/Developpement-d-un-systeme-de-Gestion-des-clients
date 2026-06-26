@@ -4,7 +4,7 @@ import { protect, authorizeRoles } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.get('/', protect, authorizeRoles('manager', 'caissier', 'magasinier'), getCategories);
+router.get('/', protect, authorizeRoles('manager', 'vendeur', 'magasinier'), getCategories);
 router.post('/', protect, authorizeRoles('magasinier'), createCategorie);
 router.put('/:id', protect, authorizeRoles('magasinier'), updateCategorie);
 router.delete('/:id', protect, authorizeRoles('magasinier'), deleteCategorie);

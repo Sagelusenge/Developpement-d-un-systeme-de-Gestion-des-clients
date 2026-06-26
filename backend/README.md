@@ -23,7 +23,7 @@ Ce dossier contient l'API Express du CRM PME. Il gere aussi les comptes clients,
 2. Le backend verifie le compte et signe un token JWT.
 3. Le token expire apres 2h.
 4. Chaque route protegee verifie le token.
-5. Certaines routes verifient aussi le role: manager, caissier ou magasinier.
+5. Certaines routes verifient aussi le role: manager, vendeur ou magasinier.
 6. Les controllers executent les requetes SQL.
 7. Les donnees sont renvoyees au frontend en JSON.
 
@@ -37,7 +37,7 @@ Ce dossier contient l'API Express du CRM PME. Il gere aussi les comptes clients,
 - alerte du manager par notification et email lors d'une question complexe;
 - emails CRM transactionnels: bienvenue, commande recue, statut de commande et facture disponible;
 - emails CRM de fidelisation: prospect sans achat, client inactif et nouveau produit dans une categorie deja achetee;
-- demande Mobile Money client, controle d'unicite de la reference et verification par le caissier;
+- demande Mobile Money client, controle d'unicite de la reference et verification par le vendeur;
 - tables `demandes_paiement_mobile`, `prospect_email_campaigns` et `crm_email_campaigns` creees par le schema d'execution.
 
 La description exhaustive des bodies et reponses se trouve dans `API_MOBILE.md`.

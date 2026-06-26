@@ -3,7 +3,7 @@
 Crée un diagramme de séquence UML propre et lisible intitulé "Rapports et bilan - Quincaillerie Centrale".
 
 Acteurs et composants:
-- Manager ou Caissier
+- Manager ou Vendeur
 - Frontend Web
 - Backend API
 - Middleware Authentification JWT
@@ -29,5 +29,5 @@ Scénario:
 
 Contraintes:
 - Utiliser un bloc `opt` pour l'impression.
-- Utiliser un bloc `alt` pour manager/caissier/magasinier selon les rapports autorisés.
+- Utiliser un bloc `alt` pour manager/vendeur/magasinier selon les rapports autorisés.
 - Couleurs: rapports en bleu, MySQL gris.

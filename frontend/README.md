@@ -1,6 +1,6 @@
 # Frontend - Interface Quincaillerie Centrale
 
-Ce dossier contient l'application React utilisee par les managers, caissiers et magasiniers. Elle consomme l'API backend et presente les modules du CRM PME.
+Ce dossier contient l'application React utilisee par les managers, vendeurs et magasiniers. Elle consomme l'API backend et presente les modules du CRM PME.
 
 ## Structure
 

@@ -56,7 +56,7 @@ export const createArchiveDocument = async (req, res) => {
 };
 
 export const getArchiveDocuments = async (req, res) => {
-    if (!['manager', 'caissier'].includes(req.user.role)) return res.status(403).json({ success: false, message: 'Archives reservees au manager et au caissier.' });
+    if (!['manager', 'vendeur'].includes(req.user.role)) return res.status(403).json({ success: false, message: 'Archives reservees au manager et au vendeur.' });
     try {
         const [rows] = await pool.query(
             `SELECT da.*, u.nom AS uploaded_by_name

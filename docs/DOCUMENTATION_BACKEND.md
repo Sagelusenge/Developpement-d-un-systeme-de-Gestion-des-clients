@@ -1,4 +1,4 @@
-﻿# Documentation backend detaillee
+# Documentation backend detaillee
 
 Cette documentation explique l architecture backend, les routes, les controles, les calculs, la securite et les bonnes pratiques de maintenance.
 
@@ -543,13 +543,13 @@ Cette documentation explique l architecture backend, les routes, les controles, 
 - Une contrainte unique protege le couple entreprise, operateur et reference externe.
 - Le backend verifie l'appartenance de la facture, le solde, le telephone, le montant et la reference.
 - Une soumission ne cree pas directement un encaissement: elle reste `en_attente`.
-- Seul le caissier confirme ou rejette. Une confirmation cree alors une ligne `paiement` avec le mode `mobile_money` dans une transaction SQL.
+- Seul le vendeur confirme ou rejette. Une confirmation cree alors une ligne `paiement` avec le mode `mobile_money` dans une transaction SQL.
 
 | Methode | Route | Role | Resultat |
 | --- | --- | --- | --- |
 | POST | `/api/paiements/mobile-money/client` | Client | Cree une demande en attente |
-| GET | `/api/paiements/mobile-money/demandes` | Manager, caissier | Liste les demandes |
-| PUT | `/api/paiements/mobile-money/demandes/:id` | Caissier | Confirme ou rejette |
+| GET | `/api/paiements/mobile-money/demandes` | Manager, vendeur | Liste les demandes |
+| PUT | `/api/paiements/mobile-money/demandes/:id` | Vendeur | Confirme ou rejette |
 | GET | `/api/chat/stream?token=...` | Client, manager | Ouvre le flux SSE |
 
 ### Securite des prix

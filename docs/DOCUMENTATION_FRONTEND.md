@@ -1,4 +1,4 @@
-﻿# Documentation frontend detaillee
+# Documentation frontend detaillee
 
 Cette documentation explique l interface React, les pages, les composants, la navigation, les etats et les regles d ergonomie.
 
@@ -554,7 +554,7 @@ Ordre de reference: Tableau de bord, Clients, Fournisseurs, Categories, Produits
 - Le bouton Payer ouvre une modale M-Pesa, Airtel Money ou Orange Money.
 - Les champs obligatoires sont telephone, montant et reference de transaction.
 - Une demande en verification desactive le bouton pour eviter un doublon.
-- La page Paiements de l'equipe affiche les demandes; le caissier peut confirmer ou rejeter.
+- La page Paiements de l'equipe affiche les demandes; le vendeur peut confirmer ou rejeter.
 - Une confirmation seulement transforme la demande en encaissement reel.
 
 ### Verification frontend

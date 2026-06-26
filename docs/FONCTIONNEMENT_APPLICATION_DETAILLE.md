@@ -1,4 +1,4 @@
-﻿# Fonctionnement detaille de l application
+# Fonctionnement detaille de l application
 
 Ce guide explique comment les modules travaillent ensemble depuis la connexion jusqu aux rapports.
 
@@ -259,7 +259,7 @@ Ce guide explique comment les modules travaillent ensemble depuis la connexion j
 ## Vente et facture
 - La vente commence par le choix du client.
 - La recherche client aide a trouver rapidement un client existant.
-- Le caissier ajoute les produits vendus.
+- Le vendeur ajoute les produits vendus.
 - Chaque ligne contient une quantite et un prix de vente unitaire.
 - Le systeme calcule le total de chaque ligne.
 - Le systeme diminue le stock quand la vente est validee.
@@ -267,7 +267,7 @@ Ce guide explique comment les modules travaillent ensemble depuis la connexion j
 - La facture peut rester non payee ou partiellement payee.
 1. La vente commence par le choix du client.
 1. La recherche client aide a trouver rapidement un client existant.
-1. Le caissier ajoute les produits vendus.
+1. Le vendeur ajoute les produits vendus.
 1. Chaque ligne contient une quantite et un prix de vente unitaire.
 1. Le systeme calcule le total de chaque ligne.
 1. Le systeme diminue le stock quand la vente est validee.
@@ -275,7 +275,7 @@ Ce guide explique comment les modules travaillent ensemble depuis la connexion j
 1. La facture peut rester non payee ou partiellement payee.
 2. La vente commence par le choix du client.
 2. La recherche client aide a trouver rapidement un client existant.
-2. Le caissier ajoute les produits vendus.
+2. Le vendeur ajoute les produits vendus.
 2. Chaque ligne contient une quantite et un prix de vente unitaire.
 2. Le systeme calcule le total de chaque ligne.
 2. Le systeme diminue le stock quand la vente est validee.
@@ -283,7 +283,7 @@ Ce guide explique comment les modules travaillent ensemble depuis la connexion j
 2. La facture peut rester non payee ou partiellement payee.
 3. La vente commence par le choix du client.
 3. La recherche client aide a trouver rapidement un client existant.
-3. Le caissier ajoute les produits vendus.
+3. Le vendeur ajoute les produits vendus.
 3. Chaque ligne contient une quantite et un prix de vente unitaire.
 3. Le systeme calcule le total de chaque ligne.
 3. Le systeme diminue le stock quand la vente est validee.
@@ -291,7 +291,7 @@ Ce guide explique comment les modules travaillent ensemble depuis la connexion j
 3. La facture peut rester non payee ou partiellement payee.
 4. La vente commence par le choix du client.
 4. La recherche client aide a trouver rapidement un client existant.
-4. Le caissier ajoute les produits vendus.
+4. Le vendeur ajoute les produits vendus.
 4. Chaque ligne contient une quantite et un prix de vente unitaire.
 4. Le systeme calcule le total de chaque ligne.
 4. Le systeme diminue le stock quand la vente est validee.
@@ -299,7 +299,7 @@ Ce guide explique comment les modules travaillent ensemble depuis la connexion j
 4. La facture peut rester non payee ou partiellement payee.
 5. La vente commence par le choix du client.
 5. La recherche client aide a trouver rapidement un client existant.
-5. Le caissier ajoute les produits vendus.
+5. Le vendeur ajoute les produits vendus.
 5. Chaque ligne contient une quantite et un prix de vente unitaire.
 5. Le systeme calcule le total de chaque ligne.
 5. Le systeme diminue le stock quand la vente est validee.
@@ -307,7 +307,7 @@ Ce guide explique comment les modules travaillent ensemble depuis la connexion j
 5. La facture peut rester non payee ou partiellement payee.
 6. La vente commence par le choix du client.
 6. La recherche client aide a trouver rapidement un client existant.
-6. Le caissier ajoute les produits vendus.
+6. Le vendeur ajoute les produits vendus.
 6. Chaque ligne contient une quantite et un prix de vente unitaire.
 6. Le systeme calcule le total de chaque ligne.
 6. Le systeme diminue le stock quand la vente est validee.
@@ -315,7 +315,7 @@ Ce guide explique comment les modules travaillent ensemble depuis la connexion j
 6. La facture peut rester non payee ou partiellement payee.
 7. La vente commence par le choix du client.
 7. La recherche client aide a trouver rapidement un client existant.
-7. Le caissier ajoute les produits vendus.
+7. Le vendeur ajoute les produits vendus.
 7. Chaque ligne contient une quantite et un prix de vente unitaire.
 7. Le systeme calcule le total de chaque ligne.
 7. Le systeme diminue le stock quand la vente est validee.
@@ -323,7 +323,7 @@ Ce guide explique comment les modules travaillent ensemble depuis la connexion j
 7. La facture peut rester non payee ou partiellement payee.
 8. La vente commence par le choix du client.
 8. La recherche client aide a trouver rapidement un client existant.
-8. Le caissier ajoute les produits vendus.
+8. Le vendeur ajoute les produits vendus.
 8. Chaque ligne contient une quantite et un prix de vente unitaire.
 8. Le systeme calcule le total de chaque ligne.
 8. Le systeme diminue le stock quand la vente est validee.
@@ -331,7 +331,7 @@ Ce guide explique comment les modules travaillent ensemble depuis la connexion j
 8. La facture peut rester non payee ou partiellement payee.
 9. La vente commence par le choix du client.
 9. La recherche client aide a trouver rapidement un client existant.
-9. Le caissier ajoute les produits vendus.
+9. Le vendeur ajoute les produits vendus.
 9. Chaque ligne contient une quantite et un prix de vente unitaire.
 9. Le systeme calcule le total de chaque ligne.
 9. Le systeme diminue le stock quand la vente est validee.
@@ -548,7 +548,7 @@ Ce guide explique comment les modules travaillent ensemble depuis la connexion j
 2. Il selectionne M-Pesa, Airtel Money ou Orange Money.
 3. Il effectue le transfert depuis son telephone et fournit la reference recue.
 4. Le systeme enregistre une demande `en_attente`, sans augmenter la caisse.
-5. Le manager peut consulter la demande; le caissier compare la transaction et la confirme ou la rejette.
+5. Le manager peut consulter la demande; le vendeur compare la transaction et la confirme ou la rejette.
 6. En cas de confirmation, le backend reverifie le solde puis cree le paiement Mobile Money.
 
 ### Conversation client-manager
@@ -567,7 +567,7 @@ Cliquer sur une notification de commande, reclamation ou chat ouvre directement 
 ### Responsabilites finales
 
 - Manager: supervision et traitement; il ne cree pas une vente ou un encaissement.
-- Caissier: ventes, factures, encaissements et validation Mobile Money.
+- Vendeur: ventes, factures, encaissements et validation Mobile Money.
 - Magasinier: fournisseurs, categories, produits, approvisionnements et stock.
 - Client: commandes, achats, paiements soumis, reclamations et assistance.
 

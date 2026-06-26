@@ -118,7 +118,7 @@ export const createCommande = async (req, res) => {
 };
 
 export const updateCommandeStatus = async (req, res) => {
-    if (isClient(req) || !['manager', 'caissier'].includes(req.user.role)) return res.status(403).json({ success: false, message: 'Action interdite.' });
+    if (isClient(req) || !['manager', 'vendeur'].includes(req.user.role)) return res.status(403).json({ success: false, message: 'Action interdite.' });
     const statut = String(req.body.statut || '');
     if (!allowedStatuses.includes(statut)) return res.status(400).json({ success: false, message: 'Statut invalide.' });
     try {
@@ -141,7 +141,7 @@ export const updateCommandeStatus = async (req, res) => {
 };
 
 export const convertCommande = async (req, res) => {
-    if (req.user.type === 'client' || req.user.role !== 'caissier') return res.status(403).json({ success: false, message: 'Seul le caissier peut creer la facture.' });
+    if (req.user.type === 'client' || req.user.role !== 'vendeur') return res.status(403).json({ success: false, message: 'Seul le vendeur peut creer la facture.' });
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();

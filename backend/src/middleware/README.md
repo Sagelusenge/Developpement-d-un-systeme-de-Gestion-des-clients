@@ -24,7 +24,7 @@ Si le token est valide, l'utilisateur est ajoute dans la requete. Si le token es
 Les roles permettent de separer les responsabilites:
 
 - manager: acces large;
-- caissier: ventes, factures, paiements;
+- vendeur: ventes, factures, paiements;
 - magasinier: produits, stock, fournisseurs.
 
 ## Token

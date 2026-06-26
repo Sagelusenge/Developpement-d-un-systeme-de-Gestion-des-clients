@@ -1,4 +1,4 @@
-﻿# Documentation API Mobile - Quincaillerie Centrale
+# Documentation API Mobile - Quincaillerie Centrale
 
 Ce document sert de guide complet pour developper l'application mobile.
 
@@ -116,7 +116,7 @@ Erreur serveur:
 
 ```text
 manager     Supervision, clients, utilisateurs, rapports, commandes et reclamations. Consulte les ventes et paiements sans les creer.
-caissier    Clients, creation des ventes, conversion des commandes, paiements, certains rapports, consultation produits.
+vendeur    Clients, creation des ventes, conversion des commandes, paiements, certains rapports, consultation produits.
 magasinier  Produits, categories, fournisseurs, stock, certains rapports.
 client      Catalogue, commandes personnelles, achats, factures, profil et reclamations personnelles.
 ```
@@ -175,7 +175,7 @@ Body:
 
 ```json
 {
-  "email": "caissier@example.com"
+  "email": "vendeur@example.com"
 }
 ```
 
@@ -200,7 +200,7 @@ Body:
 
 ```json
 {
-  "email": "caissier@example.com",
+  "email": "vendeur@example.com",
   "code": "483921"
 }
 ```
@@ -224,7 +224,7 @@ Body:
 
 ```json
 {
-  "email": "caissier@example.com",
+  "email": "vendeur@example.com",
   "code": "483921",
   "new_password": "NouveauPass1",
   "confirm_password": "NouveauPass1"
@@ -335,7 +335,7 @@ Body:
 
 ```json
 {
-  "email": "caissier@example.com",
+  "email": "vendeur@example.com",
   "new_password": "temporaire123"
 }
 ```
@@ -345,7 +345,7 @@ Reponse 200:
 ```json
 {
   "success": true,
-  "message": "Mot de passe reinitialise pour caissier@example.com."
+  "message": "Mot de passe reinitialise pour vendeur@example.com."
 }
 ```
 
@@ -353,7 +353,7 @@ Reponse 200:
 
 # Clients
 
-Roles: `manager`, `caissier` pour lecture/creation. Modification/suppression: `manager`.
+Roles: `manager`, `vendeur` pour lecture/creation. Modification/suppression: `manager`.
 
 ## Lister les clients
 
@@ -500,7 +500,7 @@ Reponse 200:
 
 # Categories
 
-Roles: lecture `manager`, `caissier`, `magasinier`; creation/modification/suppression `magasinier` uniquement.
+Roles: lecture `manager`, `vendeur`, `magasinier`; creation/modification/suppression `magasinier` uniquement.
 
 ## Lister les categories
 
@@ -614,7 +614,7 @@ Reponse 200:
 
 # Produits et stock
 
-Roles: lecture `manager`, `caissier`, `magasinier`; creation/modification/approvisionnement/suppression `magasinier` uniquement.
+Roles: lecture `manager`, `vendeur`, `magasinier`; creation/modification/approvisionnement/suppression `magasinier` uniquement.
 
 Unites conseillees:
 
@@ -812,7 +812,7 @@ Reponse 200:
 
 # Fournisseurs
 
-Roles: lecture `manager`, `magasinier`, `caissier`; creation/modification/suppression `magasinier` uniquement.
+Roles: lecture `manager`, `magasinier`, `vendeur`; creation/modification/suppression `magasinier` uniquement.
 
 ## Lister les fournisseurs
 
@@ -927,7 +927,7 @@ Erreur possible si le fournisseur a deja des approvisionnements:
 
 # Ventes et factures
 
-Roles: lecture `manager`, `caissier`; creation/modification `caissier`; suppression exceptionnelle `manager`.
+Roles: lecture `manager`, `vendeur`; creation/modification `vendeur`; suppression exceptionnelle `manager`.
 
 TVA appliquee par le backend pour les ventes: `16%`.
 
@@ -1110,7 +1110,7 @@ Reponse 200:
 
 # Paiements
 
-Roles: consultation `manager`, `caissier`; enregistrement d'un paiement `caissier` uniquement.
+Roles: consultation `manager`, `vendeur`; enregistrement d'un paiement `vendeur` uniquement.
 
 Modes acceptes:
 
@@ -1222,7 +1222,7 @@ Reponse 200:
 
 ## Statistiques generales
 
-Roles: `manager`, `caissier`, `magasinier`.
+Roles: `manager`, `vendeur`, `magasinier`.
 
 ```http
 GET /dashboard/stats
@@ -1263,7 +1263,7 @@ Notes de calcul:
 
 ## Ventes mensuelles
 
-Roles: `manager`, `caissier`.
+Roles: `manager`, `vendeur`.
 
 ```http
 GET /dashboard/ventes-mensuelles
@@ -1311,7 +1311,7 @@ Reponse 200:
 
 ## Produits plus vendus
 
-Roles: `manager`, `caissier`, `magasinier`.
+Roles: `manager`, `vendeur`, `magasinier`.
 
 ```http
 GET /dashboard/produits-plus-vendus
@@ -1338,7 +1338,7 @@ Reponse 200:
 
 ## Resultat mensuel
 
-Roles: `manager`, `caissier`.
+Roles: `manager`, `vendeur`.
 
 ```http
 GET /dashboard/resultat-mensuel
@@ -1374,7 +1374,7 @@ Tous les rapports acceptent optionnellement:
 
 ## Rapport factures
 
-Roles: `manager`, `caissier`.
+Roles: `manager`, `vendeur`.
 
 ```http
 GET /rapports/factures
@@ -1405,7 +1405,7 @@ Reponse 200:
 
 ## Creances
 
-Roles: `manager`, `caissier`.
+Roles: `manager`, `vendeur`.
 
 ```http
 GET /rapports/creances
@@ -1433,7 +1433,7 @@ Reponse 200:
 
 ## Stock inventaire
 
-Roles: `manager`, `magasinier`, `caissier`.
+Roles: `manager`, `magasinier`, `vendeur`.
 
 ```http
 GET /rapports/stock-inventaire
@@ -1463,7 +1463,7 @@ Reponse 200:
 
 ## Top acheteurs
 
-Roles: `manager`, `caissier`, `magasinier`.
+Roles: `manager`, `vendeur`, `magasinier`.
 
 ```http
 GET /rapports/top-acheteurs
@@ -1491,7 +1491,7 @@ Reponse 200:
 
 ## Historique client
 
-Roles: `manager`, `caissier`.
+Roles: `manager`, `vendeur`.
 
 ```http
 GET /rapports/historique-client/:id
@@ -1519,7 +1519,7 @@ Reponse 200:
 
 ## Bilan financier
 
-Roles: `manager`, `caissier`.
+Roles: `manager`, `vendeur`.
 
 ```http
 GET /rapports/bilan
@@ -1543,7 +1543,7 @@ Reponse 200:
 
 ## Journal
 
-Roles: `manager`, `caissier`.
+Roles: `manager`, `vendeur`.
 
 ```http
 GET /rapports/journal
@@ -1571,7 +1571,7 @@ Reponse 200:
 
 ## Livre de caisse
 
-Roles: `manager`, `caissier`.
+Roles: `manager`, `vendeur`.
 
 ```http
 GET /rapports/livre-caisse
@@ -1638,26 +1638,26 @@ Body:
 
 ```json
 {
-  "nom": "Caissier Principal",
-  "email": "caissier@example.com",
+  "nom": "Vendeur Principal",
+  "email": "vendeur@example.com",
   "mot_de_passe": "secret123",
-  "role": "caissier"
+  "role": "vendeur"
 }
 ```
 
-Roles valides: `manager`, `caissier`, `magasinier`.
+Roles valides: `manager`, `vendeur`, `magasinier`.
 
 Reponse 201:
 
 ```json
 {
   "success": true,
-  "message": "Utilisateur Caissier Principal cree avec le role caissier",
+  "message": "Utilisateur Vendeur Principal cree avec le role vendeur",
   "data": {
     "id_utilisateur": "USR-00002",
-    "nom": "Caissier Principal",
-    "email": "caissier@example.com",
-    "role": "caissier"
+    "nom": "Vendeur Principal",
+    "email": "vendeur@example.com",
+    "role": "vendeur"
   }
 }
 ```
@@ -1678,17 +1678,17 @@ Reponse 200:
   "data": {
     "utilisateur": {
       "id_utilisateur": "USR-00002",
-      "nom": "Caissier Principal",
-      "email": "caissier@example.com",
-      "role": "caissier",
+      "nom": "Vendeur Principal",
+      "email": "vendeur@example.com",
+      "role": "vendeur",
       "actif": 1
     },
     "historique": [
       {
         "id_log": 1,
         "user_id": "USR-00002",
-        "user_name": "Caissier Principal",
-        "user_role": "caissier",
+        "user_name": "Vendeur Principal",
+        "user_role": "vendeur",
         "action_type": "CREATE",
         "module": "ventes",
         "entity_id": "FAC-000001",
@@ -1711,9 +1711,9 @@ Body sans changement mot de passe:
 
 ```json
 {
-  "nom": "Caissier Principal",
-  "email": "caissier@example.com",
-  "role": "caissier"
+  "nom": "Vendeur Principal",
+  "email": "vendeur@example.com",
+  "role": "vendeur"
 }
 ```
 
@@ -1721,9 +1721,9 @@ Body avec changement mot de passe:
 
 ```json
 {
-  "nom": "Caissier Principal",
-  "email": "caissier@example.com",
-  "role": "caissier",
+  "nom": "Vendeur Principal",
+  "email": "vendeur@example.com",
+  "role": "vendeur",
   "mot_de_passe": "nouveau123"
 }
 ```
@@ -2023,13 +2023,13 @@ GET /paiements/mobile-money/demandes
 PUT /paiements/mobile-money/demandes/MOB-000001
 ```
 
-Body de decision (caissier):
+Body de decision (vendeur):
 
 ```json
 { "statut": "confirmee" }
 ```
 
-Valeurs: `confirmee` ou `rejetee`. Une confirmation cree le paiement `mobile_money`; un manager peut consulter les demandes mais seul le caissier peut les valider.
+Valeurs: `confirmee` ou `rejetee`. Une confirmation cree le paiement `mobile_money`; un manager peut consulter les demandes mais seul le vendeur peut les valider.
 
 Si `reference_externe` est vide et que le prestataire est configure, le backend lance automatiquement la demande sur le telephone. Une confirmation immediate retourne:
 
@@ -2125,7 +2125,7 @@ Body identique pour tous les roles:
 }
 ```
 
-La reponse contient `user.role` egal a `manager`, `caissier`, `magasinier` ou `client`. La navigation mobile doit etre construite a partir de cette valeur.
+La reponse contient `user.role` egal a `manager`, `vendeur`, `magasinier` ou `client`. La navigation mobile doit etre construite a partir de cette valeur.
 
 ## Profil client
 
@@ -2222,7 +2222,7 @@ Reponse 201:
 GET /commandes
 ```
 
-Pour un client, seules ses commandes sont retournees. Pour un manager ou caissier, toutes les commandes de l'entreprise sont retournees.
+Pour un client, seules ses commandes sont retournees. Pour un manager ou vendeur, toutes les commandes de l'entreprise sont retournees.
 
 ```json
 {
@@ -2253,7 +2253,7 @@ Statuts: `en_attente`, `confirmee`, `preparee`, `livree`, `annulee`, `rejetee`.
 
 ## Modifier le statut d'une commande
 
-Roles: manager ou caissier.
+Roles: manager ou vendeur.
 
 ```http
 PUT /commandes/:id/statut
@@ -2271,7 +2271,7 @@ Reponse 200:
 
 ## Convertir une commande en facture
 
-Role: caissier uniquement.
+Role: vendeur uniquement.
 
 ```http
 POST /commandes/:id/convertir
@@ -2541,7 +2541,7 @@ prix_ht >= prix_achat
 
 La table `prospect_email_campaigns` empeche les doublons avec une contrainte unique sur le client et la campagne. Valeur de test: `24`; valeur de production conseillee: `168`.
 
-| Action | Manager | Caissier | Magasinier | Client |
+| Action | Manager | Vendeur | Magasinier | Client |
 | --- | --- | --- | --- | --- |
 | Consulter ventes/paiements | Oui | Oui | Non | Ses achats |
 | Creer/modifier/supprimer une vente | Non | Oui | Non | Non |
@@ -2709,7 +2709,7 @@ Reponse 201:
 
 ```http
 GET /api/archives
-Authorization: Bearer <token_manager_ou_caissier>
+Authorization: Bearer <token_manager_ou_vendeur>
 ```
 
 Reponse:

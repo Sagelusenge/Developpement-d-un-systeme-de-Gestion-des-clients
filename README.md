@@ -21,7 +21,7 @@ L'application utilise trois roles principaux.
 | Role | Utilisation principale |
 | --- | --- |
 | Manager | Supervise l'activite, les clients, commandes, reclamations, rapports, chat, emails et utilisateurs. Il consulte les ventes et paiements sans les creer. |
-| Caissier | Enregistre les ventes, les factures et les paiements. |
+| Vendeur | Enregistre les ventes, les factures et les paiements. |
 | Magasinier | Gere les produits, le stock, les fournisseurs et les mouvements. |
 | Client | Cree son compte, commande, consulte ses achats, paie par Mobile Money, reclame et dialogue avec l'assistance. |
 
@@ -334,7 +334,7 @@ Les corrections recentes concernent:
 - assistant automatique, transfert au manager, notification interne et email professionnel;
 - navigation metier reordonnee et sidebar defilable;
 - controle des prix: commande et vente utilisent le prix de vente, jamais le cout d'achat;
-- demandes Mobile Money verifiees par le caissier avant comptabilisation;
+- demandes Mobile Money verifiees par le vendeur avant comptabilisation;
 - responsive mobile/tablette;
 - menu mobile pleine largeur;
 - tableaux mobiles avec defilement horizontal;
