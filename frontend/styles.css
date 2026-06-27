@@ -9344,3 +9344,186 @@ body:has(.login-page),
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Unified sidebar navigation.
+   Manager, vendeur and magasinier now use the exact client row pattern. */
+.shell .sidebar .nav,
+.shell:not(.admin-shell) .sidebar .nav,
+.admin-shell .sidebar .nav,
+.role-client .sidebar .nav,
+.role-manager .sidebar .nav,
+.role-vendeur .sidebar .nav,
+.role-magasinier .sidebar .nav {
+  align-content: start !important;
+  align-items: stretch !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  width: 100% !important;
+}
+
+.shell .sidebar .nav > button,
+.shell .sidebar .nav .nav-group-toggle,
+.shell .sidebar .nav .nav-group-items > button,
+.shell .sidebar .nav .nav-logout,
+.role-client .sidebar .nav > button,
+.role-manager .sidebar .nav > button,
+.role-vendeur .sidebar .nav > button,
+.role-magasinier .sidebar .nav > button {
+  align-self: stretch !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-left: 4px solid transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #c6d1df !important;
+  flex: 0 0 45px !important;
+  font-size: 13px !important;
+  font-weight: 850 !important;
+  gap: 12px !important;
+  height: 45px !important;
+  justify-content: flex-start !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+  max-height: 45px !important;
+  max-width: none !important;
+  min-height: 45px !important;
+  padding: 10px 24px !important;
+  text-align: left !important;
+  width: 100% !important;
+}
+
+.shell .sidebar .nav .nav-group-toggle {
+  color: #c6d1df !important;
+}
+
+.shell .sidebar .nav .nav-group-toggle svg:last-child {
+  margin-left: auto;
+}
+
+.shell .sidebar .nav > button:hover,
+.shell .sidebar .nav .nav-group-toggle:hover,
+.shell .sidebar .nav .nav-group-items > button:hover,
+.shell .sidebar .nav .nav-logout:hover {
+  background: rgba(29, 65, 109, .58) !important;
+  color: #ffffff !important;
+  transform: none !important;
+}
+
+.shell .sidebar .nav > button.active,
+.shell .sidebar .nav .nav-group-items > button.active,
+.role-client .sidebar .nav > button.active,
+.role-manager .sidebar .nav > button.active,
+.role-vendeur .sidebar .nav > button.active,
+.role-magasinier .sidebar .nav > button.active {
+  background: #1d416d !important;
+  border-left-color: #ffa51f !important;
+  color: #ffa51f !important;
+  padding-left: 20px !important;
+}
+
+.shell .sidebar .nav-group,
+.role-client .sidebar .nav-group,
+.role-manager .sidebar .nav-group,
+.role-vendeur .sidebar .nav-group,
+.role-magasinier .sidebar .nav-group {
+  align-items: stretch !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+}
+
+.shell .sidebar .nav-group.open {
+  background: rgba(5, 25, 48, .22) !important;
+}
+
+.shell .sidebar .nav-group-items,
+.role-manager .sidebar .nav-group-items,
+.role-vendeur .sidebar .nav-group-items,
+.role-magasinier .sidebar .nav-group-items {
+  align-items: stretch !important;
+  gap: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+}
+
+.shell .sidebar .nav .nav-group-items > button {
+  font-size: 12.5px !important;
+  padding-left: 42px !important;
+}
+
+.shell .sidebar .nav .nav-group-items > button.active {
+  padding-left: 38px !important;
+}
+
+.shell .sidebar .nav .nav-logout {
+  color: #c6d1df !important;
+  margin-top: 8px !important;
+}
+
+.shell .sidebar .nav button svg,
+.shell .sidebar .nav-logout svg {
+  flex: 0 0 auto !important;
+  height: 18px !important;
+  width: 18px !important;
+}
+
+/* Audit detail modal: separate every information block cleanly. */
+.audit-modal {
+  max-width: 650px !important;
+}
+
+.audit-detail {
+  display: grid;
+  gap: 14px;
+}
+
+.audit-detail > .form-row {
+  gap: 14px !important;
+}
+
+.audit-detail .debt-preview {
+  margin: 0 !important;
+  padding: 13px 14px !important;
+}
+
+.audit-detail > label {
+  display: grid;
+  font-weight: 850;
+  gap: 8px;
+  line-height: 1.4;
+  margin: 0 !important;
+}
+
+.audit-detail textarea {
+  margin: 0 !important;
+  max-height: 310px;
+  padding: 14px !important;
+  resize: vertical;
+  width: 100%;
+}
+
+@media (max-width: 760px) {
+  .shell .sidebar .nav > button,
+  .shell .sidebar .nav .nav-group-toggle,
+  .shell .sidebar .nav .nav-group-items > button,
+  .shell .sidebar .nav .nav-logout {
+    flex-basis: 44px !important;
+    height: 44px !important;
+    max-height: 44px !important;
+    min-height: 44px !important;
+  }
+
+  .audit-detail > .form-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .audit-modal {
+    max-width: 100vw !important;
+  }
+}

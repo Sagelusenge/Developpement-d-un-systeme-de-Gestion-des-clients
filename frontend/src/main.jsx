@@ -3075,7 +3075,7 @@ function AuditJournal({ data, searchQuery = '' }) {
         <p className="muted-note">Les donnees detaillees affichent les parametres, le corps de la requete et la reference concernee quand ils sont disponibles. Les mots de passe, codes et images sont masques automatiquement.</p>
       </section>
       {selected && (
-        <Modal title={`Action ${selected.id_log}`} onClose={() => setSelected(null)}>
+        <Modal title={`Action ${selected.id_log}`} onClose={() => setSelected(null)} className="audit-modal">
           <div className="audit-detail">
             <div className="debt-preview">
               <span>Utilisateur</span>
