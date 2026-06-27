@@ -6,11 +6,22 @@ export const isStripeReady = () => Boolean(process.env.STRIPE_SECRET_KEY);
 
 const encodeForm = (data, prefix) => {
     const pairs = [];
+    if (data === undefined || data === null) return pairs;
+    if (typeof data !== 'object') {
+        if (prefix) pairs.push([prefix, String(data)]);
+        return pairs;
+    }
     for (const [key, value] of Object.entries(data)) {
         if (value === undefined || value === null) continue;
         const formKey = prefix ? `${prefix}[${key}]` : key;
         if (Array.isArray(value)) {
-            value.forEach((item, index) => pairs.push(...encodeForm(item, `${formKey}[${index}]`)));
+            value.forEach((item, index) => {
+                if (item !== null && typeof item === 'object') {
+                    pairs.push(...encodeForm(item, `${formKey}[${index}]`));
+                } else if (item !== undefined && item !== null) {
+                    pairs.push([`${formKey}[${index}]`, String(item)]);
+                }
+            });
         } else if (typeof value === 'object') {
             pairs.push(...encodeForm(value, formKey));
         } else {
