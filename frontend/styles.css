@@ -8839,3 +8839,119 @@ body:has(.login-page),
 .admin-shell .sidebar .nav-logout {
   margin-top: auto !important;
 }
+
+/* Last-mile fix: active/open admin nav items must never become large cards. */
+.role-manager .sidebar .nav > button,
+.role-manager .sidebar .nav .nav-group-toggle,
+.role-manager .sidebar .nav .nav-group-items > button,
+.role-manager .sidebar .nav-logout,
+.role-vendeur .sidebar .nav > button,
+.role-vendeur .sidebar .nav .nav-group-toggle,
+.role-vendeur .sidebar .nav .nav-group-items > button,
+.role-vendeur .sidebar .nav-logout,
+.role-magasinier .sidebar .nav > button,
+.role-magasinier .sidebar .nav .nav-group-toggle,
+.role-magasinier .sidebar .nav .nav-group-items > button,
+.role-magasinier .sidebar .nav-logout,
+.admin-shell .sidebar .nav > button,
+.admin-shell .sidebar .nav .nav-group-toggle,
+.admin-shell .sidebar .nav .nav-group-items > button,
+.admin-shell .sidebar .nav-logout {
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  margin: 0 !important;
+  padding: 7px 12px !important;
+  width: fit-content !important;
+}
+
+.role-manager .sidebar .nav > button.active,
+.role-vendeur .sidebar .nav > button.active,
+.role-magasinier .sidebar .nav > button.active,
+.admin-shell .sidebar .nav > button.active {
+  border-left: 0 !important;
+  padding-left: 12px !important;
+}
+
+.role-manager .sidebar .nav-group,
+.role-vendeur .sidebar .nav-group,
+.role-magasinier .sidebar .nav-group,
+.admin-shell .sidebar .nav-group {
+  border: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+}
+
+.role-manager .sidebar .nav-group.open,
+.role-vendeur .sidebar .nav-group.open,
+.role-magasinier .sidebar .nav-group.open,
+.admin-shell .sidebar .nav-group.open {
+  background: transparent !important;
+}
+
+.role-manager .sidebar .nav-group-items,
+.role-vendeur .sidebar .nav-group-items,
+.role-magasinier .sidebar .nav-group-items,
+.admin-shell .sidebar .nav-group-items {
+  margin-top: 2px !important;
+}
+
+.role-manager .sidebar .nav .nav-group-items > button,
+.role-vendeur .sidebar .nav .nav-group-items > button,
+.role-magasinier .sidebar .nav .nav-group-items > button,
+.admin-shell .sidebar .nav .nav-group-items > button {
+  height: 30px !important;
+  min-height: 30px !important;
+  max-height: 30px !important;
+  padding: 6px 10px !important;
+}
+
+/* Audit quick read: readable compact metrics instead of glued text/numbers. */
+.audit-summary .stats-row {
+  display: grid !important;
+  gap: 10px !important;
+  grid-template-columns: repeat(4, minmax(120px, 1fr)) !important;
+  margin-top: 14px;
+}
+
+.audit-summary .stats-row article {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #dbe3ec;
+  border-radius: 12px;
+  display: grid;
+  gap: 4px 10px;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  padding: 12px 14px;
+}
+
+.audit-summary .stats-row article svg {
+  color: #0b5ea8;
+  height: 20px;
+  width: 20px;
+}
+
+.audit-summary .stats-row article span {
+  color: #526175;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.audit-summary .stats-row article strong {
+  color: #06264a;
+  font-size: 18px;
+  font-weight: 950;
+  justify-self: end;
+}
+
+@media (max-width: 1180px) {
+  .audit-summary .stats-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .audit-summary .stats-row {
+    grid-template-columns: 1fr !important;
+  }
+}
