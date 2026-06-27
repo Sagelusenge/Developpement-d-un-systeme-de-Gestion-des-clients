@@ -8944,6 +8944,24 @@ body:has(.login-page),
   justify-self: end;
 }
 
+/* Vendeur navigation final sizing: dashboard, reports and logout stay discreet. */
+.role-vendeur .sidebar .nav > button:first-child,
+.role-vendeur .sidebar .nav > button:nth-last-of-type(2),
+.role-vendeur .sidebar .nav-logout {
+  font-size: 12px !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  max-height: 30px !important;
+  padding: 6px 10px !important;
+}
+
+.role-vendeur .sidebar .nav > button:first-child svg,
+.role-vendeur .sidebar .nav > button:nth-last-of-type(2) svg,
+.role-vendeur .sidebar .nav-logout svg {
+  height: 16px !important;
+  width: 16px !important;
+}
+
 @media (max-width: 1180px) {
   .audit-summary .stats-row {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
