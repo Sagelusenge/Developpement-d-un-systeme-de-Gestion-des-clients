@@ -19,6 +19,12 @@ const attachLines = async (commandes) => {
 
 const espaceClientUrl = () => `${String(process.env.FRONTEND_URL || 'http://127.0.0.1:5174').split(',')[0].trim().replace(/\/$/, '')}/connexion`;
 
+const taxRate = (value) => {
+    if (value === undefined || value === null || String(value).trim() === '') return 0;
+    const rate = Number(value);
+    return Number.isFinite(rate) && rate > 0 ? rate : 0;
+};
+
 export const getCatalogue = async (req, res) => {
     try {
         const [rows] = await pool.query(
@@ -84,7 +90,7 @@ export const createCommande = async (req, res) => {
             if (!product || !Number.isInteger(quantite) || quantite <= 0) throw new Error('Produit ou quantite invalide.');
             if (quantite > product.quantite_stock) throw new Error(`Stock disponible insuffisant pour ${product.nom}.`);
             if (Number(product.prix_ht) < Number(product.prix_achat || 0)) throw new Error(`${product.nom} est temporairement indisponible: son prix catalogue est inferieur à son cout d'achat.`);
-            const tauxTva = Number(product.taux_tva ?? 16);
+            const tauxTva = taxRate(product.taux_tva);
             const prixTtc = Number(product.prix_ht) * (1 + tauxTva / 100);
             lines.push({ ...product, quantite, taux_tva: tauxTva, prix_ttc: Number(prixTtc.toFixed(2)) });
             total += quantite * prixTtc;
@@ -175,7 +181,7 @@ export const convertCommande = async (req, res) => {
                 [saleLineId, invoiceId, line.produit_id, line.quantite, line.prix_unitaire_ht, product.prix_achat || 0]
             );
             await connection.query(`UPDATE produits SET quantite_stock = quantite_stock - ? WHERE id_produit = ?`, [line.quantite, line.produit_id]);
-            const tauxTva = Number(line.taux_tva ?? 16);
+            const tauxTva = taxRate(line.taux_tva);
             total += Number(line.quantite) * Number(line.prix_unitaire_ht) * (1 + tauxTva / 100);
         }
         await connection.query(`UPDATE ventes SET montant_ttc = ? WHERE id_ventes = ?`, [Number(total.toFixed(2)), invoiceId]);

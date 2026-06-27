@@ -81,6 +81,11 @@ const moneySmart = (value) => {
   })} USD`;
 };
 
+const hasTax = (value) => value !== undefined && value !== null && String(value).trim() !== '' && Number(value) > 0;
+const taxRate = (value) => (hasTax(value) ? Number(value) : 0);
+const priceWithTax = (item) => Number(item?.prix_ht || item?.prix_unitaire_ht || 0) * (1 + taxRate(item?.taux_tva) / 100);
+const taxText = (item) => (hasTax(item?.taux_tva) ? `TVA ${Number(item.taux_tva)}% incluse` : 'TVA non facturée');
+
 function AnimatedNumber({ value, formatter = (amount) => amount, duration = 900 }) {
   const target = Number(value || 0);
   const [displayValue, setDisplayValue] = useState(target);
@@ -1998,10 +2003,19 @@ function quoteTotal(lignes, produits) {
   }, 0);
 }
 
+function quoteTaxTotal(lignes, produits) {
+  return lignes.reduce((total, ligne) => {
+    const produit = produits.find((p) => p.id_produit === ligne.produit_id);
+    const prix = Number.isFinite(Number(ligne.prix)) && Number(ligne.prix) > 0 ? Number(ligne.prix) : Number(produit?.prix_ht || 0);
+    return total + (prix * Math.max(0, Number(ligne.quantite || 0)) * taxRate(produit?.taux_tva) / 100);
+  }, 0);
+}
+
 function QuoteComposer({ form, setForm, clients, produits, submitLabel }) {
   const selectedClient = clients.find((client) => client.id_client === form.client_id) || clients[0];
   const subtotal = quoteTotal(form.lignes, produits);
-  const totalTtc = subtotal * 1.16;
+  const taxTotal = quoteTaxTotal(form.lignes, produits);
+  const totalTtc = subtotal + taxTotal;
   const clientOptions = clients.map((c) => [c.id_client, `${c.nom} ${c.postnom || ''} ${c.telephone || ''}`]);
   return (
     <div className="quote-form">
@@ -2021,7 +2035,7 @@ function QuoteComposer({ form, setForm, clients, produits, submitLabel }) {
       </section>
       <aside className="quote-summary">
         <div><span>Sous-total HT</span><strong>{money(subtotal)}</strong></div>
-        <div><span>TVA estimee</span><strong>{money(totalTtc - subtotal)}</strong></div>
+        <div><span>TVA estimee</span><strong>{money(taxTotal)}</strong></div>
         <div className="quote-total"><span>Total TTC</span><strong>{money(totalTtc)}</strong></div>
       </aside>
       <button className="btn modal-submit">{submitLabel} <ArrowRight size={20} /></button>
@@ -2156,7 +2170,7 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
     ['metre', 'Metres'],
     ['paquet', 'Paquets']
   ];
-  const emptyProductForm = { reference_produit: '', nom: '', categorie_id: '', unite: 'piece', photo_url: '', prix_ht: '', prix_achat: '', taux_tva: 16, quantite_stock: 0, seuil_alerte: 5 };
+  const emptyProductForm = { reference_produit: '', nom: '', categorie_id: '', unite: 'piece', photo_url: '', prix_ht: '', prix_achat: '', taux_tva: '', quantite_stock: 0, seuil_alerte: 5 };
   const [form, setForm] = useState(emptyProductForm);
   const [stock, setStock] = useState({ id: '', fournisseur_id: '', quantite: 1, prix_achat: '', note: '' });
   const [creating, setCreating] = useState(false);
@@ -2238,13 +2252,14 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
                   <strong>{p.nom}</strong>
                   <p>{p.categorie_nom || 'Sans categorie'} - Ref. {p.reference_produit}</p>
                   <div className="product-rank-meta">
-                    <span>{money(p.prix_ht)}</span>
+                    <span>{moneySmart(priceWithTax(p))}</span>
                     <Badge>{p.statut_stock}</Badge>
+                    <small>{taxText(p)}</small>
                     <em>Stock {p.quantite_stock} {p.unite || 'piece'}</em>
                   </div>
                   <div className="actions">
                     {canManageProducts && <button className="action edit" type="button" title="Modifier" onClick={() => setEditing(p)}><Edit3 size={17} /></button>}
-                    <button className="action print-action" type="button" title="Imprimer" onClick={() => printDocument('Fiche stock produit', [['Reference', p.reference_produit], ['Produit', p.nom], ['Prix HT', money(p.prix_ht)], ['Stock', p.quantite_stock], ['Statut', p.statut_stock]], { paper: 'page' })}><Printer size={17} /></button>
+                    <button className="action print-action" type="button" title="Imprimer" onClick={() => printDocument('Fiche stock produit', [['Reference', p.reference_produit], ['Produit', p.nom], ['Prix catalogue', moneySmart(priceWithTax(p))], ['TVA', taxText(p)], ['Stock', p.quantite_stock], ['Statut', p.statut_stock]], { paper: 'page' })}><Printer size={17} /></button>
                     {canManageProducts && <button className="action delete" type="button" title="Supprimer" onClick={() => remove(p)}><Trash2 size={17} /></button>}
                   </div>
                 </article>
@@ -2289,8 +2304,13 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
             </div>
             <PhotoInput label="URL de la photo du produit" value={form.photo_url} onChange={(photo_url) => setForm({ ...form, photo_url })} api={api} folder="products" notify={notify} />
             <div className="form-row">
-              <Input label="Prix de vente HT" type="number" value={form.prix_ht} onChange={(prix_ht) => setForm({ ...form, prix_ht })} required />
-              <Input label="TVA %" type="number" value={form.taux_tva} onChange={(taux_tva) => setForm({ ...form, taux_tva })} />
+              <Input label="Prix de vente" type="number" value={form.prix_ht} onChange={(prix_ht) => setForm({ ...form, prix_ht })} required />
+              <Input label="TVA % (laisser vide si non facturée)" type="number" value={form.taux_tva} onChange={(taux_tva) => setForm({ ...form, taux_tva })} />
+            </div>
+            <div className="debt-preview">
+              <span>Prix affiché au catalogue</span>
+              <strong>{moneySmart(Number(form.prix_ht || 0) * (1 + taxRate(form.taux_tva) / 100))}</strong>
+              <small>{hasTax(form.taux_tva) ? `TVA ${Number(form.taux_tva)}% incluse` : 'TVA non facturée'}</small>
             </div>
             <div className="form-row">
               <Input label="Stock initial" type="number" value={form.quantite_stock} onChange={(quantite_stock) => setForm({ ...form, quantite_stock })} />
@@ -2331,11 +2351,16 @@ function Produits({ api, notify, data, submit, user, searchQuery = '' }) {
             <PhotoInput label="URL de la photo du produit" value={editing.photo_url || ''} onChange={(photo_url) => setEditing({ ...editing, photo_url })} api={api} folder="products" notify={notify} />
             <div className="form-row">
               <Input label="Prix d'achat (CMP)" type="number" step="0.01" value={editing.prix_achat || ''} onChange={(prix_achat) => setEditing({ ...editing, prix_achat })} />
-              <Input label="Prix de vente HT" type="number" value={editing.prix_ht || ''} onChange={(prix_ht) => setEditing({ ...editing, prix_ht })} required />
+              <Input label="Prix de vente" type="number" value={editing.prix_ht || ''} onChange={(prix_ht) => setEditing({ ...editing, prix_ht })} required />
             </div>
             <div className="form-row">
-              <Input label="TVA %" type="number" value={editing.taux_tva || 16} onChange={(taux_tva) => setEditing({ ...editing, taux_tva })} />
+              <Input label="TVA % (laisser vide si non facturée)" type="number" value={editing.taux_tva ?? ''} onChange={(taux_tva) => setEditing({ ...editing, taux_tva })} />
               <Input label="Seuil alerte" type="number" value={editing.seuil_alerte || 5} onChange={(seuil_alerte) => setEditing({ ...editing, seuil_alerte })} />
+            </div>
+            <div className="debt-preview">
+              <span>Prix affiché au catalogue</span>
+              <strong>{moneySmart(priceWithTax(editing))}</strong>
+              <small>{taxText(editing)}</small>
             </div>
             <button className="btn">Mettre a jour</button>
           </Form>
@@ -3402,7 +3427,7 @@ function Commandes({ api, notify, data, submit, user, searchQuery = '' }) {
   const term = `${searchQuery} ${query}`.trim().toLowerCase();
   const filtered = commandes.filter((item) => `${item.id_commande} ${item.client_nom || ''} ${item.statut}`.toLowerCase().includes(term));
   const cartItems = catalogue.filter((product) => Number(cart[product.id_produit] || 0) > 0);
-  const cartTotal = cartItems.reduce((sum, product) => sum + Number(product.prix_ht) * Number(cart[product.id_produit]) * 1.16, 0);
+  const cartTotal = cartItems.reduce((sum, product) => sum + priceWithTax(product) * Number(cart[product.id_produit]), 0);
   const add = (product, delta = 1) => setCart((current) => ({ ...current, [product.id_produit]: Math.max(0, Math.min(Number(product.quantite_stock), Number(current[product.id_produit] || 0) + delta)) }));
   const placeOrder = () => {
     if (!cartItems.length) return notify('Ajoutez au moins un produit au panier.');
@@ -3424,8 +3449,8 @@ function Commandes({ api, notify, data, submit, user, searchQuery = '' }) {
     const articles = (item.lignes || []).map((line) => [
       line.produit_nom || line.produit_id || '-',
       line.quantite,
-      moneySmart(Number(line.prix_unitaire_ht || 0) * (1 + Number(line.taux_tva ?? 16) / 100)),
-      moneySmart(Number(line.quantite || 0) * Number(line.prix_unitaire_ht || 0) * (1 + Number(line.taux_tva ?? 16) / 100))
+      moneySmart(priceWithTax(line)),
+      moneySmart(Number(line.quantite || 0) * priceWithTax(line))
     ]);
     printLayout({
       title: `Commande ${item.id_commande}`,
@@ -3468,7 +3493,7 @@ function Commandes({ api, notify, data, submit, user, searchQuery = '' }) {
           {catalogue.map((product, index) => (
             <article key={product.id_produit}>
               <img src={productPhotoUrl(product, index)} alt="" />
-              <div><small>{product.categorie_nom || 'Produit'}</small><h4>{product.nom}</h4><span>Stock {product.quantite_stock} {product.unite}</span><strong>{moneySmart(Number(product.prix_ht) * 1.16)} TTC</strong></div>
+              <div><small>{product.categorie_nom || 'Produit'}</small><h4>{product.nom}</h4><span>Stock {product.quantite_stock} {product.unite}</span><strong>{moneySmart(priceWithTax(product))}{hasTax(product.taux_tva) ? ' TTC' : ''}</strong><em>{taxText(product)}</em></div>
               <div className="cart-stepper"><button type="button" onClick={() => add(product, -1)}>-</button><b>{cart[product.id_produit] || 0}</b><button type="button" onClick={() => add(product, 1)}>+</button></div>
             </article>
           ))}
@@ -3476,7 +3501,7 @@ function Commandes({ api, notify, data, submit, user, searchQuery = '' }) {
       </section>
       <aside className="panel client-cart">
         <h3>Mon panier</h3>
-        {cartItems.length ? cartItems.map((product) => <div key={product.id_produit}><span>{product.nom} × {cart[product.id_produit]}</span><strong>{moneySmart(Number(product.prix_ht) * Number(cart[product.id_produit]) * 1.16)}</strong></div>) : <p className="empty compact">Panier vide</p>}
+        {cartItems.length ? cartItems.map((product) => <div key={product.id_produit}><span>{product.nom} × {cart[product.id_produit]}</span><strong>{moneySmart(priceWithTax(product) * Number(cart[product.id_produit]))}</strong></div>) : <p className="empty compact">Panier vide</p>}
         <label>Note pour l'equipe<textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Livraison, precision sur la commande..." /></label>
         <div className="cart-total"><span>Total estime</span><strong>{moneySmart(cartTotal)}</strong></div>
         <button className="btn" type="button" onClick={placeOrder}>Envoyer la commande <ArrowRight size={18} /></button>

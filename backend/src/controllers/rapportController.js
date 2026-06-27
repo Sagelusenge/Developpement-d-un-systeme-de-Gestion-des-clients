@@ -217,7 +217,7 @@ export const getHistoriqueClient = async (req, res) => {
         const [rows] = await pool.query(
             `SELECT v.numero_facture, v.date_vente, p.nom AS produit_nom,
                     lv.quantite, lv.prix_unitaire_ht,
-                    (lv.quantite * lv.prix_unitaire_ht * 1.16) AS total_ttc
+                    (lv.quantite * lv.prix_unitaire_ht * (1 + IFNULL(p.taux_tva, 0) / 100)) AS total_ttc
              FROM client c
              JOIN ventes v ON v.client_id = c.id_client
              JOIN lignes_ventes lv ON lv.vente_id = v.id_ventes

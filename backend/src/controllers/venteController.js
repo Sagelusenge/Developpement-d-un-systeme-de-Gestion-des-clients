@@ -3,6 +3,12 @@ import { nextFactureId, nextId } from '../services/idService.js';
 
 const toNumber = (value) => Number(value);
 const lineCostSql = 'COALESCE(NULLIF(lv.prix_achat_unitaire, 0), NULLIF(p.prix_achat, 0), 0)';
+const taxRateSql = 'IFNULL(p.taux_tva, 0)';
+const taxRate = (value) => {
+    if (value === undefined || value === null || String(value).trim() === '') return 0;
+    const rate = Number(value);
+    return Number.isFinite(rate) && rate > 0 ? rate : 0;
+};
 
 // GET /api/ventes
 export const getAllVentes = async (req, res) => {
@@ -50,7 +56,7 @@ export const getVenteById = async (req, res) => {
                     (lv.quantite * lv.prix_unitaire_ht) AS total_ht,
                     (lv.quantite * ${lineCostSql}) AS cout_total,
                     (lv.quantite * (lv.prix_unitaire_ht - ${lineCostSql})) AS resultat_ligne_ht,
-                    (lv.quantite * lv.prix_unitaire_ht * 1.16) AS total_ttc
+                    (lv.quantite * lv.prix_unitaire_ht * (1 + ${taxRateSql} / 100)) AS total_ttc
              FROM lignes_ventes lv
              JOIN produits p ON lv.produit_id = p.id_produit
              WHERE lv.vente_id = ? AND p.entreprise_id = ?`,
@@ -108,7 +114,7 @@ export const createVente = async (req, res) => {
             }
 
             const [produits] = await connection.query(
-                `SELECT id_produit, prix_ht, prix_achat, quantite_stock
+                `SELECT id_produit, prix_ht, prix_achat, taux_tva, quantite_stock
                  FROM produits
                  WHERE id_produit = ? AND entreprise_id = ?
                  FOR UPDATE`,
@@ -131,7 +137,7 @@ export const createVente = async (req, res) => {
                 throw new Error(`Vente bloquee pour ${produit_id}: le prix de vente (${prix} USD) est inferieur au cout d'achat (${produits[0].prix_achat} USD). Corrigez d'abord le prix catalogue.`);
             }
 
-            lignes.push({ produit_id, quantite, prix, prix_achat: toNumber(produits[0].prix_achat || 0) });
+            lignes.push({ produit_id, quantite, prix, prix_achat: toNumber(produits[0].prix_achat || 0), taux_tva: taxRate(produits[0].taux_tva) });
         }
 
         const facture_id = await nextFactureId(connection);
@@ -154,7 +160,7 @@ export const createVente = async (req, res) => {
                 `UPDATE produits SET quantite_stock = quantite_stock - ? WHERE id_produit = ? AND entreprise_id = ?`,
                 [ligne.quantite, ligne.produit_id, entreprise_id]
             );
-            montantTtc += ligne.quantite * ligne.prix * 1.16;
+            montantTtc += ligne.quantite * ligne.prix * (1 + ligne.taux_tva / 100);
         }
 
         await connection.query(
@@ -249,7 +255,7 @@ export const updateVente = async (req, res) => {
             }
 
             const [produits] = await connection.query(
-                `SELECT id_produit, prix_ht, prix_achat, quantite_stock
+                `SELECT id_produit, prix_ht, prix_achat, taux_tva, quantite_stock
                  FROM produits
                  WHERE id_produit = ? AND entreprise_id = ?
                  FOR UPDATE`,
@@ -281,7 +287,7 @@ export const updateVente = async (req, res) => {
                 `UPDATE produits SET quantite_stock = quantite_stock - ? WHERE id_produit = ? AND entreprise_id = ?`,
                 [quantite, produit_id, entreprise_id]
             );
-            montantTtc += quantite * prix * 1.16;
+            montantTtc += quantite * prix * (1 + taxRate(produits[0].taux_tva) / 100);
         }
 
         if (Number(montantTtc.toFixed(2)) < totalPaye) {

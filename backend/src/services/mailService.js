@@ -92,10 +92,13 @@ const productListHtml = (products = []) => `
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #dce4ee;border-radius:10px;border-collapse:separate;overflow:hidden">
     ${products.map((product) => {
         const prixHt = Number(product.prix_ht ?? product.prix_unitaire_ht ?? 0);
-        const prixTtc = Number(product.prix_ttc ?? (prixHt * (1 + Number(product.taux_tva ?? 16) / 100)));
+        const hasTax = product.taux_tva !== undefined && product.taux_tva !== null && String(product.taux_tva).trim() !== '' && Number(product.taux_tva) > 0;
+        const taxRate = hasTax ? Number(product.taux_tva) : 0;
+        const prixTtc = Number(product.prix_ttc ?? (prixHt * (1 + taxRate / 100)));
         const quantity = product.quantite_stock ?? product.quantite ?? '';
         const quantityLabel = typeof quantity === 'string' ? quantity : `${quantity} ${product.unite || 'piece'}`;
-        return `<tr><td style="border-bottom:1px solid #e2e8f0;padding:13px 8px"><strong style="color:#06264a">${escapeHtml(product.nom)}</strong><br><span style="color:#64748b;font-size:13px">${escapeHtml(quantityLabel)}</span></td><td style="border-bottom:1px solid #e2e8f0;padding:13px 8px;text-align:right;white-space:nowrap"><strong>${escapeHtml(prixTtc.toFixed(2))} USD TTC</strong><br><span style="color:#64748b;font-size:12px">par ${escapeHtml(product.unite || 'piece')}</span></td></tr>`;
+        const taxLabel = hasTax ? `TVA ${taxRate}% incluse` : 'TVA non facturee';
+        return `<tr><td style="border-bottom:1px solid #e2e8f0;padding:13px 8px"><strong style="color:#06264a">${escapeHtml(product.nom)}</strong><br><span style="color:#64748b;font-size:13px">${escapeHtml(quantityLabel)}</span></td><td style="border-bottom:1px solid #e2e8f0;padding:13px 8px;text-align:right;white-space:nowrap"><strong>${escapeHtml(prixTtc.toFixed(2))} USD${hasTax ? ' TTC' : ''}</strong><br><span style="color:#64748b;font-size:12px">${escapeHtml(taxLabel)} · par ${escapeHtml(product.unite || 'piece')}</span></td></tr>`;
     }).join('')}
   </table>`;
 

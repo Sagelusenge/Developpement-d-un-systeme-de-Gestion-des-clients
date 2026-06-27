@@ -15,6 +15,12 @@ const buildProductReference = (nom) => {
     return sanitizeReference(`${base}-${suffix}`);
 };
 
+const parseOptionalTaxRate = (value) => {
+    if (value === undefined || value === null || String(value).trim() === '') return null;
+    const rate = Number(value);
+    return Number.isFinite(rate) && rate > 0 ? rate : null;
+};
+
 // GET /api/produits
 export const getAllProduits = async (req, res) => {
     const entreprise_id = req.user.entreprise_id;
@@ -71,6 +77,7 @@ export const getMouvementsStock = async (req, res) => {
 export const createProduit = async (req, res) => {
     const { nom, categorie_id, photo_url, prix_ht, prix_achat, taux_tva, quantite_stock, seuil_alerte, unite } = req.body;
     const entreprise_id = req.user.entreprise_id;
+    const normalizedTauxTva = parseOptionalTaxRate(taux_tva);
 
     if (!nom || Number(prix_ht) <= 0) {
         return res.status(400).json({
@@ -100,7 +107,7 @@ export const createProduit = async (req, res) => {
                 photo_url || null,
                 Number(prix_ht),
                 Number(prix_achat) || 0,
-                Number(taux_tva) || 16,
+                normalizedTauxTva,
                 Number(quantite_stock) || 0,
                 Number(seuil_alerte) || 5,
                 entreprise_id
@@ -132,6 +139,7 @@ export const updateProduit = async (req, res) => {
     const { id } = req.params;
     const { nom, categorie_id, unite, photo_url, prix_ht, prix_achat, taux_tva, seuil_alerte } = req.body;
     const entreprise_id = req.user.entreprise_id;
+    const normalizedTauxTva = parseOptionalTaxRate(taux_tva);
 
     if (!nom || Number(prix_ht) <= 0) {
         return res.status(400).json({ success: false, message: 'Nom et prix positif requis' });
@@ -145,7 +153,7 @@ export const updateProduit = async (req, res) => {
             `UPDATE produits
              SET nom = ?, categorie_id = ?, unite = ?, photo_url = ?, prix_ht = ?, prix_achat = ?, taux_tva = ?, seuil_alerte = ?
              WHERE id_produit = ? AND entreprise_id = ?`,
-            [nom, categorie_id || null, unite || 'piece', photo_url || null, Number(prix_ht), Number(prix_achat) || 0, Number(taux_tva) || 16, Number(seuil_alerte) || 5, id, entreprise_id]
+            [nom, categorie_id || null, unite || 'piece', photo_url || null, Number(prix_ht), Number(prix_achat) || 0, normalizedTauxTva, Number(seuil_alerte) || 5, id, entreprise_id]
         );
 
         if (result.affectedRows === 0) {

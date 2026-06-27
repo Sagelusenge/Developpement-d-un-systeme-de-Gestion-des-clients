@@ -148,7 +148,7 @@ CREATE TABLE IF NOT EXISTS produits (
     unite VARCHAR(40) NOT NULL DEFAULT 'piece',
     prix_ht DECIMAL(10,2) NOT NULL,
     prix_achat DECIMAL(10,2) NOT NULL DEFAULT 0,
-    taux_tva DECIMAL(5,2) DEFAULT 16.00,
+    taux_tva DECIMAL(5,2) NULL DEFAULT NULL,
     quantite_stock INT DEFAULT 0,
     seuil_alerte INT DEFAULT 5,
     photo_url TEXT NULL,
@@ -254,7 +254,7 @@ CREATE TABLE IF NOT EXISTS lignes_commandes (
     produit_id VARCHAR(50) NOT NULL,
     quantite INT NOT NULL,
     prix_unitaire_ht DECIMAL(10,2) NOT NULL,
-    taux_tva DECIMAL(5,2) DEFAULT 16.00,
+    taux_tva DECIMAL(5,2) NULL DEFAULT NULL,
     FOREIGN KEY (commande_id) REFERENCES commandes(id_commande) ON DELETE CASCADE,
     FOREIGN KEY (produit_id) REFERENCES produits(id_produit)
 );
@@ -471,7 +471,7 @@ CREATE PROCEDURE sp_RecalculerMontantVente(IN p_vente_id VARCHAR(50))
 BEGIN
     UPDATE ventes v
     SET v.montant_ttc = (
-        SELECT IFNULL(SUM(lv.quantite * lv.prix_unitaire_ht * (1 + p.taux_tva / 100)), 0)
+        SELECT IFNULL(SUM(lv.quantite * lv.prix_unitaire_ht * (1 + IFNULL(p.taux_tva, 0) / 100)), 0)
         FROM lignes_ventes lv
         JOIN produits p ON p.id_produit = lv.produit_id
         WHERE lv.vente_id = p_vente_id
@@ -541,7 +541,7 @@ SELECT
     lv.quantite,
     lv.prix_unitaire_ht,
     p.taux_tva,
-    (lv.quantite * lv.prix_unitaire_ht * (1 + p.taux_tva / 100)) AS total_ligne_ttc,
+    (lv.quantite * lv.prix_unitaire_ht * (1 + IFNULL(p.taux_tva, 0) / 100)) AS total_ligne_ttc,
     v.montant_ttc AS total_facture_ttc
 FROM ventes v
 JOIN entreprise e ON e.id_entreprise = v.entreprise_id
@@ -624,7 +624,7 @@ SELECT
     lv.quantite,
     lv.prix_unitaire_ht,
     p.taux_tva,
-    (lv.quantite * lv.prix_unitaire_ht * (1 + p.taux_tva / 100)) AS total_ttc
+    (lv.quantite * lv.prix_unitaire_ht * (1 + IFNULL(p.taux_tva, 0) / 100)) AS total_ttc
 FROM client c
 JOIN ventes v ON v.client_id = c.id_client
 JOIN lignes_ventes lv ON lv.vente_id = v.id_ventes

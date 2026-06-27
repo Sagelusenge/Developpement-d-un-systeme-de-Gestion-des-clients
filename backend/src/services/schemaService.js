@@ -83,7 +83,7 @@ export const ensureRuntimeSchema = async (pool) => {
             unite VARCHAR(40) NOT NULL DEFAULT 'piece',
             prix_ht DECIMAL(10,2) NOT NULL,
             prix_achat DECIMAL(10,2) NOT NULL DEFAULT 0,
-            taux_tva DECIMAL(5,2) DEFAULT 16.00,
+            taux_tva DECIMAL(5,2) NULL DEFAULT NULL,
             quantite_stock INT DEFAULT 0,
             seuil_alerte INT DEFAULT 5,
             photo_url TEXT NULL,
@@ -205,7 +205,7 @@ export const ensureRuntimeSchema = async (pool) => {
             produit_id VARCHAR(50) NOT NULL,
             quantite INT NOT NULL,
             prix_unitaire_ht DECIMAL(10,2) NOT NULL,
-            taux_tva DECIMAL(5,2) DEFAULT 16.00,
+            taux_tva DECIMAL(5,2) NULL DEFAULT NULL,
             FOREIGN KEY (commande_id) REFERENCES commandes(id_commande) ON DELETE CASCADE,
             FOREIGN KEY (produit_id) REFERENCES produits(id_produit)
         )
@@ -533,12 +533,15 @@ export const ensureRuntimeSchema = async (pool) => {
     await addColumnIfMissing('produits', 'photo_url', 'TEXT NULL');
     await addColumnIfMissing('produits', 'unite', "VARCHAR(40) NOT NULL DEFAULT 'piece'");
     await addColumnIfMissing('produits', 'prix_achat', 'DECIMAL(10,2) NOT NULL DEFAULT 0');
+    await addColumnIfMissing('produits', 'taux_tva', 'DECIMAL(5,2) NULL DEFAULT NULL');
+    await pool.query(`ALTER TABLE produits MODIFY taux_tva DECIMAL(5,2) NULL DEFAULT NULL`);
     await addColumnIfMissing('mouvements_stock', 'fournisseur_id', 'VARCHAR(50) NULL');
     await addColumnIfMissing('mouvements_stock', 'prix_achat_unitaire', 'DECIMAL(10,2) NULL');
     await addColumnIfMissing('mouvements_stock', 'prix_achat_total', 'DECIMAL(12,2) NULL');
     await addColumnIfMissing('mouvements_stock', 'note', 'VARCHAR(255) NULL');
     await addColumnIfMissing('lignes_ventes', 'prix_achat_unitaire', 'DECIMAL(10,2) NOT NULL DEFAULT 0');
-    await addColumnIfMissing('lignes_commandes', 'taux_tva', 'DECIMAL(5,2) DEFAULT 16.00');
+    await addColumnIfMissing('lignes_commandes', 'taux_tva', 'DECIMAL(5,2) NULL DEFAULT NULL');
+    await pool.query(`ALTER TABLE lignes_commandes MODIFY taux_tva DECIMAL(5,2) NULL DEFAULT NULL`);
     await addColumnIfMissing('categorie_produit', 'reference_categorie', 'VARCHAR(50) NULL');
     await addColumnIfMissing('categorie_produit', 'photo_url', 'TEXT NULL');
 
