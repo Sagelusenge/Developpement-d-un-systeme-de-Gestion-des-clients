@@ -8738,3 +8738,104 @@ body:has(.login-page),
     to { opacity: 1; transform: translateY(0) scale(1); }
   }
 }
+
+/* Authoritative compact admin sidebar: keep nav items as small pills, not full cards. */
+.role-manager .sidebar .nav,
+.role-vendeur .sidebar .nav,
+.role-magasinier .sidebar .nav,
+.admin-shell .sidebar .nav {
+  align-content: start !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  padding: 12px 14px 18px !important;
+}
+
+.role-manager .sidebar .nav button,
+.role-manager .sidebar .nav-logout,
+.role-manager .sidebar .nav-group-toggle,
+.role-manager .nav-group-items > button,
+.role-vendeur .sidebar .nav button,
+.role-vendeur .sidebar .nav-logout,
+.role-vendeur .sidebar .nav-group-toggle,
+.role-vendeur .nav-group-items > button,
+.role-magasinier .sidebar .nav button,
+.role-magasinier .sidebar .nav-logout,
+.role-magasinier .sidebar .nav-group-toggle,
+.role-magasinier .nav-group-items > button,
+.admin-shell .sidebar .nav button,
+.admin-shell .sidebar .nav-logout,
+.admin-shell .sidebar .nav-group-toggle,
+.admin-shell .nav-group-items > button {
+  align-items: center !important;
+  align-self: flex-start !important;
+  border-left: 0 !important;
+  border-radius: 9px !important;
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  font-size: 12.5px !important;
+  font-weight: 850 !important;
+  gap: 9px !important;
+  line-height: 1.1 !important;
+  min-height: 32px !important;
+  padding: 7px 11px !important;
+  width: auto !important;
+  max-width: calc(100% - 4px) !important;
+}
+
+.role-manager .sidebar .nav button svg,
+.role-manager .sidebar .nav-logout svg,
+.role-vendeur .sidebar .nav button svg,
+.role-vendeur .sidebar .nav-logout svg,
+.role-magasinier .sidebar .nav button svg,
+.role-magasinier .sidebar .nav-logout svg,
+.admin-shell .sidebar .nav button svg,
+.admin-shell .sidebar .nav-logout svg {
+  flex: 0 0 auto !important;
+  height: 17px !important;
+  width: 17px !important;
+}
+
+.role-manager .sidebar .nav button.active,
+.role-vendeur .sidebar .nav button.active,
+.role-magasinier .sidebar .nav button.active,
+.admin-shell .sidebar .nav button.active {
+  background: rgba(23, 53, 92, .95) !important;
+  box-shadow: none !important;
+  color: #ffa51f !important;
+}
+
+.role-manager .nav-group,
+.role-vendeur .nav-group,
+.role-magasinier .nav-group,
+.admin-shell .nav-group {
+  align-items: flex-start !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+  width: 100% !important;
+}
+
+.role-manager .nav-group-items,
+.role-vendeur .nav-group-items,
+.role-magasinier .nav-group-items,
+.admin-shell .nav-group-items {
+  align-items: flex-start !important;
+  gap: 3px !important;
+  padding-left: 14px !important;
+  width: 100% !important;
+}
+
+.role-manager .nav-group.open .nav-group-items,
+.role-vendeur .nav-group.open .nav-group-items,
+.role-magasinier .nav-group.open .nav-group-items,
+.admin-shell .nav-group.open .nav-group-items {
+  max-height: 180px !important;
+}
+
+.role-manager .sidebar .nav-logout,
+.role-vendeur .sidebar .nav-logout,
+.role-magasinier .sidebar .nav-logout,
+.admin-shell .sidebar .nav-logout {
+  margin-top: auto !important;
+}
