@@ -719,6 +719,19 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (!token) return;
+    if (route === '/paiement/stripe/succes') {
+      setPage('achats');
+      notify('Paiement Stripe confirme. La facture sera mise a jour automatiquement.');
+      goTo('/app');
+    } else if (route === '/paiement/stripe/annule') {
+      setPage('achats');
+      notify('Paiement Stripe annule.');
+      goTo('/app');
+    }
+  }, [route, token]);
+
+  useEffect(() => {
     const timer = window.setTimeout(() => setBooting(false), 650);
     return () => window.clearTimeout(timer);
   }, []);
@@ -3528,8 +3541,38 @@ function Commandes({ api, notify, data, submit, user, searchQuery = '' }) {
 
 function AchatsClient({ api, notify, data, submit, setPage, searchQuery = '' }) {
   const rows = (data.extra.achats || []).filter((item) => `${item.numero_facture} ${item.montant_ttc}`.toLowerCase().includes(searchQuery.toLowerCase()));
+  const [stripeForm, setStripeForm] = useState({ vente_id: '', montant: '' });
+  const openStripePayment = (item) => {
+    const reste = Math.max(0, Number(item.reste_a_payer || 0));
+    setStripeForm({ vente_id: item.id_ventes, montant: reste ? reste.toFixed(2) : '' });
+  };
+  const payWithStripe = () => submit(async () => {
+    const result = await api('/paiements/stripe/checkout', {
+      method: 'POST',
+      body: JSON.stringify({
+        vente_id: stripeForm.vente_id,
+        montant: Number(stripeForm.montant)
+      })
+    });
+    const url = result.data?.checkout_url;
+    if (!url) throw new Error('Stripe n a pas retourne de lien de paiement.');
+    window.location.href = url;
+  });
   return <>
-    <section className="panel"><div className="panel-heading"><div><h3>Mes achats et factures</h3><p>Consultez vos factures, les montants deja payes et le reste a payer.</p></div></div>{rows.length ? <Table headers={['Facture', 'Date', 'Montant', 'Paye', 'Reste', 'Statut']} rows={rows.map((item) => [item.numero_facture, formatDate(item.date_vente), money(item.montant_ttc), money(item.total_paye), money(item.reste_a_payer), <Badge>{Number(item.reste_a_payer) <= 0 ? 'Paye' : Number(item.total_paye) > 0 ? 'Partiel' : 'Impaye'}</Badge>])} /> : <div className="empty purchase-empty"><WalletCards size={32} /><strong>Aucune facture disponible</strong><p>Vos factures apparaitront ici des qu'une commande sera transformee en facture.</p><button className="btn small" type="button" onClick={() => setPage('commandes')}>Voir mes commandes</button></div>}</section>
+    <section className="panel"><div className="panel-heading"><div><h3>Mes achats et factures</h3><p>Consultez vos factures, les montants deja payes et le reste a payer.</p></div></div>{rows.length ? <Table headers={['Facture', 'Date', 'Montant', 'Paye', 'Reste', 'Statut', 'Paiement']} rows={rows.map((item) => [item.numero_facture, formatDate(item.date_vente), money(item.montant_ttc), money(item.total_paye), money(item.reste_a_payer), <Badge>{Number(item.reste_a_payer) <= 0 ? 'Paye' : Number(item.total_paye) > 0 ? 'Partiel' : 'Impaye'}</Badge>, Number(item.reste_a_payer || 0) > 0 ? <button className="btn small stripe-pay-button" type="button" onClick={() => openStripePayment(item)}><CreditCard size={15} /> Payer Stripe test</button> : <span className="muted">Solde paye</span>])} /> : <div className="empty purchase-empty"><WalletCards size={32} /><strong>Aucune facture disponible</strong><p>Vos factures apparaitront ici des qu'une commande sera transformee en facture.</p><button className="btn small" type="button" onClick={() => setPage('commandes')}>Voir mes commandes</button></div>}</section>
+    {stripeForm.vente_id && <Modal title="Paiement Stripe test" onClose={() => setStripeForm({ vente_id: '', montant: '' })}>
+      <Form onSubmit={payWithStripe}>
+        <div className="payment-test-card">
+          <CreditCard size={28} />
+          <div>
+            <strong>Mode test Stripe</strong>
+            <p>Utilisez une carte test Stripe, par exemple 4242 4242 4242 4242, une date future et n'importe quel CVC.</p>
+          </div>
+        </div>
+        <Input label="Montant a payer (USD)" type="number" step="0.01" value={stripeForm.montant} onChange={(montant) => setStripeForm({ ...stripeForm, montant })} required />
+        <button className="btn modal-submit">Continuer vers Stripe <ArrowRight size={20} /></button>
+      </Form>
+    </Modal>}
   </>;
 }
 

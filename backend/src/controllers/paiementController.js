@@ -1,6 +1,7 @@
 import pool from '../config/db.js';
 import { nextId } from '../services/idService.js';
 import { initiateMobileMoneyPayment } from '../services/mobileMoneyService.js';
+import { createStripeCheckoutSession, isStripeReady, verifyStripeSignature } from '../services/stripeService.js';
 
 // POST /api/paiements
 export const createPaiement = async (req, res) => {
@@ -103,6 +104,182 @@ export const getRepartitionPaiements = async (req, res) => {
         res.json({ success: true, data: rows });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const frontendOrigin = () => String(process.env.FRONTEND_URL || 'http://127.0.0.1:5174')
+    .split(',')[0]
+    .trim()
+    .replace(/\/$/, '');
+
+const getClientInvoiceBalance = async (connection, { venteId, clientId, entrepriseId, lock = false }) => {
+    const [[invoice]] = await connection.query(
+        `SELECT v.id_ventes, v.numero_facture, v.montant_ttc, IFNULL(SUM(p.montant),0) total_paye
+         FROM ventes v
+         LEFT JOIN paiement p ON p.vente_id=v.id_ventes
+         WHERE v.id_ventes=? AND v.client_id=? AND v.entreprise_id=?
+         GROUP BY v.id_ventes ${lock ? 'FOR UPDATE' : ''}`,
+        [venteId, clientId, entrepriseId]
+    );
+    return invoice;
+};
+
+export const createStripeCheckoutPayment = async (req, res) => {
+    if (req.user.type !== 'client') return res.status(403).json({ success: false, message: 'Espace client requis.' });
+    const venteId = String(req.body.vente_id || '').trim();
+    const amount = Number(req.body.montant);
+    if (!venteId || !Number.isFinite(amount) || amount <= 0) {
+        return res.status(400).json({ success: false, message: 'Facture et montant valides requis.' });
+    }
+    if (!isStripeReady()) {
+        return res.status(503).json({ success: false, message: 'Paiement Stripe non configure sur le backend.' });
+    }
+
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+        const invoice = await getClientInvoiceBalance(connection, {
+            venteId,
+            clientId: req.user.client_id,
+            entrepriseId: req.user.entreprise_id,
+            lock: true
+        });
+        if (!invoice) throw new Error('Facture introuvable dans votre espace client.');
+        const reste = Number(invoice.montant_ttc) - Number(invoice.total_paye);
+        if (reste <= 0) throw new Error('Cette facture est deja totalement payee.');
+        if (amount > reste + 0.001) throw new Error(`Le montant depasse le reste a payer (${reste.toFixed(2)} USD).`);
+
+        const idSession = await nextId(connection, 'paiement_stripe_sessions', 'STR', 6);
+        await connection.query(
+            `INSERT INTO paiement_stripe_sessions
+                (id_session,vente_id,client_id,entreprise_id,montant,devise,statut)
+             VALUES (?,?,?,?,?,?,?)`,
+            [idSession, venteId, req.user.client_id, req.user.entreprise_id, amount, 'usd', 'en_attente']
+        );
+
+        const stripeSession = await createStripeCheckoutSession({
+            internalReference: idSession,
+            invoiceId: invoice.numero_facture || venteId,
+            clientId: req.user.client_id,
+            amount,
+            currency: 'usd',
+            successUrl: `${frontendOrigin()}/paiement/stripe/succes`,
+            cancelUrl: `${frontendOrigin()}/paiement/stripe/annule`
+        });
+
+        await connection.query(
+            `UPDATE paiement_stripe_sessions
+             SET stripe_session_id=?, stripe_payment_intent=?, checkout_url=?, raw_response=?
+             WHERE id_session=?`,
+            [stripeSession.id || null, stripeSession.payment_intent || null, stripeSession.url || null, JSON.stringify(stripeSession), idSession]
+        );
+        await connection.commit();
+        res.status(201).json({
+            success: true,
+            message: 'Session Stripe creee.',
+            data: { id_session: idSession, checkout_url: stripeSession.url, stripe_session_id: stripeSession.id }
+        });
+    } catch (error) {
+        await connection.rollback();
+        res.status(error.statusCode || 400).json({ success: false, message: error.message });
+    } finally {
+        connection.release();
+    }
+};
+
+export const getStripePaymentStatus = async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            `SELECT id_session, vente_id, montant, devise, statut, stripe_session_id, created_at, confirmed_at
+             FROM paiement_stripe_sessions
+             WHERE (id_session=? OR stripe_session_id=?) AND client_id=? AND entreprise_id=?
+             LIMIT 1`,
+            [req.params.id, req.params.id, req.user.client_id, req.user.entreprise_id]
+        );
+        if (!rows.length) return res.status(404).json({ success: false, message: 'Paiement Stripe introuvable.' });
+        res.json({ success: true, data: rows[0] });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const stripeWebhook = async (req, res) => {
+    const rawBody = req.body;
+    const signature = req.headers['stripe-signature'];
+    if (!verifyStripeSignature(rawBody, signature, process.env.STRIPE_WEBHOOK_SECRET)) {
+        return res.status(400).json({ received: false, message: 'Signature Stripe invalide.' });
+    }
+    let event;
+    try {
+        event = JSON.parse(Buffer.isBuffer(rawBody) ? rawBody.toString('utf8') : String(rawBody || '{}'));
+    } catch {
+        return res.status(400).json({ received: false, message: 'Payload Stripe invalide.' });
+    }
+    if (event.type !== 'checkout.session.completed') {
+        return res.json({ received: true, ignored: true });
+    }
+
+    const session = event.data?.object || {};
+    const internalReference = session.client_reference_id || session.metadata?.internal_reference;
+    if (!internalReference) return res.status(400).json({ received: false, message: 'Reference interne manquante.' });
+
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+        const [[paymentSession]] = await connection.query(
+            `SELECT * FROM paiement_stripe_sessions WHERE id_session=? FOR UPDATE`,
+            [internalReference]
+        );
+        if (!paymentSession) throw new Error('Session Stripe inconnue.');
+        if (paymentSession.statut === 'confirmee') {
+            await connection.commit();
+            return res.json({ received: true, duplicate: true });
+        }
+        const amountStripe = Number(session.amount_total || 0) / 100;
+        const expected = Number(paymentSession.montant || 0);
+        if (Math.abs(amountStripe - expected) > 0.01) {
+            await connection.query(
+                `UPDATE paiement_stripe_sessions SET statut='echec', raw_webhook=?, erreur=? WHERE id_session=?`,
+                [JSON.stringify(event), `Montant Stripe ${amountStripe} different du montant attendu ${expected}`, internalReference]
+            );
+            await connection.commit();
+            return res.status(400).json({ received: false, message: 'Montant Stripe invalide.' });
+        }
+        const [[invoice]] = await connection.query(
+            `SELECT v.montant_ttc,IFNULL(SUM(p.montant),0) total_paye
+             FROM ventes v LEFT JOIN paiement p ON p.vente_id=v.id_ventes
+             WHERE v.id_ventes=? GROUP BY v.id_ventes FOR UPDATE`,
+            [paymentSession.vente_id]
+        );
+        if (!invoice) throw new Error('Facture introuvable.');
+        const reste = Number(invoice.montant_ttc) - Number(invoice.total_paye);
+        if (expected > reste + 0.01) {
+            await connection.query(
+                `UPDATE paiement_stripe_sessions SET statut='echec', raw_webhook=?, erreur=? WHERE id_session=?`,
+                [JSON.stringify(event), `Solde insuffisant au webhook: ${reste.toFixed(2)} USD`, internalReference]
+            );
+            await connection.commit();
+            return res.status(409).json({ received: false, message: 'Solde facture insuffisant.' });
+        }
+        const paymentId = await nextId(connection, 'paiement', 'PAY', 5);
+        await connection.query(
+            `INSERT INTO paiement (id_paiement,vente_id,montant,mode_paiement,reference_externe,telephone_payeur)
+             VALUES (?,?,?,'stripe',?,NULL)`,
+            [paymentId, paymentSession.vente_id, expected, session.payment_intent || session.id || internalReference]
+        );
+        await connection.query(
+            `UPDATE paiement_stripe_sessions
+             SET statut='confirmee', stripe_session_id=?, stripe_payment_intent=?, raw_webhook=?, confirmed_at=NOW()
+             WHERE id_session=?`,
+            [session.id || paymentSession.stripe_session_id, session.payment_intent || paymentSession.stripe_payment_intent, JSON.stringify(event), internalReference]
+        );
+        await connection.commit();
+        res.json({ received: true });
+    } catch (error) {
+        await connection.rollback();
+        res.status(400).json({ received: false, message: error.message });
+    } finally {
+        connection.release();
     }
 };
 

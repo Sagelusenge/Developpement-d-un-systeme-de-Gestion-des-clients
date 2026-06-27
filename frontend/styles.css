@@ -8586,6 +8586,91 @@ body:has(.login-page),
   white-space: pre;
 }
 
+.payment-test-card {
+  align-items: flex-start;
+  background: linear-gradient(135deg, #eef6ff, #ffffff);
+  border: 1px solid #cfe0f3;
+  border-radius: 14px;
+  color: #172033;
+  display: flex;
+  gap: 14px;
+  line-height: 1.6;
+  padding: 16px;
+}
+
+.payment-test-card strong {
+  color: #06264a;
+  display: block;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.payment-test-card p {
+  color: #526175;
+  font-size: 13px;
+  margin: 0;
+}
+
+.stripe-pay-button {
+  white-space: nowrap;
+}
+
+/* Final compact navigation: admin roles use the same small-button feeling as the client area. */
+.admin-shell .nav,
+.role-manager .nav,
+.role-vendeur .nav,
+.role-magasinier .nav {
+  gap: 6px !important;
+  padding-right: 12px;
+}
+
+.admin-shell .nav button,
+.admin-shell .nav-logout,
+.role-manager .nav button,
+.role-manager .nav-logout,
+.role-vendeur .nav button,
+.role-vendeur .nav-logout,
+.role-magasinier .nav button,
+.role-magasinier .nav-logout {
+  border-left: 4px solid transparent !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  font-weight: 850 !important;
+  gap: 10px !important;
+  min-height: 38px !important;
+  padding: 8px 14px !important;
+}
+
+.admin-shell .nav button svg,
+.admin-shell .nav-logout svg,
+.role-manager .nav button svg,
+.role-manager .nav-logout svg,
+.role-vendeur .nav button svg,
+.role-vendeur .nav-logout svg,
+.role-magasinier .nav button svg,
+.role-magasinier .nav-logout svg {
+  height: 18px !important;
+  width: 18px !important;
+}
+
+.admin-shell .nav button.active,
+.role-manager .nav button.active,
+.role-vendeur .nav button.active,
+.role-magasinier .nav button.active {
+  background: rgba(23, 53, 92, .92) !important;
+  border-left-color: #ffa51f !important;
+  color: #ffa51f !important;
+}
+
+.admin-shell .nav-group-items > button,
+.role-manager .nav-group-items > button,
+.role-vendeur .nav-group-items > button,
+.role-magasinier .nav-group-items > button {
+  font-size: 12px !important;
+  min-height: 34px !important;
+  padding-left: 24px !important;
+}
+
 /* Extra professional admin motion */
 @media (prefers-reduced-motion:no-preference) {
   .shell .content-heading,

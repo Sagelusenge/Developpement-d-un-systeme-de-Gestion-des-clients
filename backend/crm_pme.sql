@@ -204,13 +204,36 @@ CREATE TABLE IF NOT EXISTS paiement (
     id_paiement VARCHAR(50) PRIMARY KEY,
     vente_id VARCHAR(50) NOT NULL,
     montant DECIMAL(10,2) NOT NULL,
-    mode_paiement ENUM('especes', 'carte', 'virement', 'mobile_money') NOT NULL,
+    mode_paiement ENUM('especes', 'carte', 'virement', 'mobile_money', 'stripe') NOT NULL,
     reference_externe VARCHAR(100),
     telephone_payeur VARCHAR(20),
     date_paiement TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (vente_id) REFERENCES ventes(id_ventes) ON DELETE CASCADE,
     INDEX idx_paiement_vente (vente_id),
     INDEX idx_paiement_date (date_paiement)
+);
+
+CREATE TABLE IF NOT EXISTS paiement_stripe_sessions (
+    id_session VARCHAR(50) PRIMARY KEY,
+    vente_id VARCHAR(50) NOT NULL,
+    client_id VARCHAR(50) NOT NULL,
+    entreprise_id VARCHAR(50) NOT NULL,
+    montant DECIMAL(10,2) NOT NULL,
+    devise VARCHAR(10) NOT NULL DEFAULT 'usd',
+    statut ENUM('en_attente','confirmee','echec','annulee') NOT NULL DEFAULT 'en_attente',
+    stripe_session_id VARCHAR(120) NULL,
+    stripe_payment_intent VARCHAR(120) NULL,
+    checkout_url TEXT NULL,
+    raw_response JSON NULL,
+    raw_webhook JSON NULL,
+    erreur VARCHAR(500) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    confirmed_at TIMESTAMP NULL,
+    UNIQUE KEY uniq_stripe_session (stripe_session_id),
+    INDEX idx_stripe_vente (vente_id, statut),
+    FOREIGN KEY (vente_id) REFERENCES ventes(id_ventes) ON DELETE CASCADE,
+    FOREIGN KEY (client_id) REFERENCES client(id_client) ON DELETE CASCADE,
+    FOREIGN KEY (entreprise_id) REFERENCES entreprise(id_entreprise) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS demandes_paiement_mobile (

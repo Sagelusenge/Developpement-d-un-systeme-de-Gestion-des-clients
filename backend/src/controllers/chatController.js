@@ -108,7 +108,7 @@ const automaticReply = async (message, user, conversationId = null) => {
     if (/(adresse|situe|localisation|trouver)/.test(text)) return "Nous sommes sur l’Avenue du Commerce, quartier Murara, commune de Karisimbi à Goma.";
     if (/(commande|statut|livraison|suivre)/.test(text)) return "Ouvrez la rubrique Commandes pour voir le statut exact : en attente, confirmee, preparee ou livree. Donnez-moi la reference CMD si vous avez besoin d’aide supplementaire.";
     if (/(prix|catalogue|produit|stock|disponible)/.test(text)) return "Indiquez le nom du materiel recherche. Je consulterai directement le catalogue et le stock disponibles.";
-    if (/(paiement|payer|mobile money|mpesa|airtel money|orange money)/.test(text)) return "Pour payer, ouvrez Mes achats puis choisissez une facture avec un reste à payer. Le bouton Payer Mobile Money permet un paiement complet ou partiel. Si aucune facture n'apparait, votre commande doit d'abord etre validee et transformee en facture par l'equipe.";
+    if (/(paiement|payer|stripe|carte|mobile money|mpesa|airtel money|orange money)/.test(text)) return "Pour payer, ouvrez Mes achats puis choisissez une facture avec un reste à payer. En mode test, le bouton Payer Stripe test permet un paiement complet ou partiel par carte. Si aucune facture n'apparait, votre commande doit d'abord etre validee et transformee en facture par l'equipe.";
     if (/(facture|achat|reste|dette)/.test(text)) return "La rubrique Mes achats affiche vos factures, les montants payes et le reste à payer. Pour un cas precis, indiquez le numero de facture FAC.";
     if (/(reclamation|plainte|probleme|endommage|erreur)/.test(text)) return "Vous pouvez ouvrir une reclamation depuis la rubrique Reclamations. Elle sera transmise au manager avec la reference de votre commande ou facture.";
     if (/(horaire|ouvert|ferme)/.test(text)) return "Les horaires ne sont pas encore publies dans le systeme. Votre question est transmise au manager pour une reponse confirmee.";
@@ -125,7 +125,7 @@ const automaticReply = async (message, user, conversationId = null) => {
             entreprise: {
                 nom: 'Quincaillerie Centrale',
                 ville: 'Goma',
-                espace_client: ['Commandes', 'Mes achats', 'Reclamations', 'Assistance', 'Paiement Mobile Money si active']
+                espace_client: ['Commandes', 'Mes achats', 'Reclamations', 'Assistance', 'Paiement Stripe test si active']
             },
             catalogue,
             commandes_recentes: recentOrders,

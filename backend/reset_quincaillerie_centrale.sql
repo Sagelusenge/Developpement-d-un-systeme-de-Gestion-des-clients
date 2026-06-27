@@ -18,6 +18,7 @@ DELETE FROM reclamations;
 DELETE FROM lignes_commandes;
 DELETE FROM commandes;
 DELETE FROM demandes_paiement_mobile;
+DELETE FROM paiement_stripe_sessions;
 DELETE FROM paiement;
 DELETE FROM lignes_ventes;
 DELETE FROM ventes;
@@ -42,6 +43,7 @@ INSERT INTO sequences (nom_table, derniere_valeur) VALUES
 ('ventes', 0),
 ('lignes_ventes', 0),
 ('paiement', 0),
+('paiement_stripe_sessions', 0),
 ('commandes', 0),
 ('lignes_commandes', 0),
 ('reclamations', 0),

@@ -2061,6 +2061,89 @@ Si `reference_externe` est vide et que le prestataire est configure, le backend 
 
 Sans prestataire configure, le serveur retourne 503 et demande une reference de transfert manuel.
 
+## Creer un paiement Stripe test depuis l'espace client
+
+```http
+POST /paiements/stripe/checkout
+Authorization: Bearer <token_client>
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "vente_id": "FAC-2026-00012",
+  "montant": 25.5
+}
+```
+
+Regles:
+
+- le client ne peut payer que ses propres factures;
+- le montant peut etre partiel ou complet;
+- le backend refuse tout montant superieur au reste a payer;
+- la cle secrete Stripe reste uniquement cote backend dans `STRIPE_SECRET_KEY`;
+- apres paiement Stripe confirme, le webhook cree automatiquement une ligne dans `paiement` avec `mode_paiement = stripe`.
+
+Reponse:
+
+```json
+{
+  "success": true,
+  "message": "Session Stripe creee.",
+  "data": {
+    "id_session": "STR-000001",
+    "stripe_session_id": "cs_test_...",
+    "checkout_url": "https://checkout.stripe.com/c/pay/..."
+  }
+}
+```
+
+Le frontend doit rediriger le client vers `checkout_url`.
+
+## Consulter le statut d'un paiement Stripe
+
+```http
+GET /paiements/stripe/status/:id
+Authorization: Bearer <token_client>
+```
+
+`:id` peut etre `id_session` interne ou `stripe_session_id`.
+
+Reponse:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id_session": "STR-000001",
+    "vente_id": "FAC-2026-00012",
+    "montant": 25.5,
+    "devise": "usd",
+    "statut": "confirmee",
+    "stripe_session_id": "cs_test_...",
+    "confirmed_at": "2026-06-27T10:30:00.000Z"
+  }
+}
+```
+
+## Webhook Stripe
+
+```http
+POST /paiements/stripe/webhook
+```
+
+Ce endpoint est appele par Stripe, pas par le mobile. Il traite principalement `checkout.session.completed`.
+
+Effet:
+
+- verifie la signature si `STRIPE_WEBHOOK_SECRET` est configure;
+- retrouve la session interne via `client_reference_id`;
+- verifie le montant;
+- evite les doublons;
+- cree le paiement confirme dans `paiement`.
+
 Reponse 201:
 
 ```json

@@ -25,6 +25,7 @@ import publicRoutes from './routes/publicRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import archiveRoutes from './routes/archiveRoutes.js';
+import { stripeWebhook } from './controllers/paiementController.js';
 
 dotenv.config();
 
@@ -45,6 +46,7 @@ app.use(cors({
     },
     credentials: true
 }));
+app.post('/api/paiements/stripe/webhook', express.raw({ type: 'application/json', limit: process.env.JSON_BODY_LIMIT || '8mb' }), stripeWebhook);
 app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '8mb' }));
 app.use(auditMiddleware);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
