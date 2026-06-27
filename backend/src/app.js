@@ -29,6 +29,7 @@ import archiveRoutes from './routes/archiveRoutes.js';
 dotenv.config();
 
 const app = express();
+app.set('trust proxy', 1);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -71,7 +72,7 @@ app.use('/api/archives', archiveRoutes);
 app.get('/api/health', (req, res) => {
     res.json({ success: true, message: 'Quincaillerie Centrale API operationnelle' });
 });
-
+// bonjour
 app.use(errorHandler);
 
 export default app;
