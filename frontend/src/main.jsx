@@ -941,7 +941,7 @@ function App() {
   ].map((group) => ({ ...group, items: group.ids.map((id) => navById[id]).filter(Boolean) })).filter((group) => group.items.length);
   const groupedIds = new Set(navGroups.flatMap((group) => group.ids));
   const standaloneNav = navItems.filter((item) => !groupedIds.has(item.id));
-  const renderNavButton = (item) => <button key={item.id} className={page === item.id ? 'active' : ''} onClick={() => { setPage(item.id); setMobileMenuOpen(false); }}>{React.createElement(iconMap[item.id] || Package, { size: 20, strokeWidth: 2.2 })}<span>{item.label}</span></button>;
+  const renderNavButton = (item) => <button key={item.id} className={`nav-item nav-item-${item.id}${page === item.id ? ' active' : ''}`} onClick={() => { setPage(item.id); setMobileMenuOpen(false); }}>{React.createElement(iconMap[item.id] || Package, { size: 20, strokeWidth: 2.2 })}<span>{item.label}</span></button>;
 
   return (
     <div className={`shell page-${page} role-${user?.role || 'user'} ${mobileMenuOpen ? 'menu-open' : ''}`}>
