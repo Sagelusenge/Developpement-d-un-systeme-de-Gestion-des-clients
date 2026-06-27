@@ -9,7 +9,7 @@ import {
 
 const prospectCampaignKey = 'prospect_discovery_v1';
 const inactiveCampaignPrefix = 'inactive_client';
-const productCampaignPrefix = 'category_new_product';
+const productCampaignPrefix = 'new_stock_product';
 
 const getFrontendOrigin = () => String(process.env.FRONTEND_URL || 'http://127.0.0.1:5174')
     .split(',')[0]
@@ -140,21 +140,20 @@ export const notifyClientsForNewCategoryProduct = async ({ productId, entreprise
     const [[product]] = await pool.query(
         `SELECT p.id_produit,p.nom,p.unite,p.prix_ht,p.quantite_stock,p.categorie_id,c.nom AS categorie_nom
          FROM produits p LEFT JOIN categorie_produit c ON c.id_categorie=p.categorie_id
-         WHERE p.id_produit=? AND p.entreprise_id=? AND p.categorie_id IS NOT NULL AND p.quantite_stock>0 AND p.prix_ht>=p.prix_achat`,
+         WHERE p.id_produit=? AND p.entreprise_id=? AND p.quantite_stock>0 AND p.prix_ht>=p.prix_achat`,
         [productId, entrepriseId]
     );
     if (!product) return;
     const [clients] = await pool.query(
         `SELECT DISTINCT c.id_client,c.nom,c.email,c.entreprise_id
          FROM client c
-         JOIN ventes v ON v.client_id=c.id_client
-         JOIN lignes_ventes lv ON lv.vente_id=v.id_ventes
-         JOIN produits bought ON bought.id_produit=lv.produit_id
-         WHERE c.entreprise_id=? AND c.actif=1 AND c.email IS NOT NULL AND c.email<>'' AND c.email_verified_at IS NOT NULL
-           AND bought.categorie_id=?
-         LIMIT 300`,
-        [entrepriseId, product.categorie_id]
+         WHERE c.entreprise_id=? AND c.actif=1
+           AND c.email IS NOT NULL AND c.email<>''
+           AND c.email_verified_at IS NOT NULL
+         LIMIT 500`,
+        [entrepriseId]
     );
+    let sent = 0;
     for (const client of clients) {
         const campaignKey = `${productCampaignPrefix}_${product.id_produit}`;
         if (!await claimCampaign({ clientId: client.id_client, entrepriseId: client.entreprise_id, campaignKey })) continue;
@@ -170,9 +169,25 @@ export const notifyClientsForNewCategoryProduct = async ({ productId, entreprise
                 await pool.query(`DELETE FROM crm_email_campaigns WHERE client_id=? AND campaign_key=? AND statut='en_cours'`, [client.id_client, campaignKey]);
                 continue;
             }
+            sent += 1;
             await markCampaign({ clientId: client.id_client, campaignKey, status: 'envoye', messageId: result.messageId || null });
         } catch (error) {
             await markCampaign({ clientId: client.id_client, campaignKey, status: 'echec', error: error.message || error });
         }
+    }
+    if (sent > 0) {
+        await pool.query(
+            `INSERT INTO mail_messages
+                (entreprise_id, sender_email, to_email, subject, message, status)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [
+                entrepriseId,
+                process.env.EMAIL_USER || null,
+                `Tous les clients confirmes (${sent})`,
+                `Nouveau produit disponible en stock: ${product.nom}`,
+                `Campagne automatique envoyee pour le produit ${product.nom} (${product.id_produit}), categorie ${product.categorie_nom || 'non renseignee'}, prix ${Number(product.prix_ht || 0).toFixed(2)} USD.`,
+                'envoye'
+            ]
+        );
     }
 };

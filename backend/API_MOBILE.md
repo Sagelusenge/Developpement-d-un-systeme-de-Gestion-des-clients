@@ -2682,7 +2682,7 @@ Ces emails sont declenches par le backend; l'application mobile n'a pas besoin d
 - commande convertie en facture: email indiquant la facture disponible;
 - prospect sans achat: email unique apres `PROSPECT_FOLLOWUP_HOURS`;
 - client inactif: relance apres `INACTIVE_CLIENT_EMAIL_DAYS`, basee sur les categories deja achetees;
-- nouveau produit: email cible aux clients qui ont deja achete dans cette categorie.
+- nouveau produit: email envoye a tous les clients actifs dont l'adresse email est confirmee.
 
 Les tables `prospect_email_campaigns` et `crm_email_campaigns` evitent les doublons. Si SMTP n'est pas configure, les envois sont ignores sans bloquer l'action principale.
 

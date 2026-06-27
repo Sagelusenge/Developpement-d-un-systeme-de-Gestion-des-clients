@@ -49,7 +49,7 @@ export const registerClient = async (req, res) => {
         if (recent && Date.now() - new Date(recent.created_at).getTime() < 60000) {
             return res.status(429).json({ success: false, message: 'Veuillez patienter une minute avant de demander un nouveau code.' });
         }
-        const [[company]] = await pool.query(`SELECT id_entreprise FROM entreprise WHERE statut_abonnement = 'actif' ORDER BY id_entreprise LIMIT 1`);
+        const [[company]] = await pool.query(`SELECT id_entreprise FROM entreprise ORDER BY id_entreprise LIMIT 1`);
         if (!company) return res.status(503).json({ success: false, message: 'Les inscriptions sont temporairement indisponibles.' });
         const code = String(crypto.randomInt(100000, 1000000));
         await pool.query(`UPDATE client_registration_codes SET used_at = NOW() WHERE email = ? AND used_at IS NULL`, [email]);

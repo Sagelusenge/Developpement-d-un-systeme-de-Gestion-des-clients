@@ -87,32 +87,17 @@ export const login = async (req, res) => {
 
         if (!isMatch) {
             const [[client]] = await pool.query(
-                `SELECT c.*, e.raison_sociale AS entreprise_nom, e.statut_abonnement
+                `SELECT c.*, e.raison_sociale AS entreprise_nom
                  FROM client c JOIN entreprise e ON e.id_entreprise = c.entreprise_id
                  WHERE LOWER(c.email) = ? AND c.actif = 1 LIMIT 1`, [email]
             );
             if (!client?.mot_de_passe || !(await bcrypt.compare(password, client.mot_de_passe))) {
                 return res.status(401).json({ success: false, message: 'Email ou mot de passe incorrect' });
             }
-            if (client.statut_abonnement !== 'actif') {
-                return res.status(403).json({ success: false, message: 'Service suspendu. Contactez votre administrateur.' });
-            }
             const clientToken = jwt.sign({ id: client.id_client, client_id: client.id_client, email: client.email, role: 'client', entreprise_id: client.entreprise_id, nom: client.nom, type: 'client' }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '2h' });
             return res.json({
                 success: true, message: 'Connexion reussie', token: clientToken,
                 user: { id: client.id_client, id_client: client.id_client, nom: client.nom, postnom: client.postnom, email: client.email, telephone: client.telephone, role: 'client', entreprise_id: client.entreprise_id, entreprise_nom: client.entreprise_nom, type: 'client' }
-            });
-        }
-
-        const [entreprise] = await pool.query(
-            'SELECT statut_abonnement, date_expiration_abonnement FROM entreprise WHERE id_entreprise = ?',
-            [user.entreprise_id]
-        );
-
-        if (!entreprise[0] || entreprise[0].statut_abonnement !== 'actif') {
-            return res.status(403).json({
-                success: false,
-                message: 'Service suspendu. Contactez votre administrateur.'
             });
         }
 

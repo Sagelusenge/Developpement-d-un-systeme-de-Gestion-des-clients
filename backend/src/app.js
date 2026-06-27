@@ -46,7 +46,7 @@ app.use(cors({
 }));
 app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '8mb' }));
 app.use(auditMiddleware);
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use('/api/utilisateurs', utilisateurRoutes);
 app.use('/api/auth', authRoutes);

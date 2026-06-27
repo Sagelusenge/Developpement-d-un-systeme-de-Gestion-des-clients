@@ -22,7 +22,7 @@ export const sendPublicContact = async (req, res) => {
 
     try {
         const [[company]] = await pool.query(
-            `SELECT id_entreprise FROM entreprise WHERE statut_abonnement = 'actif' ORDER BY id_entreprise LIMIT 1`
+            `SELECT id_entreprise FROM entreprise ORDER BY id_entreprise LIMIT 1`
         );
         if (!company) return res.status(503).json({ success: false, message: 'Service de contact temporairement indisponible.' });
 

@@ -235,15 +235,15 @@ export const sendInactiveClientEmail = ({ to, name, products, espaceUrl, days })
 
 export const sendCategoryNewProductEmail = ({ to, name, product, categoryName, espaceUrl }) => sendMail({
     to,
-    subject: `Nouveau produit disponible en ${categoryName || 'magasin'} | ${APP_NAME}`,
-    text: `Bonjour ${name || 'cher client'},\n\nUn nouveau produit est disponible dans une categorie que vous avez deja achetee: ${product.nom}, ${Number(product.prix_ht || 0).toFixed(2)} USD/${product.unite || 'piece'}.\n\n${espaceUrl || ''}\n\nL'equipe ${APP_NAME}`,
+    subject: `Nouveau produit disponible en stock | ${APP_NAME}`,
+    text: `Bonjour ${name || 'cher client'},\n\nUn nouveau produit vient d'arriver dans notre stock: ${product.nom}, ${Number(product.prix_ht || 0).toFixed(2)} USD/${product.unite || 'piece'}. Categorie: ${categoryName || 'magasin'}.\n\n${espaceUrl || ''}\n\nL'equipe ${APP_NAME}`,
     html: brandedEmail({
         eyebrow: 'NOUVEAUTE EN STOCK',
         title: `${product.nom} est disponible`,
         greeting: `Bonjour ${name || 'cher client'}`,
-        intro: `Nous vous informons car vous avez deja achete des produits de la categorie ${categoryName || 'concernee'}.`,
+        intro: `Un nouveau produit vient d'arriver dans notre stock${categoryName ? `, dans la categorie ${categoryName}` : ''}. Nous vous informons pour vous aider a preparer vos prochains achats.`,
         content: `${productListHtml([{ ...product, quantite_stock: `Stock: ${product.quantite_stock}` }])}${espaceUrl ? `<div style="margin-top:24px;text-align:center"><a href="${escapeHtml(espaceUrl)}" style="background:#0b5ea8;border-radius:8px;color:#ffffff;display:inline-block;font-size:14px;font-weight:700;padding:13px 22px;text-decoration:none">Consulter le produit</a></div>` : ''}`,
-        notice: 'Cet email est envoye uniquement aux clients ayant deja achete dans cette categorie.'
+        notice: 'Nous limitons ces notifications aux nouveautes importantes afin de rester utiles et non envahissants.'
     })
 });
 

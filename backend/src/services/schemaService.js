@@ -1,4 +1,23 @@
 export const ensureRuntimeSchema = async (pool) => {
+    const legacyTriggers = [
+        'tg_id_entreprise',
+        'tg_id_utilisateur',
+        'tg_id_client',
+        'tg_id_produits',
+        'tg_id_ventes',
+        'tg_id_lignes_ventes',
+        'tg_id_paiement',
+        'tg_verif_stock_avant_vente',
+        'tg_stock_apres_vente',
+        'tg_calcul_montant_vente_insert',
+        'tg_activation_auto_abonnement',
+        'tg_verif_abonnement_avant_vente'
+    ];
+
+    for (const trigger of legacyTriggers) {
+        await pool.query(`DROP TRIGGER IF EXISTS \`${trigger}\``);
+    }
+
     await pool.query(`
         CREATE TABLE IF NOT EXISTS sequences (
             nom_table VARCHAR(50) PRIMARY KEY,
@@ -12,9 +31,7 @@ export const ensureRuntimeSchema = async (pool) => {
             raison_sociale VARCHAR(200) NOT NULL,
             num_id_nationale VARCHAR(50) UNIQUE,
             email VARCHAR(150),
-            ville VARCHAR(100),
-            statut_abonnement ENUM('actif', 'suspendu', 'expire') DEFAULT 'actif',
-            date_expiration_abonnement DATE
+            ville VARCHAR(100)
         )
     `);
 
@@ -417,6 +434,25 @@ export const ensureRuntimeSchema = async (pool) => {
             await pool.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}`);
         }
     };
+
+    const dropColumnIfExists = async (table, column) => {
+        const [rows] = await pool.query(
+            `SELECT COLUMN_NAME
+             FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = ?
+               AND COLUMN_NAME = ?`,
+            [table, column]
+        );
+
+        if (rows.length > 0) {
+            await pool.query(`ALTER TABLE \`${table}\` DROP COLUMN \`${column}\``);
+        }
+    };
+
+    await pool.query(`DROP TABLE IF EXISTS demandes_abonnement`);
+    await dropColumnIfExists('entreprise', 'statut_abonnement');
+    await dropColumnIfExists('entreprise', 'date_expiration_abonnement');
 
     await addColumnIfMissing('notifications', 'recipient_type', "ENUM('user','enterprise_admin') NOT NULL DEFAULT 'user'");
     await addColumnIfMissing('notifications', 'recipient_user_id', 'VARCHAR(50) NULL');

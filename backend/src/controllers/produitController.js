@@ -230,6 +230,9 @@ export const approvisionner = async (req, res) => {
                 [idMouvement, id, quantiteNumber, fournisseur_id, prixAchatNumber, prixAchatNumber * quantiteNumber, note || null]
             );
             await connection.commit();
+            if (stockActuel <= 0 && stockApresAchat > 0) {
+                notifyClientsForNewCategoryProduct({ productId: id, entrepriseId: entreprise_id }).catch(() => null);
+            }
             res.json({
                 success: true,
                 message: `Stock mis a jour (+${quantiteNumber} unites)`,
