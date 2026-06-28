@@ -18,6 +18,7 @@ import {
   Download,
   Edit3,
   Eye,
+  EyeOff,
   FileText,
   Grid2X2,
   Hammer,
@@ -1050,6 +1051,8 @@ function Login({ authType, setAuthType, onLogin, notify, toast, goTo }) {
   const [resetStep, setResetStep] = useState('email');
   const [resetForm, setResetForm] = useState({ email: '', code: '', new_password: '', confirm_password: '' });
   const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const passwordRef = useRef(null);
@@ -1100,6 +1103,8 @@ function Login({ authType, setAuthType, onLogin, notify, toast, goTo }) {
     setShowForgot(false);
     setResetStep('email');
     setResetForm({ email: '', code: '', new_password: '', confirm_password: '' });
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
   };
 
   const requestResetCode = async (event) => {
@@ -1243,13 +1248,19 @@ function Login({ authType, setAuthType, onLogin, notify, toast, goTo }) {
                 <label>Nouveau mot de passe
                   <span className="input-shell">
                     <LockKeyhole size={22} />
-                    <input type="password" value={resetForm.new_password} onChange={(e) => setResetForm({ ...resetForm, new_password: e.target.value })} placeholder="Nouveau mot de passe" required />
+                    <input type={showNewPassword ? 'text' : 'password'} value={resetForm.new_password} onChange={(e) => setResetForm({ ...resetForm, new_password: e.target.value })} placeholder="Nouveau mot de passe" required />
+                    <button className="password-eye" type="button" aria-label={showNewPassword ? 'Masquer le nouveau mot de passe' : 'Afficher le nouveau mot de passe'} aria-pressed={showNewPassword} onMouseDown={(event) => event.preventDefault()} onClick={() => setShowNewPassword((visible) => !visible)} title={showNewPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
+                      {showNewPassword ? <Eye size={22} /> : <EyeOff size={22} />}
+                    </button>
                   </span>
                 </label>
                 <label>Confirmer le mot de passe
                   <span className="input-shell">
                     <LockKeyhole size={22} />
-                    <input type="password" value={resetForm.confirm_password} onChange={(e) => setResetForm({ ...resetForm, confirm_password: e.target.value })} placeholder="Retapez le mot de passe" required />
+                    <input type={showConfirmPassword ? 'text' : 'password'} value={resetForm.confirm_password} onChange={(e) => setResetForm({ ...resetForm, confirm_password: e.target.value })} placeholder="Retapez le mot de passe" required />
+                    <button className="password-eye" type="button" aria-label={showConfirmPassword ? 'Masquer la confirmation du mot de passe' : 'Afficher la confirmation du mot de passe'} aria-pressed={showConfirmPassword} onMouseDown={(event) => event.preventDefault()} onClick={() => setShowConfirmPassword((visible) => !visible)} title={showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
+                      {showConfirmPassword ? <Eye size={22} /> : <EyeOff size={22} />}
+                    </button>
                   </span>
                 </label>
                 <button className="btn login-submit" disabled={resetLoading}>
@@ -1292,8 +1303,8 @@ function Login({ authType, setAuthType, onLogin, notify, toast, goTo }) {
               <span className="input-shell">
                 <LockKeyhole size={22} />
                 <input ref={passwordRef} type={showPassword ? 'text' : 'password'} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Mot de passe" required />
-                <button className="password-eye" type="button" onMouseDown={(event) => event.preventDefault()} onClick={togglePassword} title={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
-                  <Eye size={22} />
+                <button className="password-eye" type="button" aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'} aria-pressed={showPassword} onMouseDown={(event) => event.preventDefault()} onClick={togglePassword} title={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
+                  {showPassword ? <Eye size={22} /> : <EyeOff size={22} />}
                 </button>
               </span>
               <button className="forgot-inline" type="button" onClick={openForgotScreen}>Mot de passe oublie ?</button>
@@ -1447,6 +1458,7 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
       }
       if (page === 'produits') tasks.push(api('/produits/mouvements-recents').then((r) => { next.extra.mouvementsStock = r.data || []; }).catch(() => {}));
       if (page === 'paiements') {
+        tasks.push(api('/paiements').then((r) => { next.extra.paiements = r.data || []; }));
         tasks.push(api('/paiements/rapport-caisse').then((r) => { next.extra.caisse = r.data || []; }).catch(() => {}));
       }
       if (page === 'utilisateurs') tasks.push(api('/utilisateurs').then((r) => { next.extra.utilisateurs = r.data || []; }));
@@ -2136,15 +2148,15 @@ function Clients({ api, notify, data, submit, searchQuery = '' }) {
       </div>
       {creating && (
         <Modal title="Nouveau client" onClose={closeCreate}>
-          <Form onSubmit={() => submit(async () => { await api('/clients', { method: 'POST', body: JSON.stringify(form) }); closeCreate(); notify('Client cree'); })}>
+          <Form autoComplete="off" onSubmit={() => submit(async () => { await api('/clients', { method: 'POST', body: JSON.stringify(form) }); closeCreate(); notify('Client cree'); })}>
             <div className="form-row">
-              <Input label="Nom" value={form.nom} onChange={(nom) => setForm({ ...form, nom })} required />
-              <Input label="Postnom" value={form.postnom} onChange={(postnom) => setForm({ ...form, postnom })} />
+              <Input label="Nom" name="new_client_name" autoComplete="off" value={form.nom} onChange={(nom) => setForm({ ...form, nom })} required />
+              <Input label="Postnom" name="new_client_postname" autoComplete="off" value={form.postnom} onChange={(postnom) => setForm({ ...form, postnom })} />
             </div>
-            <Input label="Telephone" value={form.telephone} onChange={(telephone) => setForm({ ...form, telephone })} />
+            <Input label="Telephone" name="new_client_phone" autoComplete="off" value={form.telephone} onChange={(telephone) => setForm({ ...form, telephone })} />
             <div className="form-row">
-              <Input label="Email de connexion client" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} />
-              <Input label="Mot de passe initial" type="password" value={form.mot_de_passe} onChange={(mot_de_passe) => setForm({ ...form, mot_de_passe })} />
+              <Input label="Email de connexion client" name="new_client_email" autoComplete="off" data-lpignore="true" data-1p-ignore="true" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} />
+              <Input label="Mot de passe initial" name="new_client_password" autoComplete="new-password" data-lpignore="true" data-1p-ignore="true" type="password" value={form.mot_de_passe} onChange={(mot_de_passe) => setForm({ ...form, mot_de_passe })} />
             </div>
             <button className="btn modal-submit">Enregistrer <ArrowRight size={20} /></button>
           </Form>
@@ -2530,10 +2542,20 @@ function Paiements({ api, notify, data, submit, searchQuery = '', user }) {
   const periodText = period === 'personnalise'
     ? `${dateRange.debut || 'debut'} au ${dateRange.fin || 'fin'}`
     : periodLabel(period);
-  const caisseRows = byPeriod(data.extra.caisse || [])
-    .filter((r) => `${r.Date} ${r.Mode_Paiement} ${r.Total_Encaisse}`.toLowerCase().includes(term));
-  const caisseTotal = caisseRows.reduce((sum, row) => sum + Number(row.Total_Encaisse || 0), 0);
-  const transactionsTotal = caisseRows.reduce((sum, row) => sum + Number(row.Nombre_Transactions || 0), 0);
+  const paymentRows = (() => {
+    const rows = data.extra.paiements || [];
+    const filteredByPeriod = period === 'personnalise'
+      ? rows.filter((row) => {
+          const date = new Date(String(row.date_paiement || '').replace(' ', 'T'));
+          const start = dateRange.debut ? new Date(`${dateRange.debut}T00:00:00`) : null;
+          const end = dateRange.fin ? new Date(`${dateRange.fin}T23:59:59`) : null;
+          return !Number.isNaN(date.getTime()) && (!start || date >= start) && (!end || date <= end);
+        })
+      : filterRowsByPeriod(rows, period, ['date_paiement']);
+    return filteredByPeriod.filter((row) => `${row.id_paiement} ${row.numero_facture || ''} ${row.client_nom || ''} ${row.mode_paiement || ''} ${row.reference_externe || ''} ${row.montant || ''}`.toLowerCase().includes(term));
+  })();
+  const caisseTotal = paymentRows.reduce((sum, row) => sum + Number(row.montant || 0), 0);
+  const transactionsTotal = paymentRows.length;
   const savePayment = () => {
     submit(async () => {
       await api('/paiements', {
@@ -2574,11 +2596,13 @@ function Paiements({ api, notify, data, submit, searchQuery = '', user }) {
             {user?.role === 'vendeur' && <button className="btn small" type="button" onClick={() => { setForm(emptyPaymentForm); setInvoiceQuery(''); setCreating(true); }}><Plus size={16} /> Nouveau paiement</button>}
           </div>
         </div>
-        <Table headers={['Date', 'Mode', 'Transactions', 'Total']} rows={caisseRows.map((r) => [
-          formatDate(r.Date),
-          ({ especes: 'Especes', carte: 'Carte', virement: 'Virement', mobile_money: 'Mobile Money', stripe: 'Carte' }[String(r.Mode_Paiement || '').toLowerCase()] || r.Mode_Paiement),
-          r.Nombre_Transactions,
-          money(r.Total_Encaisse)
+        <Table headers={['Reference', 'Date', 'Facture', 'Client', 'Mode', 'Montant']} rows={paymentRows.map((r) => [
+          r.id_paiement,
+          formatDate(r.date_paiement),
+          r.numero_facture || r.id_ventes || '-',
+          r.client_nom || '-',
+          ({ especes: 'Especes', carte: 'Carte', mobile_money: 'Mobile Money', stripe: 'Carte' }[String(r.mode_paiement || '').toLowerCase()] || r.mode_paiement),
+          money(r.montant)
         ])} />
       </div>
       {creating && (
@@ -2637,7 +2661,7 @@ function filterRowsByPeriod(rows, period, dateKeys = ['date_vente']) {
   return rows.filter((row) => {
     const rawDate = dateKeys.map((key) => row[key]).find(Boolean);
     if (!rawDate) return false;
-    const date = new Date(rawDate);
+    const date = new Date(typeof rawDate === 'string' ? rawDate.replace(' ', 'T') : rawDate);
     return !Number.isNaN(date.getTime()) && date >= start && date <= end;
   });
 }
@@ -3696,19 +3720,26 @@ function ChatPage({ api, notify, data, user, searchQuery = '' }) {
       {user?.role === 'manager' && <aside className="chat-list"><div className="chat-list-head"><MessageCircle size={21} /><strong>Conversations</strong></div>{chats.length ? chats.map((chat) => <button key={chat.id_conversation} className={selected?.id_conversation === chat.id_conversation ? 'active' : ''} type="button" onClick={() => setSelectedId(chat.id_conversation)}><span>{getInitials(chat.client_nom)}</span><div><strong>{chat.client_nom} {chat.client_postnom || ''}</strong><small>{chat.dernier_message || 'Nouvelle conversation'}</small></div><Badge>{chat.statut}</Badge></button>) : <p className="empty compact">Aucune conversation</p>}</aside>}
       <section className="chat-window">
         <header><div className="chat-avatar"><MessageCircle size={22} /></div><div><strong>{user?.role === 'client' ? 'Assistant Quincaillerie Centrale' : selected ? `${selected.client_nom} ${selected.client_postnom || ''}` : 'Selectionnez un client'}</strong><span>{selected?.statut === 'en_attente_manager' ? 'Reponse humaine demandee' : 'Assistant automatique disponible'}</span></div></header>
-        {user?.role === 'client' && <div className="chat-suggestions"><button type="button" onClick={() => setMessage("Quel est le prix d'un produit ?")}>Prix d'un produit</button><button type="button" onClick={() => setMessage('Je veux suivre ma commande')}>Suivre une commande</button><button type="button" onClick={() => setMessage('Je veux savoir concernant le paiement')}>Comprendre le paiement</button></div>}
         <div className="chat-messages" ref={messagesRef}>
           {!selected && user?.role === 'client' && <div className="chat-welcome"><MessageCircle size={34} /><h3>Comment pouvons-nous vous aider ?</h3><p>L’assistant consulte vos references de commande et de facture, puis repond aux questions sur les prix, paiements, produits et reclamations. S’il ne dispose pas d’une information fiable, le manager est prevenu immediatement par notification et par email.</p></div>}
           {(selected?.messages || []).map(renderChatMessage)}
         </div>
+        {user?.role === 'client' && <div className="chat-suggestions chat-suggestions-bottom">
+          <button type="button" onClick={() => setMessage("Quel est le prix d'un produit ?")}>Prix d'un produit</button>
+          <button type="button" onClick={() => setMessage("Ce produit est-il disponible en stock ?")}>Disponibilite produit</button>
+          <button type="button" onClick={() => setMessage('Je veux suivre ma commande')}>Suivre une commande</button>
+          <button type="button" onClick={() => setMessage('Comment consulter ma facture ?')}>Consulter une facture</button>
+          <button type="button" onClick={() => setMessage('Je veux comprendre les moyens de paiement')}>Moyens de paiement</button>
+          <button type="button" onClick={() => setMessage('Comment envoyer une reclamation ?')}>Envoyer une reclamation</button>
+        </div>}
         {(user?.role === 'client' || selected) && <Form onSubmit={send}><div className="chat-composer"><textarea value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Ecrivez votre question..." maxLength={2000} /><button className="btn" disabled={!message.trim()}><Send size={19} /> Envoyer</button></div></Form>}
       </section>
     </div>{aiAnalysis && <Modal title="Analyse IA de l'activite" onClose={() => setAiAnalysis('')}><div className="ai-analysis"><p>{aiAnalysis}</p><small>Cette analyse aide a la decision; les donnees comptables et le jugement du manager restent prioritaires.</small></div></Modal>}</>
   );
 }
 
-function Form({ children, onSubmit }) {
-  return <form className="form" onSubmit={(event) => { event.preventDefault(); Promise.resolve(onSubmit()).catch(() => null); }}>{children}</form>;
+function Form({ children, onSubmit, ...props }) {
+  return <form className="form" onSubmit={(event) => { event.preventDefault(); Promise.resolve(onSubmit()).catch(() => null); }} {...props}>{children}</form>;
 }
 
 function Modal({ title, children, onClose, className = '' }) {
@@ -3728,7 +3759,7 @@ function Modal({ title, children, onClose, className = '' }) {
 function Input({ label, value, onChange, type = 'text', required = false, ...props }) {
   const [visible, setVisible] = useState(false);
   if (type === 'password') {
-    return <label>{label}<span className="password-field"><input type={visible ? 'text' : 'password'} value={value} onChange={(e) => onChange(e.target.value)} required={required} {...props} /><button type="button" onClick={() => setVisible(!visible)} title={visible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}><Eye size={18} /></button></span></label>;
+    return <label>{label}<span className="password-field"><input type={visible ? 'text' : 'password'} value={value} onChange={(e) => onChange(e.target.value)} required={required} {...props} /><button type="button" aria-label={visible ? `Masquer ${label}` : `Afficher ${label}`} aria-pressed={visible} onMouseDown={(event) => event.preventDefault()} onClick={() => setVisible(!visible)} title={visible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>{visible ? <Eye size={18} /> : <EyeOff size={18} />}</button></span></label>;
   }
   return <label>{label}<input type={type} value={value} onChange={(e) => onChange(e.target.value)} required={required} {...props} /></label>;
 }

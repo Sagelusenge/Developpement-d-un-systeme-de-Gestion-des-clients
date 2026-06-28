@@ -34,6 +34,7 @@ Routes recentes importantes:
 - `GET /api/paiements/mobile-money/demandes`: consultation manager/vendeur;
 - `PUT /api/paiements/mobile-money/demandes/:id`: confirmation ou rejet par le vendeur;
 - `POST /api/paiements/stripe/checkout`: creation d'une session de paiement par carte Stripe Checkout;
+- `GET /api/paiements`: liste detaillee des paiements de l'entreprise, filtree ensuite par periode dans l'interface;
 - `GET /api/paiements/stripe/status/:id`: suivi d'une session Stripe par le client;
 - `POST /api/paiements/stripe/webhook`: confirmation automatique appelee par Stripe.
 - `GET /api/chat/manager-analysis`: avis IA reserve au manager;

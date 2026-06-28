@@ -1,6 +1,7 @@
 import express from 'express';
 import {
     createPaiement,
+    getPaiements,
     getRapportCaisse,
     getRepartitionPaiements,
     createStripeCheckoutPayment,
@@ -24,6 +25,12 @@ router.post('/',
     protect,
     authorizeRoles('vendeur'),
     createPaiement
+);
+
+router.get('/',
+    protect,
+    authorizeRoles('manager', 'vendeur'),
+    getPaiements
 );
 
 router.get('/rapport-caisse',

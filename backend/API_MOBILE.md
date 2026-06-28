@@ -2061,6 +2061,34 @@ Si `reference_externe` est vide et que le prestataire est configure, le backend 
 
 Sans prestataire configure, le serveur retourne 503 et demande une reference de transfert manuel.
 
+## Lister les paiements de l'entreprise
+
+```http
+GET /paiements
+Authorization: Bearer <token_manager_ou_vendeur>
+```
+
+Cette route retourne les paiements individuels avec leur reference, date, facture, client, mode et montant. L'application peut ensuite afficher uniquement les transactions du jour, de la semaine, du mois ou d'une periode personnalisee.
+
+Reponse:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id_paiement": "PAY-00001",
+      "date_paiement": "2026-06-28 10:30:00",
+      "montant": 25,
+      "mode_paiement": "carte",
+      "reference_externe": "pi_xxx",
+      "numero_facture": "FAC-2026-00012",
+      "client_nom": "Sage Lusenge"
+    }
+  ]
+}
+```
+
 ## Creer un paiement par carte depuis l'espace client avec Stripe
 
 ```http

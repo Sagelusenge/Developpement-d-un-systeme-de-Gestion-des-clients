@@ -89,6 +89,34 @@ export const getRapportCaisse = async (req, res) => {
     }
 };
 
+// GET /api/paiements - liste detaillee des encaissements de l'entreprise
+export const getPaiements = async (req, res) => {
+    const entreprise_id = req.user.entreprise_id;
+    try {
+        const [rows] = await pool.query(
+            `SELECT p.id_paiement,
+                    DATE_FORMAT(p.date_paiement, '%Y-%m-%d %H:%i:%s') AS date_paiement,
+                    p.montant,
+                    p.mode_paiement,
+                    p.reference_externe,
+                    v.id_ventes,
+                    v.numero_facture,
+                    c.id_client,
+                    CONCAT_WS(' ', c.nom, NULLIF(c.postnom, '')) AS client_nom
+             FROM paiement p
+             JOIN ventes v ON v.id_ventes=p.vente_id
+             LEFT JOIN client c ON c.id_client=v.client_id
+             WHERE v.entreprise_id=?
+             ORDER BY p.date_paiement DESC, p.id_paiement DESC
+             LIMIT 1000`,
+            [entreprise_id]
+        );
+        res.json({ success: true, data: rows });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 export const getRepartitionPaiements = async (req, res) => {
     const entreprise_id = req.user.entreprise_id;
     try {
