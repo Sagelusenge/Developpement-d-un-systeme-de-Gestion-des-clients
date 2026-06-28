@@ -76,6 +76,7 @@ export const getHistoriqueUtilisateur = async (req, res) => {
 // GET /api/utilisateurs/audit/journal
 export const getJournalAudit = async (req, res) => {
     const entreprise_id = req.user.entreprise_id;
+    const fetchAll = String(req.query.all || '') === '1';
     const limit = Math.min(Math.max(Number(req.query.limit || 300), 20), 1000);
     const module = String(req.query.module || '').trim();
     const action = String(req.query.action || '').trim();
@@ -94,15 +95,13 @@ export const getJournalAudit = async (req, res) => {
             params.push(action);
         }
 
-        const [rows] = await pool.query(
+        const sql = 
             `SELECT id_log, user_id, user_name, user_role, action_type, module, entity_id,
                     description, metadata, created_at
              FROM user_activity_logs
              WHERE ${filters.join(' AND ')}
-             ORDER BY created_at DESC
-             LIMIT ?`,
-            [...params, limit]
-        );
+             ORDER BY created_at DESC${fetchAll ? '' : ' LIMIT ?'}`;
+        const [rows] = await pool.query(sql, fetchAll ? params : [...params, limit]);
 
         res.json({ success: true, data: rows });
     } catch (error) {

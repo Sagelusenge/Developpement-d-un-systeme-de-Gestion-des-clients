@@ -1462,7 +1462,7 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
         tasks.push(api('/paiements/rapport-caisse').then((r) => { next.extra.caisse = r.data || []; }).catch(() => {}));
       }
       if (page === 'utilisateurs') tasks.push(api('/utilisateurs').then((r) => { next.extra.utilisateurs = r.data || []; }));
-      if (page === 'audit') tasks.push(api('/utilisateurs/audit/journal').then((r) => { next.extra.auditLogs = r.data || []; }).catch(() => {}));
+      if (page === 'audit') tasks.push(api('/utilisateurs/audit/journal?all=1').then((r) => { next.extra.auditLogs = r.data || []; }).catch(() => {}));
       if (page === 'mails') {
         tasks.push(api('/mail/status').then((r) => { next.extra.mailStatus = r.data || {}; }).catch(() => {}));
         tasks.push(api('/mail/messages').then((r) => { next.extra.mailMessages = r.data || []; }).catch(() => {}));
@@ -3013,6 +3013,7 @@ function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
 function AuditJournal({ data, searchQuery = '' }) {
   const [moduleFilter, setModuleFilter] = useState('tous');
   const [actionFilter, setActionFilter] = useState('tous');
+  const [userFilter, setUserFilter] = useState('tous');
   const [selected, setSelected] = useState(null);
   const logs = data.extra.auditLogs || [];
   const moduleLabels = {
@@ -3048,15 +3049,21 @@ function AuditJournal({ data, searchQuery = '' }) {
   };
   const modules = Array.from(new Set(logs.map((log) => log.module).filter(Boolean))).sort();
   const actions = Array.from(new Set(logs.map((log) => log.action_type).filter(Boolean))).sort();
+  const auditUserKey = (log) => String(log.user_id || `${log.user_name || 'inconnu'}|${log.user_role || 'role'}`);
+  const users = Array.from(new Map(logs.map((log) => [
+    auditUserKey(log),
+    { key: auditUserKey(log), name: log.user_name || 'Utilisateur inconnu', role: log.user_role || '-' }
+  ])).values()).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
   const term = searchQuery.trim().toLowerCase();
   const filtered = logs
+    .filter((log) => userFilter === 'tous' || auditUserKey(log) === userFilter)
     .filter((log) => moduleFilter === 'tous' || log.module === moduleFilter)
     .filter((log) => actionFilter === 'tous' || log.action_type === actionFilter)
     .filter((log) => !term || `${log.user_name} ${log.user_role} ${log.description} ${log.module} ${log.entity_id}`.toLowerCase().includes(term));
-  const printAudit = () => printRows(
+  const printAllAudit = () => printRows(
     'Journal d’audit',
     ['Date', 'Utilisateur', 'Role', 'Action', 'Module', 'Reference', 'Description'],
-    filtered.map((log) => [
+    logs.map((log) => [
       formatDate(log.created_at),
       log.user_name || '-',
       log.user_role || '-',
@@ -3066,6 +3073,24 @@ function AuditJournal({ data, searchQuery = '' }) {
       log.description || '-'
     ])
   );
+  const selectedAuditUser = users.find((item) => item.key === userFilter);
+  const selectedUserLogs = userFilter === 'tous' ? [] : logs.filter((log) => auditUserKey(log) === userFilter);
+  const printSelectedUserAudit = () => {
+    if (!selectedAuditUser) return;
+    printRows(
+      `Audit utilisateur - ${selectedAuditUser.name}`,
+      ['Date', 'Utilisateur', 'Role', 'Action', 'Module', 'Reference', 'Description'],
+      selectedUserLogs.map((log) => [
+        formatDate(log.created_at),
+        log.user_name || '-',
+        log.user_role || '-',
+        actionLabels[log.action_type] || log.action_type,
+        moduleLabels[log.module] || log.module || '-',
+        log.entity_id || '-',
+        log.description || '-'
+      ])
+    );
+  };
 
   return (
     <div className="grid audit-page">
@@ -3076,6 +3101,10 @@ function AuditJournal({ data, searchQuery = '' }) {
             <p>{filtered.length} action{filtered.length > 1 ? 's' : ''} affichee{filtered.length > 1 ? 's' : ''}</p>
           </div>
           <div className="actions">
+            <select className="compact-filter" value={userFilter} onChange={(event) => setUserFilter(event.target.value)}>
+              <option value="tous">Tous les utilisateurs</option>
+              {users.map((auditUser) => <option key={auditUser.key} value={auditUser.key}>{auditUser.name} - {auditUser.role}</option>)}
+            </select>
             <select className="compact-filter" value={moduleFilter} onChange={(event) => setModuleFilter(event.target.value)}>
               <option value="tous">Tous les modules</option>
               {modules.map((module) => <option key={module} value={module}>{moduleLabels[module] || module}</option>)}
@@ -3084,7 +3113,8 @@ function AuditJournal({ data, searchQuery = '' }) {
               <option value="tous">Toutes les actions</option>
               {actions.map((action) => <option key={action} value={action}>{actionLabels[action] || action}</option>)}
             </select>
-            <button className="btn print small" type="button" onClick={printAudit}><Printer size={16} /> Imprimer</button>
+            <button className="btn print small" type="button" onClick={printAllAudit} disabled={!logs.length}><Printer size={16} /> Toute la liste</button>
+            <button className="btn secondary small" type="button" onClick={printSelectedUserAudit} disabled={!selectedUserLogs.length}><Printer size={16} /> Actions du user</button>
           </div>
         </div>
         <Table headers={['Date', 'Utilisateur', 'Role', 'Action', 'Module', 'Reference', 'Details']} rows={filtered.map((log) => [
