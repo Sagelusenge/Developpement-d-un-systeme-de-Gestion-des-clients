@@ -672,6 +672,7 @@ function PublicWebsite({ route, goTo, onRegistrationComplete }) {
     elements.forEach((element, index) => {
       element.classList.add('scroll-reveal');
       element.style.setProperty('--reveal-delay', `${Math.min(index % 4, 3) * 90}ms`);
+      element.style.setProperty('--reveal-x', `${index % 3 === 1 ? 18 : index % 3 === 2 ? -18 : 0}px`);
     });
     if (!('IntersectionObserver' in window)) {
       elements.forEach((element) => element.classList.add('is-visible'));
@@ -683,7 +684,7 @@ function PublicWebsite({ route, goTo, onRegistrationComplete }) {
     elements.forEach((element) => observer.observe(element));
     return () => observer.disconnect();
   }, [route]);
-  return <div className="public-site"><PublicHeader route={route} goTo={goTo} /><main>{route === '/about' ? <PublicAbout goTo={goTo} /> : route === '/services' ? <PublicServices goTo={goTo} /> : route === '/contact' ? <PublicContact /> : route === '/inscription' ? <PublicRegistration goTo={goTo} onComplete={onRegistrationComplete} /> : <PublicHome goTo={goTo} />}</main><PublicFooter goTo={goTo} /></div>;
+  return <div className="public-site"><PublicHeader route={route} goTo={goTo} /><main key={route} className="public-main">{route === '/about' ? <PublicAbout goTo={goTo} /> : route === '/services' ? <PublicServices goTo={goTo} /> : route === '/contact' ? <PublicContact /> : route === '/inscription' ? <PublicRegistration goTo={goTo} onComplete={onRegistrationComplete} /> : <PublicHome goTo={goTo} />}</main><PublicFooter goTo={goTo} /></div>;
 }
 
 function App() {
@@ -935,9 +936,9 @@ function App() {
   const sidebarTitle = user?.entreprise_nom || user?.raison_sociale || user?.entreprise_id || APP_NAME;
   const navById = Object.fromEntries(navItems.map((item) => [item.id, item]));
   const navGroups = user?.role === 'client' ? [] : [
-    { id: 'magasin', label: 'Magasin', ids: ['fournisseurs', 'categories', 'produits'] },
-    { id: 'commercial', label: 'Commercial', ids: ['ventes', 'paiements', 'commandes', 'reclamations'] },
-    { id: 'messages', label: 'Messages', ids: ['chat', 'mails', 'commentaires'] }
+    { id: 'magasin', label: 'Magasin', icon: Box, ids: ['fournisseurs', 'categories', 'produits'] },
+    { id: 'commercial', label: 'Commercial', icon: Briefcase, ids: ['ventes', 'paiements', 'commandes', 'reclamations'] },
+    { id: 'messages', label: 'Messages', icon: MessageCircle, ids: ['chat', 'mails', 'commentaires'] }
   ].map((group) => ({ ...group, items: group.ids.map((id) => navById[id]).filter(Boolean) })).filter((group) => group.items.length);
   const groupedIds = new Set(navGroups.flatMap((group) => group.ids));
   const standaloneNav = navItems.filter((item) => !groupedIds.has(item.id));
@@ -956,7 +957,7 @@ function App() {
         </div>
         <nav className="nav">
           {standaloneNav.filter((item) => ['dashboard', 'clients', 'achats'].includes(item.id)).map(renderNavButton)}
-          {navGroups.map((group) => <div className={`nav-group ${openNavGroup === group.id ? 'open' : ''}`} key={group.id}><button className="nav-group-toggle" type="button" onClick={() => setOpenNavGroup((current) => current === group.id ? '' : group.id)}><span>{group.label}</span><ChevronDown size={17} /></button><div className="nav-group-items">{group.items.map(renderNavButton)}</div></div>)}
+          {navGroups.map((group) => <div className={`nav-group nav-group-${group.id} ${openNavGroup === group.id ? 'open' : ''}`} key={group.id}><button className="nav-group-toggle" type="button" aria-expanded={openNavGroup === group.id} onClick={() => setOpenNavGroup((current) => current === group.id ? '' : group.id)}>{React.createElement(group.icon, { size: 20, strokeWidth: 2.2 })}<span>{group.label}</span><ChevronDown className="nav-group-chevron" size={17} /></button><div className="nav-group-items">{group.items.map(renderNavButton)}</div></div>)}
           {standaloneNav.filter((item) => !['dashboard', 'clients', 'achats'].includes(item.id)).map(renderNavButton)}
           <button className="nav-logout" type="button" onClick={() => setShowLogoutConfirm(true)}>
             <LogOut size={23} />
@@ -1750,7 +1751,7 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
           <span className="panel-pill">Top 3</span>
         </div>
         <div className="top-products-chart">
-          {topProducts.length ? topProducts.map((product, index) => {
+          {topProducts.length ? topProducts.slice(0, 3).map((product, index) => {
             const maxQty = Math.max(...topProducts.map((p) => Number(p.quantite_vendue || 0)), 1);
             const width = Math.max(18, (Number(product.quantite_vendue || 0) / maxQty) * 100);
             return (
