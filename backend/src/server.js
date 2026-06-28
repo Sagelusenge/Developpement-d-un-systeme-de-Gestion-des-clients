@@ -2,7 +2,7 @@ import app from './app.js';
 import dotenv from 'dotenv';
 import pool from './config/db.js';
 import { ensureRuntimeSchema } from './services/schemaService.js';
-import { sendInactiveClientEmails, sendProspectFollowUpEmails, sendWeeklyClientRecommendations } from './services/clientLoyaltyService.js';
+import { sendDebtReminderEmails, sendInactiveClientEmails, sendProspectFollowUpEmails, sendWeeklyClientRecommendations } from './services/clientLoyaltyService.js';
 
 dotenv.config();
 
@@ -22,9 +22,11 @@ const startServer = async () => {
         sendProspectFollowUpEmails().catch((error) => console.error('Relance prospects:', error.message));
         sendWeeklyClientRecommendations().catch((error) => console.error('Recommandations clients:', error.message));
         sendInactiveClientEmails().catch((error) => console.error('Emails clients inactifs:', error.message));
+        sendDebtReminderEmails().catch((error) => console.error('Rappels clients debiteurs:', error.message));
         setInterval(() => sendProspectFollowUpEmails().catch((error) => console.error('Relance prospects:', error.message)), 60 * 60 * 1000).unref();
         setInterval(() => sendWeeklyClientRecommendations().catch((error) => console.error('Recommandations clients:', error.message)), 24 * 60 * 60 * 1000).unref();
         setInterval(() => sendInactiveClientEmails().catch((error) => console.error('Emails clients inactifs:', error.message)), 24 * 60 * 60 * 1000).unref();
+        setInterval(() => sendDebtReminderEmails().catch((error) => console.error('Rappels clients debiteurs:', error.message)), 24 * 60 * 60 * 1000).unref();
     } catch (error) {
         console.error('Base de donnees indisponible au demarrage:', error.message);
         console.error('Le serveur reste en ligne. Verifiez DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME et DB_SSL sur Render.');

@@ -8739,6 +8739,64 @@ body:has(.login-page),
   }
 }
 
+/* Sidebar final alignment: slightly larger rows and one shared text column. */
+.shell .sidebar .nav > button,
+.shell .sidebar .nav .nav-group-toggle,
+.shell .sidebar .nav .nav-group-items > button,
+.shell .sidebar .nav .nav-logout {
+  flex-basis: 48px !important;
+  font-size: 14px !important;
+  height: 48px !important;
+  max-height: 48px !important;
+  min-height: 48px !important;
+}
+
+.shell .sidebar .nav > button,
+.shell .sidebar .nav .nav-logout {
+  padding-left: 24px !important;
+}
+
+.shell .sidebar .nav > button.active {
+  padding-left: 20px !important;
+}
+
+.shell .sidebar .nav .nav-group-toggle {
+  padding-left: 54px !important;
+}
+
+.shell .sidebar .nav button > span,
+.shell .sidebar .nav .nav-group-toggle > span,
+.shell .sidebar .nav-logout {
+  white-space: nowrap !important;
+}
+
+.shell .sidebar .nav button svg,
+.shell .sidebar .nav-logout svg {
+  height: 19px !important;
+  width: 19px !important;
+}
+
+.shell .sidebar .nav .nav-group-items > button {
+  font-size: 13.5px !important;
+  padding-left: 54px !important;
+}
+
+.shell .sidebar .nav .nav-group-items > button.active {
+  padding-left: 50px !important;
+}
+
+@media (max-width: 420px) {
+  .shell .sidebar .nav > button,
+  .shell .sidebar .nav .nav-group-toggle,
+  .shell .sidebar .nav .nav-group-items > button,
+  .shell .sidebar .nav .nav-logout {
+    font-size: 13.5px !important;
+    height: 46px !important;
+    max-height: 46px !important;
+    min-height: 46px !important;
+  }
+}
+
 /* Authoritative compact admin sidebar: keep nav items as small pills, not full cards. */
 .role-manager .sidebar .nav,
 .role-vendeur .sidebar .nav,

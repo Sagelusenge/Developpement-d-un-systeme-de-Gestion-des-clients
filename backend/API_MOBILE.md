@@ -2061,7 +2061,7 @@ Si `reference_externe` est vide et que le prestataire est configure, le backend 
 
 Sans prestataire configure, le serveur retourne 503 et demande une reference de transfert manuel.
 
-## Creer un paiement Stripe test depuis l'espace client
+## Creer un paiement par carte depuis l'espace client avec Stripe
 
 ```http
 POST /paiements/stripe/checkout
@@ -2084,7 +2084,8 @@ Regles:
 - le montant peut etre partiel ou complet;
 - le backend refuse tout montant superieur au reste a payer;
 - la cle secrete Stripe reste uniquement cote backend dans `STRIPE_SECRET_KEY`;
-- apres paiement Stripe confirme, le webhook cree automatiquement une ligne dans `paiement` avec `mode_paiement = stripe`.
+- apres confirmation Stripe, le webhook cree automatiquement une ligne dans `paiement` avec `mode_paiement = carte`;
+- les references techniques Stripe restent dans `paiement_stripe_sessions` et `reference_externe`.
 
 Reponse:
 

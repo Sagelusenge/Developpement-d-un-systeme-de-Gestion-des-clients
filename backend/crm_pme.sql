@@ -204,7 +204,7 @@ CREATE TABLE IF NOT EXISTS paiement (
     id_paiement VARCHAR(50) PRIMARY KEY,
     vente_id VARCHAR(50) NOT NULL,
     montant DECIMAL(10,2) NOT NULL,
-    mode_paiement ENUM('especes', 'carte', 'virement', 'mobile_money', 'stripe') NOT NULL,
+    mode_paiement ENUM('especes', 'carte', 'virement', 'mobile_money') NOT NULL,
     reference_externe VARCHAR(100),
     telephone_payeur VARCHAR(20),
     date_paiement TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -212,6 +212,12 @@ CREATE TABLE IF NOT EXISTS paiement (
     INDEX idx_paiement_vente (vente_id),
     INDEX idx_paiement_date (date_paiement)
 );
+
+-- Stripe est le prestataire de paiement, mais le mode comptable reste "carte".
+-- Cette instruction normalise aussi les installations qui utilisaient l'ancienne valeur "stripe".
+UPDATE paiement SET mode_paiement = 'carte' WHERE mode_paiement = 'stripe';
+ALTER TABLE paiement
+    MODIFY mode_paiement ENUM('especes', 'carte', 'virement', 'mobile_money') NOT NULL;
 
 CREATE TABLE IF NOT EXISTS paiement_stripe_sessions (
     id_session VARCHAR(50) PRIMARY KEY,

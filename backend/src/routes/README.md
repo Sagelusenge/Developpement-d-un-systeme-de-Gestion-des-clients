@@ -25,7 +25,7 @@ Chaque fichier de route correspond a un domaine:
 - reclamations;
 - chat et flux temps reel SSE;
 - demandes de paiement Mobile Money;
-- paiements Stripe test.
+- paiements par carte traites par Stripe.
 
 Routes recentes importantes:
 
@@ -33,7 +33,7 @@ Routes recentes importantes:
 - `POST /api/paiements/mobile-money/client`: soumission client;
 - `GET /api/paiements/mobile-money/demandes`: consultation manager/vendeur;
 - `PUT /api/paiements/mobile-money/demandes/:id`: confirmation ou rejet par le vendeur;
-- `POST /api/paiements/stripe/checkout`: creation d'une session Stripe Checkout test par le client;
+- `POST /api/paiements/stripe/checkout`: creation d'une session de paiement par carte Stripe Checkout;
 - `GET /api/paiements/stripe/status/:id`: suivi d'une session Stripe par le client;
 - `POST /api/paiements/stripe/webhook`: confirmation automatique appelee par Stripe.
 - `GET /api/chat/manager-analysis`: avis IA reserve au manager;

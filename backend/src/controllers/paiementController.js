@@ -8,14 +8,16 @@ export const createPaiement = async (req, res) => {
     const { vente_id, montant, mode_paiement, reference_externe, telephone_payeur } = req.body;
     const entreprise_id = req.user.entreprise_id;
     const montantNumber = Number(montant);
+    const normalizedPaymentMode = mode_paiement === 'stripe' ? 'carte' : String(mode_paiement || '').trim();
+    const allowedPaymentModes = new Set(['especes', 'carte', 'virement', 'mobile_money']);
     const reference = String(reference_externe || '').trim();
     const telephone = String(telephone_payeur || '').trim();
 
-    if (!vente_id || !Number.isFinite(montantNumber) || montantNumber <= 0 || !mode_paiement) {
+    if (!vente_id || !Number.isFinite(montantNumber) || montantNumber <= 0 || !allowedPaymentModes.has(normalizedPaymentMode)) {
         return res.status(400).json({ success: false, message: 'Donnees paiement incompletes ou invalides' });
     }
 
-    if (mode_paiement === 'mobile_money' && (!reference || !telephone)) {
+    if (normalizedPaymentMode === 'mobile_money' && (!reference || !telephone)) {
         return res.status(400).json({ success: false, message: 'Reference et numero requis pour Mobile Money' });
     }
 
@@ -48,14 +50,14 @@ export const createPaiement = async (req, res) => {
             `INSERT INTO paiement
                 (id_paiement, vente_id, montant, mode_paiement, reference_externe, telephone_payeur)
              VALUES (?, ?, ?, ?, ?, ?)`,
-            [idPaiement, vente_id, montantNumber, mode_paiement, reference || null, telephone || null]
+            [idPaiement, vente_id, montantNumber, normalizedPaymentMode, reference || null, telephone || null]
         );
 
         await connection.commit();
         res.status(201).json({
             success: true,
-            message: `Paiement de ${montantNumber} USD enregistre (${mode_paiement})`,
-            data: { id_paiement: idPaiement }
+            message: `Paiement de ${montantNumber} USD enregistre (${normalizedPaymentMode})`,
+            data: { id_paiement: idPaiement, mode_paiement: normalizedPaymentMode }
         });
     } catch (error) {
         await connection.rollback();
@@ -70,7 +72,7 @@ export const getRapportCaisse = async (req, res) => {
     const entreprise_id = req.user.entreprise_id;
     try {
         const [rows] = await pool.query(
-            `SELECT DATE(p.date_paiement) AS Date,
+            `SELECT DATE_FORMAT(p.date_paiement, '%Y-%m-%d') AS Date,
                     p.mode_paiement AS Mode_Paiement,
                     COUNT(*) AS Nombre_Transactions,
                     IFNULL(SUM(p.montant), 0) AS Total_Encaisse
@@ -264,7 +266,7 @@ export const stripeWebhook = async (req, res) => {
         const paymentId = await nextId(connection, 'paiement', 'PAY', 5);
         await connection.query(
             `INSERT INTO paiement (id_paiement,vente_id,montant,mode_paiement,reference_externe,telephone_payeur)
-             VALUES (?,?,?,'stripe',?,NULL)`,
+             VALUES (?,?,?,'carte',?,NULL)`,
             [paymentId, paymentSession.vente_id, expected, session.payment_intent || session.id || internalReference]
         );
         await connection.query(

@@ -222,6 +222,42 @@ export const sendInvoiceAvailableEmail = ({ to, name, orderId, invoiceId, total,
     })
 });
 
+export const sendDebtReminderEmail = ({ to, name, invoices = [], totalDue, espaceUrl }) => {
+    const invoiceRows = invoices.map((invoice) => `
+        <tr>
+          <td style="border-bottom:1px solid #e2e8f0;padding:12px 10px">
+            <strong style="color:#06264a">${escapeHtml(invoice.numero_facture || invoice.id_ventes || '-')}</strong>
+            <br><span style="color:#64748b;font-size:12px">${escapeHtml(invoice.date_vente || '')}</span>
+          </td>
+          <td style="border-bottom:1px solid #e2e8f0;padding:12px 10px;text-align:right;white-space:nowrap">
+            <strong style="color:#9a6400">${escapeHtml(Number(invoice.reste_a_payer || 0).toFixed(2))} USD</strong>
+          </td>
+        </tr>`).join('');
+    const invoiceSummary = invoices
+        .map((invoice) => `${invoice.numero_facture || invoice.id_ventes}: ${Number(invoice.reste_a_payer || 0).toFixed(2)} USD`)
+        .join(', ');
+
+    return sendMail({
+        to,
+        subject: `Rappel de solde restant | ${APP_NAME}`,
+        text: `Bonjour ${name || 'cher client'},\n\nSauf erreur de notre part, un solde total de ${Number(totalDue || 0).toFixed(2)} USD reste à regler sur vos factures: ${invoiceSummary}.\n\nVous pouvez consulter le detail dans votre espace client: ${espaceUrl || ''}\n\nSi votre paiement a deja ete effectue, veuillez ignorer ce rappel ou contacter notre equipe.\n\nL'equipe ${APP_NAME}`,
+        html: brandedEmail({
+            eyebrow: 'SUIVI DE VOS FACTURES',
+            title: 'Rappel courtois de solde restant',
+            greeting: `Bonjour ${name || 'cher client'}`,
+            intro: `Sauf erreur de notre part, certaines de vos factures presentent encore un solde. Ce rappel vous permet de consulter la situation et de regulariser le paiement si necessaire.`,
+            content: `
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #dce4ee;border-radius:10px;border-collapse:separate;overflow:hidden">
+                <tr><th style="background:#f8fafc;color:#45566b;font-size:12px;padding:11px 10px;text-align:left">FACTURE</th><th style="background:#f8fafc;color:#45566b;font-size:12px;padding:11px 10px;text-align:right">RESTE À PAYER</th></tr>
+                ${invoiceRows}
+                <tr><td style="background:#eef6ff;color:#06264a;font-weight:700;padding:14px 10px">Total restant</td><td style="background:#eef6ff;color:#06264a;font-size:18px;font-weight:800;padding:14px 10px;text-align:right">${escapeHtml(Number(totalDue || 0).toFixed(2))} USD</td></tr>
+              </table>
+              ${espaceUrl ? `<div style="margin-top:24px;text-align:center"><a href="${escapeHtml(espaceUrl)}" style="background:#0b5ea8;border-radius:8px;color:#ffffff;display:inline-block;font-size:14px;font-weight:700;padding:13px 22px;text-decoration:none">Consulter mes factures</a></div>` : ''}`,
+            notice: 'Si vous avez deja effectue le paiement, ignorez simplement ce rappel ou contactez notre equipe en indiquant la reference de la transaction.'
+        })
+    });
+};
+
 export const sendInactiveClientEmail = ({ to, name, products, espaceUrl, days }) => sendMail({
     to,
     subject: `Des produits utiles pour vos prochains achats | ${APP_NAME}`,

@@ -1540,10 +1540,14 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
     .slice(0, 5);
   const chartMonths = (ventes.length ? ventes : ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Juin'].map((mois) => ({ mois, total: 0 })));
   const maxVente = Math.max(...chartMonths.map((v) => Number(v.total || 0)), 1);
-  const paymentRows = (data.extra.repartitionPaiements || []).filter((row) => (row.mode_paiement || row.Mode_Paiement) === 'especes').map((row) => ({
+  const paymentRows = (data.extra.repartitionPaiements || []).map((row) => ({
     mode: row.mode_paiement || row.Mode_Paiement || 'autre',
     label: {
       especes: 'Especes',
+      carte: 'Carte',
+      virement: 'Virement',
+      mobile_money: 'Mobile Money',
+      stripe: 'Carte'
     }[row.mode_paiement || row.Mode_Paiement] || (row.mode_paiement || row.Mode_Paiement || 'Autre'),
     total: Number(row.total || row.Total_Encaisse || 0),
     transactions: Number(row.transactions || row.Nombre_Transactions || 0)
@@ -2526,7 +2530,6 @@ function Paiements({ api, notify, data, submit, searchQuery = '', user }) {
     ? `${dateRange.debut || 'debut'} au ${dateRange.fin || 'fin'}`
     : periodLabel(period);
   const caisseRows = byPeriod(data.extra.caisse || [])
-    .filter((r) => String(r.Mode_Paiement || '').toLowerCase() === 'especes')
     .filter((r) => `${r.Date} ${r.Mode_Paiement} ${r.Total_Encaisse}`.toLowerCase().includes(term));
   const caisseTotal = caisseRows.reduce((sum, row) => sum + Number(row.Total_Encaisse || 0), 0);
   const transactionsTotal = caisseRows.reduce((sum, row) => sum + Number(row.Nombre_Transactions || 0), 0);
@@ -2550,7 +2553,7 @@ function Paiements({ api, notify, data, submit, searchQuery = '', user }) {
       <div className="panel">
         <div className="panel-heading client-toolbar">
           <div>
-            <h3>Caisse {periodText.toLowerCase()}</h3>
+            <h3>{period === 'journalier' ? 'Paiements du jour' : `Paiements - ${periodText.toLowerCase()}`}</h3>
             <p>{transactionsTotal} transaction{transactionsTotal > 1 ? 's' : ''} - {moneySmart(caisseTotal)}</p>
           </div>
           <div className="actions">
@@ -2570,7 +2573,12 @@ function Paiements({ api, notify, data, submit, searchQuery = '', user }) {
             {user?.role === 'vendeur' && <button className="btn small" type="button" onClick={() => { setForm(emptyPaymentForm); setInvoiceQuery(''); setCreating(true); }}><Plus size={16} /> Nouveau paiement</button>}
           </div>
         </div>
-        <Table headers={['Date', 'Mode', 'Transactions', 'Total']} rows={caisseRows.map((r) => [formatDate(r.Date), r.Mode_Paiement, r.Nombre_Transactions, money(r.Total_Encaisse)])} />
+        <Table headers={['Date', 'Mode', 'Transactions', 'Total']} rows={caisseRows.map((r) => [
+          formatDate(r.Date),
+          ({ especes: 'Especes', carte: 'Carte', virement: 'Virement', mobile_money: 'Mobile Money', stripe: 'Carte' }[String(r.Mode_Paiement || '').toLowerCase()] || r.Mode_Paiement),
+          r.Nombre_Transactions,
+          money(r.Total_Encaisse)
+        ])} />
       </div>
       {creating && (
         <Modal title="Encaisser un paiement" onClose={closeCreate}>

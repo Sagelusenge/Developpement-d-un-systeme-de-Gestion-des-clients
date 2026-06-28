@@ -106,6 +106,12 @@ Un seul bloc peut rester ouvert. L'espace client conserve ses petits boutons sim
 
 Pour les tests, `PROSPECT_FOLLOWUP_HOURS=24`. Une fois ce delai atteint, un compte actif avec email verifie et aucune vente recoit un unique email de decouverte. L'email contient exactement trois produits disponibles, leur prix de vente, leur unite et un bouton vers la connexion. La campagne `prospect_discovery_v1` est journalisee dans `prospect_email_campaigns`, ce qui empeche un second envoi. En production, remplacer 24 par 168.
 
+### Rappel des clients avec dette
+
+Le backend verifie quotidiennement les factures ayant encore un solde. Un client actif dont l'adresse est verifiee recoit un rappel professionnel regroupant ses factures et le total restant. La premiere relance est declenchee apres `DEBT_REMINDER_MIN_AGE_DAYS`, puis elle est limitee a une fois tous les `DEBT_REMINDER_INTERVAL_DAYS`.
+
+Chaque envoi est conserve dans `mail_messages` et protege contre les doublons par `crm_email_campaigns`. Une relance commerciale d'inactivite n'est pas envoyee tant que le client possede une dette. Pour tester le fonctionnement apres une journee, les deux valeurs peuvent temporairement etre configurees a `1`.
+
 ### Segmentation du portefeuille client
 
 - `Prospect`: aucun achat;

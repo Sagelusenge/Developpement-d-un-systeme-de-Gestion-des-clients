@@ -13,7 +13,7 @@ Un service evite de dupliquer la meme logique dans plusieurs fichiers. Par exemp
 - `openaiService.js`: appelle la Responses API pour le chat et l'analyse manager, uniquement si la cle serveur existe. Le chat garde d'abord les reponses fiables basees sur la base de donnees, puis utilise l'IA pour formuler une reponse naturelle.
 - `mobileMoneyService.js`: adapte l'appel vers le prestataire Mobile Money configure.
 - `stripeService.js`: cree les sessions Stripe Checkout test et verifie les signatures webhook lorsque `STRIPE_WEBHOOK_SECRET` est disponible.
-- `clientLoyaltyService.js`: gere la fidelisation: email unique du prospect sans achat, relance des clients inactifs, recommandations dans le chat et notification de tous les clients confirmes quand un nouveau produit arrive en stock.
+- `clientLoyaltyService.js`: gere la fidelisation: email unique du prospect sans achat, relance des clients inactifs, rappel limite des soldes clients, recommandations dans le chat et notification de tous les clients confirmes quand un nouveau produit arrive en stock.
 
 Le schema d'execution cree aussi `chat_conversations`, `chat_messages`, `demandes_paiement_mobile`, `paiement_stripe_sessions`, `public_contacts`, `prospect_email_campaigns` et `crm_email_campaigns` lorsqu'elles sont absentes.
 
@@ -27,6 +27,7 @@ Les emails sont declenches par des evenements precis:
 - conversion en facture: email indiquant que la facture est disponible;
 - prospect sans achat: email apres `PROSPECT_FOLLOWUP_HOURS`;
 - client inactif: relance apres `INACTIVE_CLIENT_EMAIL_DAYS`, basee sur les categories deja achetees;
+- client debiteur: rappel groupe des factures ayant un solde apres `DEBT_REMINDER_MIN_AGE_DAYS`, puis au maximum une relance tous les `DEBT_REMINDER_INTERVAL_DAYS`;
 - nouveau produit: email automatique a tous les clients actifs dont l'email est confirme, avec protection anti-doublon par produit.
 
 Les tables `prospect_email_campaigns` et `crm_email_campaigns` evitent les doublons.

@@ -3,6 +3,7 @@ import { nextId } from './idService.js';
 import { publishChatUpdate } from './chatRealtimeService.js';
 import {
     sendCategoryNewProductEmail,
+    sendDebtReminderEmail,
     sendInactiveClientEmail,
     sendProspectDiscoveryEmail
 } from './mailService.js';
@@ -10,6 +11,7 @@ import {
 const prospectCampaignKey = 'prospect_discovery_v1';
 const inactiveCampaignPrefix = 'inactive_client';
 const productCampaignPrefix = 'new_stock_product';
+const debtCampaignPrefix = 'debt_reminder';
 
 const getFrontendOrigin = () => String(process.env.FRONTEND_URL || 'http://127.0.0.1:5174')
     .split(',')[0]
@@ -90,6 +92,14 @@ export const sendInactiveClientEmails = async () => {
          FROM client c
          JOIN ventes v ON v.client_id=c.id_client
          WHERE c.actif=1 AND c.email IS NOT NULL AND c.email<>'' AND c.email_verified_at IS NOT NULL
+           AND NOT EXISTS (
+               SELECT 1
+               FROM ventes debt_sale
+               LEFT JOIN paiement debt_payment ON debt_payment.vente_id=debt_sale.id_ventes
+               WHERE debt_sale.client_id=c.id_client
+               GROUP BY debt_sale.id_ventes,debt_sale.montant_ttc
+               HAVING debt_sale.montant_ttc-IFNULL(SUM(debt_payment.montant),0)>0.005
+           )
          GROUP BY c.id_client
          HAVING purchases > 0
             AND last_purchase <= DATE_SUB(NOW(),INTERVAL ? DAY)
@@ -131,6 +141,120 @@ export const sendInactiveClientEmails = async () => {
             await markCampaign({ clientId: client.id_client, campaignKey: uniqueKey, status: 'envoye', messageId: result.messageId || null });
         } catch (error) {
             await markCampaign({ clientId: client.id_client, campaignKey: uniqueKey, status: 'echec', error: error.message || error });
+        }
+    }
+};
+
+export const sendDebtReminderEmails = async () => {
+    const minimumAgeDays = Math.max(1, Math.min(365, Number.parseInt(process.env.DEBT_REMINDER_MIN_AGE_DAYS || '7', 10) || 7));
+    const intervalDays = Math.max(1, Math.min(90, Number.parseInt(process.env.DEBT_REMINDER_INTERVAL_DAYS || '7', 10) || 7));
+    const frontendOrigin = getFrontendOrigin();
+    const [rows] = await pool.query(
+        `SELECT c.id_client,c.nom,c.email,c.entreprise_id,
+                v.id_ventes,v.numero_facture,DATE_FORMAT(v.date_vente,'%d/%m/%Y') AS date_vente,
+                v.montant_ttc,IFNULL(SUM(p.montant),0) AS total_paye,
+                GREATEST(v.montant_ttc-IFNULL(SUM(p.montant),0),0) AS reste_a_payer
+         FROM client c
+         JOIN ventes v ON v.client_id=c.id_client AND v.entreprise_id=c.entreprise_id
+         LEFT JOIN paiement p ON p.vente_id=v.id_ventes
+         WHERE c.actif=1
+           AND c.email IS NOT NULL AND c.email<>''
+           AND c.email_verified_at IS NOT NULL
+           AND v.date_vente <= DATE_SUB(NOW(),INTERVAL ? DAY)
+           AND NOT EXISTS (
+               SELECT 1 FROM crm_email_campaigns ce
+               WHERE ce.client_id=c.id_client
+                 AND ce.campaign_key LIKE ?
+                 AND ce.statut='envoye'
+                 AND ce.sent_at >= DATE_SUB(NOW(),INTERVAL ? DAY)
+           )
+         GROUP BY c.id_client,c.nom,c.email,c.entreprise_id,
+                  v.id_ventes,v.numero_facture,v.date_vente,v.montant_ttc
+         HAVING reste_a_payer > 0.005
+         ORDER BY c.id_client,v.date_vente ASC
+         LIMIT 500`,
+        [minimumAgeDays, `${debtCampaignPrefix}_%`, intervalDays]
+    );
+
+    const clients = new Map();
+    for (const row of rows) {
+        if (!clients.has(row.id_client)) {
+            clients.set(row.id_client, {
+                id_client: row.id_client,
+                nom: row.nom,
+                email: row.email,
+                entreprise_id: row.entreprise_id,
+                invoices: []
+            });
+        }
+        clients.get(row.id_client).invoices.push({
+            id_ventes: row.id_ventes,
+            numero_facture: row.numero_facture,
+            date_vente: row.date_vente,
+            reste_a_payer: Number(row.reste_a_payer || 0)
+        });
+    }
+
+    for (const client of clients.values()) {
+        const totalDue = client.invoices.reduce((sum, invoice) => sum + invoice.reste_a_payer, 0);
+        if (totalDue <= 0.005) continue;
+        const campaignKey = `${debtCampaignPrefix}_${new Date().toISOString().slice(0, 10)}`;
+        if (!await claimCampaign({ clientId: client.id_client, entrepriseId: client.entreprise_id, campaignKey })) continue;
+        const subject = `Rappel de solde restant - ${totalDue.toFixed(2)} USD`;
+        try {
+            const result = await sendDebtReminderEmail({
+                to: client.email,
+                name: client.nom,
+                invoices: client.invoices,
+                totalDue,
+                espaceUrl: `${frontendOrigin}/connexion`
+            });
+            if (result?.skipped) {
+                await pool.query(
+                    `DELETE FROM crm_email_campaigns WHERE client_id=? AND campaign_key=? AND statut='en_cours'`,
+                    [client.id_client, campaignKey]
+                );
+                continue;
+            }
+            await markCampaign({
+                clientId: client.id_client,
+                campaignKey,
+                status: 'envoye',
+                messageId: result.messageId || null
+            });
+            await pool.query(
+                `INSERT INTO mail_messages
+                    (entreprise_id,sender_email,to_email,subject,message,status)
+                 VALUES (?,?,?,?,?,?)`,
+                [
+                    client.entreprise_id,
+                    process.env.EMAIL_USER || null,
+                    client.email,
+                    subject,
+                    `Rappel automatique pour ${client.invoices.length} facture(s). Solde total: ${totalDue.toFixed(2)} USD.`,
+                    'envoye'
+                ]
+            );
+        } catch (error) {
+            await markCampaign({
+                clientId: client.id_client,
+                campaignKey,
+                status: 'echec',
+                error: error.message || error
+            });
+            await pool.query(
+                `INSERT INTO mail_messages
+                    (entreprise_id,sender_email,to_email,subject,message,status)
+                 VALUES (?,?,?,?,?,?)`,
+                [
+                    client.entreprise_id,
+                    process.env.EMAIL_USER || null,
+                    client.email,
+                    subject,
+                    String(error.message || error).slice(0, 1000),
+                    'echec'
+                ]
+            ).catch(() => null);
         }
     }
 };

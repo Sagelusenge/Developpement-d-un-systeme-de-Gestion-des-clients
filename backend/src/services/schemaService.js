@@ -153,7 +153,7 @@ export const ensureRuntimeSchema = async (pool) => {
             id_paiement VARCHAR(50) PRIMARY KEY,
             vente_id VARCHAR(50) NOT NULL,
             montant DECIMAL(10,2) NOT NULL,
-            mode_paiement ENUM('especes', 'carte', 'virement', 'mobile_money', 'stripe') NOT NULL,
+            mode_paiement ENUM('especes', 'carte', 'virement', 'mobile_money') NOT NULL,
             reference_externe VARCHAR(100),
             telephone_payeur VARCHAR(20),
             date_paiement TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -498,7 +498,11 @@ export const ensureRuntimeSchema = async (pool) => {
     await addColumnIfMissing('mail_messages', 'status', "VARCHAR(40) NOT NULL DEFAULT 'envoye'");
     await addColumnIfMissing('mail_messages', 'created_at', 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
 
+    // Stripe est un prestataire technique. Dans la comptabilite, son paiement est une carte.
+    // Le premier ALTER conserve temporairement l'ancienne valeur pour migrer sans perte.
     await pool.query(`ALTER TABLE paiement MODIFY mode_paiement ENUM('especes', 'carte', 'virement', 'mobile_money', 'stripe') NOT NULL`);
+    await pool.query(`UPDATE paiement SET mode_paiement='carte' WHERE mode_paiement='stripe'`);
+    await pool.query(`ALTER TABLE paiement MODIFY mode_paiement ENUM('especes', 'carte', 'virement', 'mobile_money') NOT NULL`);
 
     await addColumnIfMissing('password_reset_codes', 'user_id', 'VARCHAR(50) NOT NULL');
     await addColumnIfMissing('password_reset_codes', 'email', "VARCHAR(150) NOT NULL DEFAULT ''");
