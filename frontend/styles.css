@@ -8740,6 +8740,178 @@ body:has(.login-page),
   }
 }
 
+/* Definitive sidebar row geometry at every responsive width. */
+.role-manager .sidebar .nav > button.nav-item-dashboard:first-child,
+.role-manager .sidebar .nav > button.nav-item-rapports,
+.role-manager .sidebar .nav > button.nav-logout,
+.role-vendeur .sidebar .nav > button.nav-item-dashboard:first-child,
+.role-vendeur .sidebar .nav > button.nav-item-rapports,
+.role-vendeur .sidebar .nav > button.nav-logout,
+.role-magasinier .sidebar .nav > button.nav-item-dashboard:first-child,
+.role-magasinier .sidebar .nav > button.nav-item-rapports,
+.role-magasinier .sidebar .nav > button.nav-logout,
+.role-client .sidebar .nav > button.nav-item-dashboard:first-child,
+.role-client .sidebar .nav > button.nav-logout {
+  align-items: center !important;
+  align-self: stretch !important;
+  border-radius: 0 !important;
+  display: flex !important;
+  flex: 0 0 54px !important;
+  font-size: 14px !important;
+  height: 54px !important;
+  justify-content: flex-start !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+  max-height: 54px !important;
+  max-width: none !important;
+  min-height: 54px !important;
+  padding: 13px 22px !important;
+  width: 100% !important;
+}
+
+.role-manager .sidebar .nav > button.nav-item-dashboard.active:first-child,
+.role-manager .sidebar .nav > button.nav-item-rapports.active,
+.role-vendeur .sidebar .nav > button.nav-item-dashboard.active:first-child,
+.role-vendeur .sidebar .nav > button.nav-item-rapports.active,
+.role-magasinier .sidebar .nav > button.nav-item-dashboard.active:first-child,
+.role-magasinier .sidebar .nav > button.nav-item-rapports.active,
+.role-client .sidebar .nav > button.nav-item-dashboard.active:first-child {
+  padding-left: 18px !important;
+}
+
+.shell .sidebar .nav > button.nav-item-dashboard svg,
+.shell .sidebar .nav > button.nav-item-rapports svg,
+.shell .sidebar .nav > button.nav-logout svg,
+.shell .sidebar .nav .nav-group-toggle > svg:first-child {
+  flex: 0 0 20px !important;
+  height: 20px !important;
+  margin: 0 !important;
+  width: 20px !important;
+}
+
+.shell .sidebar .nav > button.nav-item-dashboard span,
+.shell .sidebar .nav > button.nav-item-rapports span,
+.shell .sidebar .nav .nav-group-toggle span {
+  margin: 0 !important;
+}
+
+/* Richer trust milestones without turning them into large cards. */
+.public-trust-band {
+  align-items: stretch;
+  padding-bottom: 42px;
+  padding-top: 42px;
+}
+
+.public-trust-band div {
+  align-content: start;
+  gap: 7px;
+}
+
+.public-trust-band small {
+  color: rgba(235, 246, 255, .82);
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.55;
+  margin: 5px auto 0;
+  max-width: 245px;
+}
+
+/* The Goma history photograph is now behind the story instead of beside it. */
+.public-story-band {
+  display: block !important;
+  isolation: isolate;
+  min-height: 570px;
+  overflow: hidden;
+  position: relative;
+}
+
+.public-story-band .story-image {
+  inset: 0;
+  position: absolute;
+  z-index: 0;
+}
+
+.public-story-band .story-image img {
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  width: 100%;
+}
+
+.public-story-band::after {
+  background: linear-gradient(90deg, rgba(3, 26, 51, .96) 0%, rgba(3, 26, 51, .83) 52%, rgba(3, 26, 51, .38) 100%);
+  content: "";
+  inset: 0;
+  position: absolute;
+  z-index: 1;
+}
+
+.public-story-band > div:last-child {
+  max-width: 720px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Login home action: visible, balanced and clearly separate from the form. */
+.login-box .login-home-link.login-home-top {
+  align-items: center !important;
+  align-self: flex-start;
+  background: #eef6ff !important;
+  border: 1px solid #c7def3 !important;
+  border-radius: 999px !important;
+  box-shadow: 0 8px 22px rgba(6, 38, 74, .08);
+  color: #0b5ea8 !important;
+  display: inline-flex !important;
+  font-size: 13px;
+  gap: 8px;
+  justify-content: center !important;
+  margin: 0 0 22px !important;
+  min-height: 40px;
+  padding: 8px 15px !important;
+  transition: background-color .2s ease, border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+  width: auto;
+}
+
+.login-box .login-home-link.login-home-top:hover {
+  background: #ffffff !important;
+  border-color: #8cbce3 !important;
+  box-shadow: 0 12px 28px rgba(6, 38, 74, .14);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 760px) {
+  .role-manager .sidebar .nav > button.nav-item-dashboard:first-child,
+  .role-manager .sidebar .nav > button.nav-item-rapports,
+  .role-manager .sidebar .nav > button.nav-logout,
+  .role-vendeur .sidebar .nav > button.nav-item-dashboard:first-child,
+  .role-vendeur .sidebar .nav > button.nav-item-rapports,
+  .role-vendeur .sidebar .nav > button.nav-logout,
+  .role-magasinier .sidebar .nav > button.nav-item-dashboard:first-child,
+  .role-magasinier .sidebar .nav > button.nav-item-rapports,
+  .role-magasinier .sidebar .nav > button.nav-logout,
+  .role-client .sidebar .nav > button.nav-item-dashboard:first-child,
+  .role-client .sidebar .nav > button.nav-logout {
+    flex-basis: 48px !important;
+    font-size: 13.5px !important;
+    height: 48px !important;
+    max-height: 48px !important;
+    min-height: 48px !important;
+  }
+
+  .public-story-band {
+    min-height: 620px;
+  }
+
+  .public-story-band::after {
+    background: linear-gradient(180deg, rgba(3, 26, 51, .92), rgba(3, 26, 51, .7));
+  }
+
+  .public-trust-band small {
+    max-width: 300px;
+  }
+}
+
 /* Top-three sales bars: green, orange, red, with a real progress entrance. */
 .top-product {
   border-left: 5px solid transparent;
@@ -8841,15 +9013,15 @@ body:has(.login-page),
 }
 
 .public-page-hero.about-hero {
-  background-image: url("https://images.unsplash.com/photo-1541971875076-8f970d573be6?auto=format&fit=crop&w=1800&q=86");
+  background-image: url("https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=1800&q=88");
 }
 
 .public-page-hero.services-hero {
-  background-image: url("https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&w=1800&q=86");
+  background-image: url("https://images.unsplash.com/photo-1530124566582-a618bc2615dc?auto=format&fit=crop&w=1800&q=88");
 }
 
 .public-page-hero.contact-hero {
-  background-image: url("https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&w=1800&q=86");
+  background-image: url("https://images.unsplash.com/photo-1581244277943-fe4a9c777189?auto=format&fit=crop&w=1800&q=88");
 }
 
 @media (prefers-reduced-motion: no-preference) {
