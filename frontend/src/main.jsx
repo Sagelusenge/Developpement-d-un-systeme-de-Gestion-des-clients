@@ -593,6 +593,18 @@ function PublicFooter({ goTo }) {
 }
 
 function PublicHome({ goTo }) {
+  const previewScreens = [
+    { id: 'dashboard', label: 'Tableau de bord', icon: Grid2X2 },
+    { id: 'achats', label: 'Mes achats', icon: FileText },
+    { id: 'commandes', label: 'Commandes', icon: ShoppingCart },
+    { id: 'assistance', label: 'Assistance', icon: MessageCircle }
+  ];
+  const [previewIndex, setPreviewIndex] = useState(0);
+  const activePreview = previewScreens[previewIndex];
+  useEffect(() => {
+    const timer = window.setInterval(() => setPreviewIndex((index) => (index + 1) % previewScreens.length), 3600);
+    return () => window.clearInterval(timer);
+  }, []);
   return (
     <>
       <section className="public-hero">
@@ -613,8 +625,35 @@ function PublicHome({ goTo }) {
           <p>Le client retrouve ses commandes, ses achats, ses reclamations et son assistance depuis une interface unique, simple et professionnelle.</p>
           <button className="public-primary" onClick={() => goTo('/inscription')}>Creer mon espace <ArrowRight size={18} /></button>
         </div>
-        <figure>
-          <img src="/assets/client-dashboard-preview.png" alt="Apercu du tableau de bord client Quincaillerie Centrale" />
+        <figure className="interactive-client-preview">
+          <div className="client-preview-tabs">
+            {previewScreens.map((screen, index) => {
+              const Icon = screen.icon;
+              return <button key={screen.id} className={activePreview.id === screen.id ? 'active' : ''} type="button" onClick={() => setPreviewIndex(index)}><Icon size={15} /> {screen.label}</button>;
+            })}
+          </div>
+          <div className={`client-preview-screen screen-${activePreview.id}`} key={activePreview.id}>
+            {activePreview.id === 'dashboard' && <img src="/assets/client-dashboard-preview.png" alt="Apercu du tableau de bord client Quincaillerie Centrale" />}
+            {activePreview.id === 'achats' && <div className="client-preview-panel">
+              <header><span>MES ACHATS</span><strong>Factures et paiements</strong></header>
+              <div className="preview-table">
+                <div><b>FAC-2026-0028</b><span>338.72 USD</span><em>Payee</em></div>
+                <div><b>FAC-2026-0026</b><span>440.80 USD</span><em>Payee</em></div>
+                <div><b>FAC-2026-0023</b><span>1 117.08 USD</span><em>Partiel</em></div>
+              </div>
+            </div>}
+            {activePreview.id === 'commandes' && <div className="client-preview-panel">
+              <header><span>COMMANDES</span><strong>Suivi en temps reel</strong></header>
+              <div className="preview-steps"><i className="done" /><i className="done" /><i className="current" /><i /></div>
+              <div className="preview-order-card"><b>CMD-000009</b><span>Commande confirmee</span><strong>Preparation magasin</strong></div>
+            </div>}
+            {activePreview.id === 'assistance' && <div className="client-preview-panel">
+              <header><span>ASSISTANCE</span><strong>Chat client</strong></header>
+              <div className="preview-chat-line bot">Bonjour Sage, comment puis-je vous aider ?</div>
+              <div className="preview-chat-line user">Je veux connaitre le prix du ciment.</div>
+              <div className="preview-chat-line bot">Le ciment disponible est affiche avec son prix de vente dans votre catalogue.</div>
+            </div>}
+          </div>
         </figure>
       </section>
       <section className="public-trust-band"><div><strong>1992</strong><span>Fondation à Goma</span><small>Une entreprise locale nee pour servir les besoins de construction de la ville.</small></div><div><strong>2002</strong><span>Engagement dans la reconstruction</span><small>Des materiaux rendus disponibles pour accompagner la reprise apres l'eruption.</small></div><div><strong>Prix clairs</strong><span>Catalogue professionnel</span><small>Des tarifs de vente transparents et une disponibilite verifiee avant commande.</small></div><div><strong>1 espace</strong><span>Commandes, factures et assistance</span><small>Le client retrouve tout son suivi commercial depuis un compte securise.</small></div></section>
