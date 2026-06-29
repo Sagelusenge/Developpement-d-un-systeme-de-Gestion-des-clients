@@ -10626,13 +10626,36 @@ body:has(.login-page),
   }
 }
 
-/* Finitions finales : chat, rapports, topbar sticky et transitions publiques. */
-.shell .topbar,
-.shell:not(.admin-shell) .topbar,
-.admin-shell .topbar {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 850 !important;
+/* Finitions finales : chat, rapports, topbar et transitions publiques. */
+@media (min-width: 1181px) {
+  .shell:not(.admin-shell) .main {
+    padding-top: 82px !important;
+  }
+
+  .shell:not(.admin-shell) .topbar {
+    background: rgba(247, 247, 251, .98) !important;
+    border-bottom: 1px solid #d8deea !important;
+    height: 82px !important;
+    left: 236px !important;
+    margin: 0 !important;
+    max-width: none !important;
+    min-height: 82px !important;
+    position: fixed !important;
+    right: 0 !important;
+    top: 0 !important;
+    width: auto !important;
+    z-index: 950 !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  .shell .topbar,
+  .shell:not(.admin-shell) .topbar,
+  .admin-shell .topbar {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 850 !important;
+  }
 }
 
 .page-chat .chat-shell {
