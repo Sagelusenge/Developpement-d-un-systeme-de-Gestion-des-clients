@@ -3841,8 +3841,8 @@ function ChatPage({ api, notify, data, user, searchQuery = '' }) {
     return () => stream.close();
   }, []);
   useEffect(() => { messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' }); }, [selected?.messages?.length]);
-  const send = async () => {
-    const text = message.trim();
+  const send = async (quickText = '') => {
+    const text = String(quickText || message).trim();
     if (!text) return;
     setMessage('');
     const tempMessage = { id_message: `temp-${Date.now()}`, sender_type: user?.role === 'client' ? 'client' : 'manager', message: text, created_at: new Date().toISOString(), pending: true };
@@ -3864,6 +3864,16 @@ function ChatPage({ api, notify, data, user, searchQuery = '' }) {
       notify(error.message);
     }
   };
+  const quickQuestions = [
+    ['Bonjour', 'Bonjour'],
+    ['Aide', 'Comment peux-tu m aider ?'],
+    ['Produits disponibles', 'Quels produits sont disponibles actuellement ?'],
+    ['Conseil chantier', 'Quels produits me conseillez-vous pour mon chantier ?'],
+    ['Paiement', 'Comment payer une facture ?'],
+    ['Mes factures', 'Comment consulter ma facture ?'],
+    ['Suivi commande', 'Comment suivre ma commande ?'],
+    ['Reclamation', 'Comment envoyer une reclamation ?']
+  ];
   const analyze = async () => {
     setAnalysisLoading(true);
     try { const result = await api('/chat/manager-analysis'); setAiAnalysis(result.data?.analysis || 'Analyse indisponible.'); }
@@ -3908,14 +3918,7 @@ function ChatPage({ api, notify, data, user, searchQuery = '' }) {
           {(selected?.messages || []).map(renderChatMessage)}
         </div>
         {user?.role === 'client' && <div className="chat-suggestions chat-suggestions-bottom">
-          <button type="button" onClick={() => setMessage("Quel est le prix d'un produit ?")}>Prix d'un produit</button>
-          <button type="button" onClick={() => setMessage("Ce produit est-il disponible en stock ?")}>Disponibilite produit</button>
-          <button type="button" onClick={() => setMessage('Je veux suivre ma commande')}>Suivre une commande</button>
-          <button type="button" onClick={() => setMessage('Comment consulter ma facture ?')}>Consulter une facture</button>
-          <button type="button" onClick={() => setMessage('Je veux comprendre les moyens de paiement')}>Moyens de paiement</button>
-          <button type="button" onClick={() => setMessage('Comment envoyer une reclamation ?')}>Envoyer une reclamation</button>
-          <button type="button" onClick={() => setMessage('Quels produits me conseillez-vous pour mon chantier ?')}>Conseil chantier</button>
-          <button type="button" onClick={() => setMessage('Je veux parler a un manager')}>Parler au manager</button>
+          {quickQuestions.map(([label, text]) => <button key={label} type="button" onClick={() => send(text)}>{label}</button>)}
         </div>}
         {(user?.role === 'client' || selected) && <Form onSubmit={send}><div className="chat-composer"><textarea value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Ecrivez votre question..." maxLength={2000} /><button className="btn" disabled={!message.trim()}><Send size={19} /> Envoyer</button></div></Form>}
       </section>

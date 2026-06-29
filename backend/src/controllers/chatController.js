@@ -88,6 +88,34 @@ const automaticReply = async (message, user, conversationId = null) => {
     if (/(manager|responsable|gerant|parler a quelqu un|humain|agent)/.test(text)) {
         return null;
     }
+    if (/(produits disponibles|produit disponible|materiels disponibles|materiaux disponibles|catalogue disponible|quels produits)/.test(text)) {
+        const [products] = await pool.query(
+            `SELECT p.nom,p.reference_produit,p.unite,p.prix_ht,p.quantite_stock,c.nom categorie_nom
+             FROM produits p
+             LEFT JOIN categorie_produit c ON c.id_categorie=p.categorie_id
+             WHERE p.entreprise_id=? AND p.quantite_stock>0 AND p.prix_ht>=p.prix_achat
+             ORDER BY p.quantite_stock DESC, p.nom ASC LIMIT 6`,
+            [user.entreprise_id]
+        );
+        if (products.length) {
+            return `Voici une selection de produits actuellement disponibles :\n${products.map((p) => `- ${p.nom} (${p.reference_produit}) : ${Number(p.prix_ht).toFixed(2)} USD HT par ${p.unite || 'piece'}, stock ${p.quantite_stock}.`).join('\n')}\nVous pouvez ouvrir la rubrique Commandes pour preparer votre commande.`;
+        }
+        return "Aucun produit disponible n'est confirme dans le catalogue pour le moment. L'equipe doit verifier le stock avant de prendre une commande.";
+    }
+    if (/(conseil chantier|conseillez|conseil|recommandez|recommandation|pour mon chantier|projet de construction)/.test(text)) {
+        const [products] = await pool.query(
+            `SELECT p.nom,p.reference_produit,p.unite,p.prix_ht,p.quantite_stock,c.nom categorie_nom
+             FROM produits p
+             LEFT JOIN categorie_produit c ON c.id_categorie=p.categorie_id
+             WHERE p.entreprise_id=? AND p.quantite_stock>0 AND p.prix_ht>=p.prix_achat
+             ORDER BY p.quantite_stock DESC, p.nom ASC LIMIT 4`,
+            [user.entreprise_id]
+        );
+        if (products.length) {
+            return `Pour un chantier, je vous conseille d'abord de verifier les produits disponibles et les quantites necessaires. Voici quelques articles en stock :\n${products.map((p) => `- ${p.nom} : ${Number(p.prix_ht).toFixed(2)} USD HT par ${p.unite || 'piece'}, stock ${p.quantite_stock}.`).join('\n')}\nSi vous me donnez le type de travaux, je peux orienter la recherche plus precisement.`;
+        }
+        return "Je peux vous conseiller selon votre chantier, mais aucun produit disponible n'est confirme actuellement dans le catalogue. Donnez le type de travaux et l'equipe verifiera les disponibilites.";
+    }
     if (/(je viendrai demain|je vais venir demain|je passerai demain|je viens demain|demain je passe|je viendrais demain|je passerais demain)/.test(text)) {
         return "C'est note. Vous pouvez passer demain; si cela concerne une commande, gardez sa reference CMD ou votre facture FAC pour que l'equipe retrouve rapidement votre dossier.";
     }
