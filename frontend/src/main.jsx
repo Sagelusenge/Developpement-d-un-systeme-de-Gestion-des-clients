@@ -616,6 +616,7 @@ function PublicHome({ goTo, config }) {
     { id: 'dashboard', label: 'Tableau de bord', icon: Grid2X2 },
     { id: 'achats', label: 'Mes achats', icon: FileText },
     { id: 'commandes', label: 'Commandes', icon: ShoppingCart },
+    { id: 'reclamations', label: 'Reclamations', icon: HelpCircle },
     { id: 'assistance', label: 'Assistance', icon: MessageCircle }
   ];
   const [previewIndex, setPreviewIndex] = useState(0);
@@ -653,25 +654,10 @@ function PublicHome({ goTo, config }) {
           </div>
           <div className={`client-preview-screen screen-${activePreview.id}`} key={activePreview.id}>
             {activePreview.id === 'dashboard' && <img src="/assets/client-dashboard-preview.png" alt="Apercu du tableau de bord client Quincaillerie Centrale" />}
-            {activePreview.id === 'achats' && <div className="client-preview-panel">
-              <header><span>MES ACHATS</span><strong>Factures et paiements</strong></header>
-              <div className="preview-table">
-                <div><b>FAC-2026-0028</b><span>338.72 USD</span><em>Payee</em></div>
-                <div><b>FAC-2026-0026</b><span>440.80 USD</span><em>Payee</em></div>
-                <div><b>FAC-2026-0023</b><span>1 117.08 USD</span><em>Partiel</em></div>
-              </div>
-            </div>}
-            {activePreview.id === 'commandes' && <div className="client-preview-panel">
-              <header><span>COMMANDES</span><strong>Suivi en temps reel</strong></header>
-              <div className="preview-steps"><i className="done" /><i className="done" /><i className="current" /><i /></div>
-              <div className="preview-order-card"><b>CMD-000009</b><span>Commande confirmee</span><strong>Preparation magasin</strong></div>
-            </div>}
-            {activePreview.id === 'assistance' && <div className="client-preview-panel">
-              <header><span>ASSISTANCE</span><strong>Chat client</strong></header>
-              <div className="preview-chat-line bot">Bonjour Sage, comment puis-je vous aider ?</div>
-              <div className="preview-chat-line user">Je veux connaitre le prix du ciment.</div>
-              <div className="preview-chat-line bot">Le ciment disponible est affiche avec son prix de vente dans votre catalogue.</div>
-            </div>}
+            {activePreview.id === 'achats' && <img src="/assets/client-achats-real.png" alt="Apercu reel des achats et factures dans l'espace client" />}
+            {activePreview.id === 'commandes' && <img src="/assets/client-commandes-real.png" alt="Apercu reel du catalogue de commandes dans l'espace client" />}
+            {activePreview.id === 'reclamations' && <img src="/assets/client-reclamations-real.png" alt="Apercu reel des reclamations dans l'espace client" />}
+            {activePreview.id === 'assistance' && <img src="/assets/client-assistance-real.png" alt="Apercu reel de l'assistance client" />}
           </div>
         </figure>
       </section>
@@ -3783,9 +3769,13 @@ function ClientDashboard({ data, setPage, user }) {
   const commandes = data.extra.commandes || [];
   const stats = data.extra.clientDashboard?.stats || {};
   const reclamations = data.extra.reclamations;
+  const openComplaintStatuses = ['ouverte', 'en_cours'];
   const reclamationsOuvertes = Array.isArray(reclamations)
-    ? reclamations.filter((item) => ['ouverte', 'en_cours'].includes(item.statut)).length
+    ? reclamations.filter((item) => openComplaintStatuses.includes(String(item.statut || '').toLowerCase())).length
     : Number(stats.reclamations_ouvertes || 0);
+  const totalReclamations = Array.isArray(reclamations)
+    ? reclamations.length
+    : Number(stats.total_reclamations || stats.reclamations_total || 0);
   return (
     <div className="client-space">
       <section className="client-hero">
@@ -3795,7 +3785,7 @@ function ClientDashboard({ data, setPage, user }) {
       <section className="client-kpis">
         <article><ShoppingCart /><span>Commandes</span><strong>{stats.total_commandes || 0}</strong></article>
         <article><FileText /><span>Achats cumules</span><strong>{moneySmart(stats.total_achats)}</strong></article>
-        <article><HelpCircle /><span>Reclamations ouvertes</span><strong>{reclamationsOuvertes}</strong></article>
+        <article><HelpCircle /><span>Reclamations ouvertes</span><strong>{reclamationsOuvertes}</strong><small>{totalReclamations} au total</small></article>
       </section>
       <section className="panel">
         <div className="panel-heading"><h3>Dernieres commandes</h3><button className="link-button" type="button" onClick={() => setPage('commandes')}>Voir tout</button></div>
@@ -3954,6 +3944,7 @@ function Reclamations({ api, notify, data, submit, user, searchQuery = '' }) {
   const [form, setForm] = useState({ sujet: '', message: '', commande_id: '' });
   const [editing, setEditing] = useState(null);
   const rows = (data.extra.reclamations || []).filter((item) => `${item.id_reclamation} ${item.client_nom || ''} ${item.sujet} ${item.statut}`.toLowerCase().includes(searchQuery.toLowerCase()));
+  const openCount = rows.filter((item) => ['ouverte', 'en_cours'].includes(String(item.statut || '').toLowerCase())).length;
   const send = () => submit(async () => {
     await api('/reclamations', { method: 'POST', body: JSON.stringify(form) });
     setForm({ sujet: '', message: '', commande_id: '' }); notify('Reclamation envoyee directement au manager.');
@@ -3965,7 +3956,7 @@ function Reclamations({ api, notify, data, submit, user, searchQuery = '' }) {
   return (
     <div className="grid">
       {user?.role === 'client' && <section className="panel complaint-form"><div className="panel-heading"><div><h3>Nouvelle reclamation</h3><p>Votre message sera visible par le manager.</p></div></div><Form onSubmit={send}><Input label="Sujet" value={form.sujet} onChange={(sujet) => setForm({ ...form, sujet })} required /><Select label="Commande concernee (optionnel)" value={form.commande_id} onChange={(commande_id) => setForm({ ...form, commande_id })} required={false} options={[["", "Aucune commande"], ...(data.extra.commandes || []).map((item) => [item.id_commande, item.id_commande])]} /><label>Message<textarea value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} required /></label><button className="btn modal-submit">Envoyer au manager <ArrowRight size={18} /></button></Form></section>}
-      <section className="panel"><div className="panel-heading"><div><h3>{user?.role === 'client' ? 'Mes reclamations' : 'Reclamations clientes'}</h3><p>{rows.filter((item) => item.statut === 'ouverte').length} ouverte(s)</p></div></div><Table headers={['Reference', ...(user?.role === 'manager' ? ['Client'] : []), 'Sujet', 'Message', 'Reponse', 'Statut', ...(user?.role === 'manager' ? ['Action'] : [])]} rows={rows.map((item) => [item.id_reclamation, ...(user?.role === 'manager' ? [`${item.client_nom} ${item.client_postnom || ''}`] : []), item.sujet, item.message, item.reponse || 'En attente', <Badge>{item.statut}</Badge>, ...(user?.role === 'manager' ? [<button className="btn small" type="button" onClick={() => setEditing(item)}>Traiter</button>] : [])])} /></section>
+      <section className="panel"><div className="panel-heading"><div><h3>{user?.role === 'client' ? 'Mes reclamations' : 'Reclamations clientes'}</h3><p>{openCount} ouverte(s) ou en cours · {rows.length} au total</p></div></div><Table headers={['Reference', ...(user?.role === 'manager' ? ['Client'] : []), 'Sujet', 'Message', 'Reponse', 'Statut', ...(user?.role === 'manager' ? ['Action'] : [])]} rows={rows.map((item) => [item.id_reclamation, ...(user?.role === 'manager' ? [`${item.client_nom} ${item.client_postnom || ''}`] : []), item.sujet, item.message, item.reponse || 'En attente', <Badge>{item.statut}</Badge>, ...(user?.role === 'manager' ? [<button className="btn small" type="button" onClick={() => setEditing(item)}>Traiter</button>] : [])])} /></section>
       {editing && <Modal title={`Traiter ${editing.id_reclamation}`} onClose={() => setEditing(null)}><Form onSubmit={save}><Select label="Statut" value={editing.statut} onChange={(statut) => setEditing({ ...editing, statut })} options={[['ouverte', 'Ouverte'], ['en_cours', 'En cours'], ['resolue', 'Resolue'], ['cloturee', 'Cloturee']]} /><label>Reponse au client<textarea value={editing.reponse || ''} onChange={(event) => setEditing({ ...editing, reponse: event.target.value })} /></label><button className="btn modal-submit">Enregistrer la reponse</button></Form></Modal>}
     </div>
   );
