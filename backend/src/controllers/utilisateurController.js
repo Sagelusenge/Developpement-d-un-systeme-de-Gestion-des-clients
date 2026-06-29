@@ -82,7 +82,10 @@ export const getJournalAudit = async (req, res) => {
     const action = String(req.query.action || '').trim();
 
     try {
-        const filters = ['entreprise_id = ?'];
+        const filters = [
+            'entreprise_id = ?',
+            "user_role IN ('manager', 'vendeur', 'magasinier')"
+        ];
         const params = [entreprise_id];
 
         if (module) {

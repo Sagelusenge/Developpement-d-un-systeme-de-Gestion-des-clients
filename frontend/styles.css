@@ -8740,6 +8740,168 @@ body:has(.login-page),
   }
 }
 
+/* Pagination commune a toutes les tables. */
+.table-shell {
+  min-width: 0;
+  width: 100%;
+}
+
+.table-pagination {
+  align-items: center;
+  background: #f8fafc;
+  border-top: 1px solid #d8e0ec;
+  display: flex;
+  gap: 18px;
+  justify-content: flex-end;
+  padding: 12px 14px;
+}
+
+.table-pagination label,
+.table-pagination > div {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.table-pagination label {
+  color: #536176;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.table-pagination select,
+.table-pagination button {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #0b2345;
+  font: inherit;
+  font-weight: 800;
+  min-height: 36px;
+}
+
+.table-pagination select {
+  padding: 0 28px 0 10px;
+}
+
+.table-pagination button {
+  align-items: center;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 5px;
+  padding: 0 11px;
+}
+
+.table-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: .42;
+}
+
+.table-pagination > span,
+.table-pagination strong {
+  color: #64748b;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Autorites finales de mise en page et de lisibilite. */
+.public-site .public-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1200 !important;
+}
+
+.reset-page .reset-code-shell input {
+  padding-left: 20px !important;
+  text-align: center !important;
+}
+
+.reset-page .reset-actions .btn.secondary {
+  background: #eef6ff !important;
+  border: 1px solid #b9d1ee !important;
+  color: #0b5ea8 !important;
+}
+
+.reset-page .reset-actions .btn.secondary:disabled {
+  background: #e8edf4 !important;
+  color: #66758a !important;
+  opacity: 1 !important;
+}
+
+.audit-detail .audit-metadata {
+  background: #f7f9fc;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  color: #111827;
+  font: 600 12px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace;
+  margin: 0;
+  max-height: 310px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  padding: 14px;
+  white-space: pre-wrap;
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .page-dashboard .manager-mid,
+  .manager-dashboard .manager-mid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100% !important;
+  }
+
+  .manager-chart-panel,
+  .payment-panel,
+  .activity-chart-shell,
+  .payment-legend {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .activity-axis {
+    gap: 4px !important;
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .table-pagination {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .table-pagination > span {
+    text-align: center;
+  }
+
+  .table-pagination > div {
+    justify-content: space-between;
+  }
+
+  .table-pagination button {
+    font-size: 12px;
+    padding: 0 8px;
+  }
+
+  .audit-modal {
+    border-radius: 16px 16px 0 0 !important;
+    max-height: calc(100dvh - 12px) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+  }
+
+  .audit-detail .audit-metadata {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .audit-detail > label {
+    min-width: 0;
+  }
+}
+
 /* Definitive sidebar row geometry at every responsive width. */
 .role-manager .sidebar .nav > button.nav-item-dashboard:first-child,
 .role-manager .sidebar .nav > button.nav-item-rapports,
@@ -10231,5 +10393,40 @@ body:has(.login-page),
     height: 48px !important;
     max-height: 48px !important;
     min-height: 48px !important;
+  }
+}
+
+/* Derniere autorite responsive. */
+.public-site .public-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1200 !important;
+}
+
+@media (max-width: 900px) {
+  .page-dashboard .manager-mid,
+  .manager-dashboard .manager-mid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100% !important;
+  }
+
+  .manager-mid > .manager-chart-panel,
+  .manager-mid > .payment-panel {
+    grid-column: 1 !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .audit-modal {
+    max-height: calc(100dvh - 12px) !important;
+    overflow-y: auto !important;
+  }
+
+  .audit-detail .audit-metadata {
+    max-height: none !important;
+    overflow: visible !important;
   }
 }

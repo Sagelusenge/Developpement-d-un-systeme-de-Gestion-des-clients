@@ -284,22 +284,58 @@ function IconButton({ title, children, className = '' }) {
   return <button className={`icon-button ${className}`} title={title} type="button">{children}</button>;
 }
 
-function Table({ headers, rows }) {
+function Table({ headers, rows, pageSize = 10 }) {
+  const [rowsPerPage, setRowsPerPage] = useState(pageSize);
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(rows.length / rowsPerPage));
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
+
   if (!rows.length) return <div className="empty">Aucune donnee</div>;
+  const firstRow = (currentPage - 1) * rowsPerPage;
+  const visibleRows = rows.slice(firstRow, firstRow + rowsPerPage);
+
   return (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>{headers.map((header) => <th key={header}>{header}</th>)}</tr>
-        </thead>
-        <tbody>
-          {rows.map((row, index) => (
-            <tr key={index}>
-              {row.map((cell, i) => <td key={i} data-label={headers[i]}>{cell ?? '-'}</td>)}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="table-shell">
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>{headers.map((header) => <th key={header}>{header}</th>)}</tr>
+          </thead>
+          <tbody>
+            {visibleRows.map((row, index) => (
+              <tr key={firstRow + index}>
+                {row.map((cell, i) => <td key={i} data-label={headers[i]}>{cell ?? '-'}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {rows.length > 10 && (
+        <div className="table-pagination" aria-label="Pagination du tableau">
+          <label>
+            Afficher
+            <select value={rowsPerPage} onChange={(event) => {
+              setRowsPerPage(Number(event.target.value));
+              setCurrentPage(1);
+            }}>
+              {[10, 20, 50].map((size) => <option key={size} value={size}>{size}</option>)}
+            </select>
+          </label>
+          <span>{firstRow + 1}-{Math.min(firstRow + rowsPerPage, rows.length)} sur {rows.length}</span>
+          <div>
+            <button type="button" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={currentPage === 1}>
+              <ChevronLeft size={16} /> Precedent
+            </button>
+            <strong>Page {currentPage} / {totalPages}</strong>
+            <button type="button" onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} disabled={currentPage === totalPages}>
+              Suivant <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -475,7 +511,6 @@ function printLayout({ title, badge, sections = [], table, note, paper = 'ticket
               <div class="signature"><strong>Pour le demandeur</strong><span>Nom : ........................................</span><span>Date : .... / .... / 2026</span></div>
             </div>
           ` : ''}
-          <footer>${escapePrint(identity.company)} - Etat imprime depuis ${escapePrint(APP_NAME)}</footer>
         </main>
       </body>
     </html>
@@ -500,7 +535,7 @@ function printDocument(title, rows, options = {}) {
       { title: 'Controle', rows: [['Date', new Date().toLocaleDateString('fr-FR')], ['Document', title], ['Statut', 'Valide']] }
     ],
     table: { title: 'Details', headers: ['Element', 'Valeur'], rows },
-    note: `Ce document est genere automatiquement depuis ${APP_NAME}.`,
+    note: options.note || '',
     paper: options.paper || 'ticket',
     generatedLine,
     showSignatures: Boolean(options.showSignatures)
@@ -516,7 +551,7 @@ function printTableDocument(title, headers, rows, options = {}) {
       { title: 'Source', rows: [['Application', APP_NAME], ['Etat', title], ['Devise', 'USD']] }
     ],
     table: { title: options.tableTitle || 'Details commerciaux', headers, rows },
-    note: options.note || `Cet etat de sortie est transmis par ${APP_NAME} pour consultation et archivage.`,
+    note: options.note || '',
     paper: options.paper || 'page',
     generatedLine: options.generatedLine,
     showSignatures: Boolean(options.showSignatures)
@@ -1784,9 +1819,9 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
       <div className="panel">
         <div className="panel-heading">
           <h3>{role === 'magasinier' ? 'Approvisionnements recents' : 'Mouvements stock recents'}</h3>
-          <span className="panel-pill">{(data.extra.mouvementsStock || []).length} mouvements</span>
+          <span className="panel-pill">10 derniers mouvements</span>
         </div>
-        <Table headers={['Produit', 'Libelle', 'Type', 'Quantite', 'Fournisseur', 'Prix achat', 'Total', 'Date']} rows={(data.extra.mouvementsStock || []).map((m) => [
+        <Table headers={['Produit', 'Libelle', 'Type', 'Quantite', 'Fournisseur', 'Prix achat', 'Total', 'Date']} rows={(data.extra.mouvementsStock || []).slice(0, 10).map((m) => [
           m.produit_nom,
           m.note || `${m.type_mouvement === 'entree' ? 'Entree stock' : 'Sortie stock'} - ${m.reference_produit || m.produit_nom || 'Produit'}`,
           <Badge>{m.type_mouvement}</Badge>,
@@ -2725,7 +2760,7 @@ function Rapports({ data, searchQuery = '', user }) {
         <div className="panel-heading">
           <div>
             <h3>{reportTitle}</h3>
-            <p>Etat de sortie {periodText.toLowerCase()} pret pour impression.</p>
+            <p>Donnees consolidees pour la periode {periodText.toLowerCase()}.</p>
           </div>
           <div className="actions">
             {role === 'manager' && <button className="btn secondary small" type="button" onClick={() => setShowArchives(true)}><Archive size={16} /> Archivage</button>}
@@ -3015,7 +3050,7 @@ function AuditJournal({ data, searchQuery = '' }) {
   const [actionFilter, setActionFilter] = useState('tous');
   const [userFilter, setUserFilter] = useState('tous');
   const [selected, setSelected] = useState(null);
-  const logs = data.extra.auditLogs || [];
+  const logs = (data.extra.auditLogs || []).filter((log) => ['manager', 'vendeur', 'magasinier'].includes(log.user_role));
   const moduleLabels = {
     clients: 'Clients',
     client: 'Clients',
@@ -3060,7 +3095,7 @@ function AuditJournal({ data, searchQuery = '' }) {
     .filter((log) => moduleFilter === 'tous' || log.module === moduleFilter)
     .filter((log) => actionFilter === 'tous' || log.action_type === actionFilter)
     .filter((log) => !term || `${log.user_name} ${log.user_role} ${log.description} ${log.module} ${log.entity_id}`.toLowerCase().includes(term));
-  const printAllAudit = () => printRows(
+  const printAllAudit = () => printTableDocument(
     'Journal d’audit',
     ['Date', 'Utilisateur', 'Role', 'Action', 'Module', 'Reference', 'Description'],
     logs.map((log) => [
@@ -3077,7 +3112,7 @@ function AuditJournal({ data, searchQuery = '' }) {
   const selectedUserLogs = userFilter === 'tous' ? [] : logs.filter((log) => auditUserKey(log) === userFilter);
   const printSelectedUserAudit = () => {
     if (!selectedAuditUser) return;
-    printRows(
+    printTableDocument(
       `Audit utilisateur - ${selectedAuditUser.name}`,
       ['Date', 'Utilisateur', 'Role', 'Action', 'Module', 'Reference', 'Description'],
       selectedUserLogs.map((log) => [
@@ -3151,7 +3186,7 @@ function AuditJournal({ data, searchQuery = '' }) {
             </div>
             <div className="debt-preview"><span>Description</span><strong>{selected.description || '-'}</strong><em>{formatDate(selected.created_at)}</em></div>
             <label>Donnees de l’action / avant-apres disponible
-              <textarea readOnly value={metadataText(selected.metadata)} />
+              <pre className="audit-metadata">{metadataText(selected.metadata)}</pre>
             </label>
           </div>
         </Modal>
