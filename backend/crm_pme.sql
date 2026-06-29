@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS sequences (
 CREATE TABLE IF NOT EXISTS entreprise (
     id_entreprise VARCHAR(50) PRIMARY KEY,
     raison_sociale VARCHAR(200) NOT NULL,
+    logo_url TEXT NULL,
     num_id_nationale VARCHAR(50) UNIQUE,
     email VARCHAR(150),
     ville VARCHAR(100)

@@ -9,7 +9,7 @@ const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const uploadsRoot = path.join(__dirname, '..', 'uploads');
-const allowedFolders = new Set(['products', 'categories']);
+const allowedFolders = new Set(['products', 'categories', 'companies']);
 const allowedMimeTypes = new Map([
     ['image/jpeg', 'jpg'],
     ['image/png', 'png'],
@@ -19,9 +19,14 @@ const allowedMimeTypes = new Map([
 
 const publicBaseUrl = (req) => String(process.env.API_PUBLIC_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
 
-router.post('/image', protect, authorizeRoles('magasinier'), async (req, res) => {
+router.post('/image', protect, authorizeRoles('manager', 'magasinier'), async (req, res) => {
     try {
         const folder = allowedFolders.has(String(req.body.folder || 'products')) ? String(req.body.folder || 'products') : 'products';
+        const canUpload = (folder === 'companies' && req.user.role === 'manager')
+            || (folder !== 'companies' && req.user.role === 'magasinier');
+        if (!canUpload) {
+            return res.status(403).json({ success: false, message: 'Vous ne pouvez pas charger une image dans ce dossier.' });
+        }
         const dataUrl = String(req.body.data_url || '');
         const match = dataUrl.match(/^data:(image\/(?:jpeg|png|webp|gif));base64,([a-z0-9+/=]+)$/i);
         if (!match) return res.status(400).json({ success: false, message: 'Image invalide. Formats acceptes: JPG, PNG, WEBP ou GIF.' });

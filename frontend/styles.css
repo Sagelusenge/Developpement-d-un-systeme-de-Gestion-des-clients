@@ -8257,6 +8257,83 @@ body:has(.login-page),
   .shell:not(.admin-shell) .panel { border-radius: 12px; padding: 20px; }
 }
 
+/* Configuration de l'entreprise */
+.company-settings-layout {
+  align-items: start;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(240px, 0.7fr) minmax(460px, 1.5fr);
+  padding-bottom: 32px;
+}
+
+.company-settings-layout .panel {
+  margin: 0;
+}
+
+.company-settings-preview {
+  overflow: hidden;
+  padding: 30px;
+  position: sticky;
+  text-align: center;
+  top: 92px;
+}
+
+.company-logo-preview {
+  align-items: center;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 22px;
+  display: flex;
+  height: 150px;
+  justify-content: center;
+  margin: 22px auto;
+  padding: 18px;
+  width: 150px;
+}
+
+.company-logo-preview img {
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
+}
+
+.company-settings-preview h2 {
+  font-size: 22px;
+  margin: 0 0 8px;
+}
+
+.company-settings-preview p,
+.company-settings-form .panel-heading p {
+  color: var(--muted);
+  margin: 6px 0 0;
+}
+
+.company-settings-form {
+  padding: 28px;
+}
+
+.company-settings-form .form {
+  margin-top: 24px;
+}
+
+.company-settings-form .photo-input {
+  margin-top: 8px;
+}
+
+.company-settings-form .photo-preview {
+  max-width: 190px;
+}
+
+@media (max-width: 920px) {
+  .company-settings-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .company-settings-preview {
+    position: static;
+  }
+}
+
 .sidebar .brand { padding: 22px 18px 20px; }
 .sidebar .brand strong { font-size: 20px; line-height: 1.06; }
 .sidebar .brand span { font-size: 14px; line-height: 1.3; }

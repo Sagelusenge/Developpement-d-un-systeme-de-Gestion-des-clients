@@ -68,7 +68,7 @@ export const login = async (req, res) => {
 
     try {
         const [users] = await pool.query(
-            `SELECT u.*, e.raison_sociale AS entreprise_nom
+            `SELECT u.*, e.raison_sociale AS entreprise_nom, e.logo_url AS entreprise_logo
              FROM utilisateur u
              JOIN entreprise e ON e.id_entreprise = u.entreprise_id
              WHERE u.email = ? AND u.actif = 1`,
@@ -115,6 +115,7 @@ export const login = async (req, res) => {
                 role: user.role,
                 entreprise_id: user.entreprise_id,
                 entreprise_nom: user.entreprise_nom,
+                entreprise_logo: user.entreprise_logo,
                 type: 'utilisateur'
             }
         });
@@ -128,7 +129,7 @@ export const getMe = async (req, res) => {
     try {
         const [users] = await pool.query(
             `SELECT u.id_utilisateur, u.nom, u.email, u.telephone, u.role,
-                    u.entreprise_id, e.raison_sociale AS entreprise_nom
+                    u.entreprise_id, e.raison_sociale AS entreprise_nom, e.logo_url AS entreprise_logo
              FROM utilisateur u
              JOIN entreprise e ON u.entreprise_id = e.id_entreprise
              WHERE u.id_utilisateur = ?`,
@@ -169,7 +170,7 @@ export const updateProfile = async (req, res) => {
 
         const [[user]] = await pool.query(
             `SELECT u.id_utilisateur, u.nom, u.email, u.telephone, u.role,
-                    u.entreprise_id, e.raison_sociale AS entreprise_nom
+                    u.entreprise_id, e.raison_sociale AS entreprise_nom, e.logo_url AS entreprise_logo
              FROM utilisateur u
              JOIN entreprise e ON u.entreprise_id = e.id_entreprise
              WHERE u.id_utilisateur = ?`,

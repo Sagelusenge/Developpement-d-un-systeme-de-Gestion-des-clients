@@ -478,6 +478,7 @@ export const ensureRuntimeSchema = async (pool) => {
     await pool.query(`DROP TABLE IF EXISTS demandes_abonnement`);
     await dropColumnIfExists('entreprise', 'statut_abonnement');
     await dropColumnIfExists('entreprise', 'date_expiration_abonnement');
+    await addColumnIfMissing('entreprise', 'logo_url', 'TEXT NULL');
 
     await addColumnIfMissing('notifications', 'recipient_type', "ENUM('user','enterprise_admin') NOT NULL DEFAULT 'user'");
     await addColumnIfMissing('notifications', 'recipient_user_id', 'VARCHAR(50) NULL');

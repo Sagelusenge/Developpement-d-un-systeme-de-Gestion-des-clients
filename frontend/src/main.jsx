@@ -134,6 +134,7 @@ const searchPlaceholders = {
   chat: 'Rechercher un client ou une conversation...',
   commentaires: 'Rechercher un visiteur, sujet ou message...',
   audit: 'Rechercher une action, utilisateur, module...',
+  parametres: 'Rechercher dans les parametres...',
 };
 
 const fallbackProductPhotos = [
@@ -265,6 +266,7 @@ const iconMap = {
   achats: FileText,
   chat: MessageCircle,
   commentaires: MessageCircle,
+  parametres: Settings,
 };
 
 const clientSegment = (client) => {
@@ -387,11 +389,12 @@ function getPrintIdentity() {
     const userLabel = user?.nom || user?.email || 'utilisateur';
     return {
       company: user?.entreprise_nom || user?.raison_sociale || APP_NAME,
+      logo: user?.entreprise_logo || LOGO_URL,
       userLabel,
       contact: user?.email || ''
     };
   } catch {
-    return { company: APP_NAME, userLabel: 'utilisateur', contact: '' };
+    return { company: APP_NAME, logo: LOGO_URL, userLabel: 'utilisateur', contact: '' };
   }
 }
 
@@ -495,7 +498,7 @@ function printLayout({ title, badge, sections = [], table, note, paper = 'ticket
         <main class="page">
           <header class="print-head">
             <div>
-              <div class="brand"><div class="print-logo"><img src="${LOGO_URL}" alt=""></div><h1>${escapePrint(identity.company)}</h1></div>
+              <div class="brand"><div class="print-logo"><img src="${escapePrint(identity.logo)}" alt=""></div><h1>${escapePrint(identity.company)}</h1></div>
               <div class="company">${escapePrint(line)}<br>${escapePrint(identity.contact || APP_NAME)}</div>
             </div>
             <div>
@@ -932,6 +935,18 @@ function App() {
     goTo('/connexion');
   };
 
+  const updateCompanyIdentity = (entreprise) => {
+    setUser((current) => {
+      const updated = {
+        ...current,
+        entreprise_nom: entreprise.raison_sociale,
+        entreprise_logo: entreprise.logo_url || ''
+      };
+      localStorage.setItem('crm_user', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const navItems = useMemo(() => {
     const role = user?.role;
     return [
@@ -951,7 +966,8 @@ function App() {
       { id: 'mails', label: tr(lang, 'mails'), roles: ['manager'] },
       { id: 'commentaires', label: 'Commentaires', roles: ['manager'] },
       { id: 'utilisateurs', label: tr(lang, 'utilisateurs'), roles: ['manager'] },
-      { id: 'audit', label: 'Audit', roles: ['manager'] }
+      { id: 'audit', label: 'Audit', roles: ['manager'] },
+      { id: 'parametres', label: 'Parametres', roles: ['manager'] }
     ].filter((item) => item.roles.includes(role));
   }, [authType, user, lang]);
 
@@ -1018,9 +1034,11 @@ function App() {
     reclamations: ['Reclamations', user?.role === 'client' ? 'Ecrivez directement au manager.' : 'Demandes envoyees par les clients.'],
     chat: [user?.role === 'client' ? 'Assistance' : 'Chat clients', user?.role === 'client' ? 'Obtenez une reponse automatique ou echangez avec le manager.' : 'Repondez aux questions transferees par l’assistant.'],
     commentaires: ['Commentaires du site', 'Messages envoyes depuis la page Contact.'],
+    parametres: ["Parametres de l'entreprise", 'Personnalisez le nom, le logo et les informations de votre entreprise.'],
   };
   const [title, subtitle] = titles[page] || [APP_NAME, ''];
   const sidebarTitle = user?.entreprise_nom || user?.raison_sociale || user?.entreprise_id || APP_NAME;
+  const sidebarLogo = user?.entreprise_logo || LOGO_URL;
   const navById = Object.fromEntries(navItems.map((item) => [item.id, item]));
   const navGroups = user?.role === 'client' ? [] : [
     { id: 'magasin', label: 'Magasin', icon: Box, ids: ['fournisseurs', 'categories', 'produits'] },
@@ -1036,7 +1054,7 @@ function App() {
       {mobileMenuOpen && <button className="sidebar-scrim" type="button" aria-label="Fermer le menu" onClick={() => setMobileMenuOpen(false)} />}
       <aside className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="brand">
-          <div className="brand-mark logo-mark"><img src={LOGO_URL} alt="" /></div>
+          <div className="brand-mark logo-mark"><img src={sidebarLogo} alt="" /></div>
           <div>
             <strong title={sidebarTitle}>{sidebarTitle}</strong>
             <span>{APP_TAGLINE}</span>
@@ -1097,7 +1115,7 @@ function App() {
             </div>
           </section>
         )}
-        <Page page={page} api={api} notify={notify} lang={lang} user={user} searchQuery={platformSearch} setPage={setPage} />
+        <Page page={page} api={api} notify={notify} lang={lang} user={user} searchQuery={platformSearch} setPage={setPage} onCompanyUpdated={updateCompanyIdentity} />
       </main>
       {selectedNotification && (
         <Modal title={selectedNotification.titre || 'Notification'} onClose={() => setSelectedNotification(null)}>
@@ -1513,7 +1531,7 @@ function ProfileModal({ api, notify, user, onUserUpdate, onClose }) {
   );
 }
 
-function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
+function Page({ page, api, notify, lang, user, searchQuery, setPage, onCompanyUpdated }) {
   const [data, setData] = useState({ clients: [], produits: [], categories: [], fournisseurs: [], ventes: [], extra: {} });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -1621,7 +1639,92 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage }) {
   if (page === 'reclamations') return <Reclamations {...props} />;
   if (page === 'chat') return <ChatPage {...props} />;
   if (page === 'commentaires') return <Commentaires {...props} />;
+  if (page === 'parametres') return <ParametresEntreprise api={api} notify={notify} onCompanyUpdated={onCompanyUpdated} />;
   return null;
+}
+
+function ParametresEntreprise({ api, notify, onCompanyUpdated }) {
+  const emptyForm = { raison_sociale: '', logo_url: '', num_id_nationale: '', email: '', ville: '' };
+  const [form, setForm] = useState(emptyForm);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    api('/entreprise')
+      .then((response) => {
+        if (!active) return;
+        const entreprise = response.data || {};
+        setForm({
+          raison_sociale: entreprise.raison_sociale || '',
+          logo_url: entreprise.logo_url || '',
+          num_id_nationale: entreprise.num_id_nationale || '',
+          email: entreprise.email || '',
+          ville: entreprise.ville || ''
+        });
+      })
+      .catch((error) => notify(error.message))
+      .finally(() => active && setLoading(false));
+    return () => { active = false; };
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const response = await api('/entreprise', { method: 'PUT', body: JSON.stringify(form) });
+      setForm({
+        raison_sociale: response.data.raison_sociale || '',
+        logo_url: response.data.logo_url || '',
+        num_id_nationale: response.data.num_id_nationale || '',
+        email: response.data.email || '',
+        ville: response.data.ville || ''
+      });
+      onCompanyUpdated?.(response.data);
+      notify('Configuration enregistree avec succes.');
+    } catch (error) {
+      notify(error.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div className="page-loader-shell"><QcLoader label="Chargement de la configuration" /></div>;
+
+  return (
+    <section className="company-settings-layout">
+      <article className="panel company-settings-preview">
+        <span className="section-kicker">Apercu</span>
+        <div className="company-logo-preview">
+          <img src={form.logo_url || LOGO_URL} alt={`Logo ${form.raison_sociale || "de l'entreprise"}`} />
+        </div>
+        <h2>{form.raison_sociale || "Nom de l'entreprise"}</h2>
+        <p>{[form.ville, form.email].filter(Boolean).join(' • ') || 'Vos informations apparaitront ici.'}</p>
+      </article>
+
+      <article className="panel company-settings-form">
+        <div className="panel-heading">
+          <div>
+            <h3>Identite de l'entreprise</h3>
+            <p>Ces informations sont partagees avec tous les utilisateurs de votre entreprise.</p>
+          </div>
+        </div>
+        <Form onSubmit={save}>
+          <div className="form-grid">
+            <Input label="Nom de l'entreprise" value={form.raison_sociale} onChange={(value) => setForm({ ...form, raison_sociale: value })} required maxLength={200} />
+            <Input label="Numero d'identification" value={form.num_id_nationale} onChange={(value) => setForm({ ...form, num_id_nationale: value })} maxLength={50} />
+            <Input label="Email de l'entreprise" type="email" value={form.email} onChange={(value) => setForm({ ...form, email: value })} maxLength={150} />
+            <Input label="Ville" value={form.ville} onChange={(value) => setForm({ ...form, ville: value })} maxLength={100} />
+          </div>
+          <PhotoInput label="Logo de l'entreprise" value={form.logo_url} onChange={(value) => setForm({ ...form, logo_url: value })} api={api} folder="companies" notify={notify} />
+          <div className="form-actions">
+            <button className="btn" type="submit" disabled={saving || !form.raison_sociale.trim()}>
+              {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
+            </button>
+          </div>
+        </Form>
+      </article>
+    </section>
+  );
 }
 
 function Dashboard({ data, searchQuery = '', setPage, user }) {
