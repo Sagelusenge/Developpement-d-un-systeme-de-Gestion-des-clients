@@ -635,7 +635,7 @@ function PublicServices({ goTo }) {
     [Users, 'Conseil et accompagnement', 'Notre equipe vous oriente vers les produits adaptes à votre projet et à votre budget.']
   ];
   return (
-    <><section className="public-page-hero services-hero"><span className="eyebrow">Nos services</span><h1>Plus que des produits,<br />un accompagnement.</h1><p>Une offre complete qui relie le magasin, le suivi commercial et votre espace client.</p></section><section className="services-grid">{services.map(([Icon, title, text], index) => <article key={title}><b>{String(index + 1).padStart(2, '0')}</b><Icon size={32} /><h2>{title}</h2><p>{text}</p></article>)}</section><section className="digital-service"><div><span className="section-kicker light">Votre espace client</span><h2>Vos commandes vous suivent partout.</h2><p>Commandez, consultez vos factures et echangez avec le manager depuis une interface simple et securisee.</p><button className="public-primary" onClick={() => goTo('/connexion')}>Acceder à mon espace <ArrowRight size={18} /></button></div><div className="digital-mock"><div className="mock-top"><i /><i /><i /></div><div className="mock-content"><aside /><main><span /><span /><div><i /><i /><i /></div></main></div></div></section><section className="public-cta"><span>Besoin d'un renseignement ?</span><h2>Notre equipe vous repond.</h2><button className="public-primary" onClick={() => goTo('/contact')}>Nous contacter <Send size={18} /></button></section></>
+    <><section className="public-page-hero services-hero"><span className="eyebrow">Nos services</span><h1>Plus que des produits,<br />un accompagnement.</h1><p>Une offre complete qui relie le magasin, le suivi commercial et votre espace client.</p></section><section className="services-grid">{services.map(([Icon, title, text], index) => <article key={title}><b>{String(index + 1).padStart(2, '0')}</b><Icon size={32} /><h2>{title}</h2><p>{text}</p></article>)}</section><section className="digital-service"><div><span className="section-kicker light">Votre espace client</span><h2>Vos commandes vous suivent partout.</h2><p>Commandez, consultez vos factures et echangez avec le manager depuis une interface simple et securisee.</p><button className="public-primary" onClick={() => goTo('/connexion')}>Acceder à mon espace <ArrowRight size={18} /></button></div><div className="digital-mock" aria-label="Apercu du tableau de bord client"><div className="preview-browser"><i /><i /><i /><span>espace.quincaillerie-centrale.cd</span></div><div className="preview-layout"><aside><div className="preview-logo"><img src={LOGO_URL} alt="" /><b>QC</b></div><span className="active"><Grid2X2 size={14} /></span><span><ShoppingCart size={14} /></span><span><FileText size={14} /></span><span><MessageCircle size={14} /></span></aside><main className="preview-dashboard"><header><div><small>ESPACE CLIENT</small><strong>Bonjour, Sage</strong></div><span>SL</span></header><div className="preview-kpis"><article><small>Commandes</small><strong>12</strong><em>+2 ce mois</em></article><article><small>Achats cumules</small><strong>1 896 USD</strong><em>Situation à jour</em></article><article><small>Reclamations</small><strong>0</strong><em>Tout est regle</em></article></div><section className="preview-activity"><div><small>Activite des commandes</small><strong>Suivi en temps reel</strong></div><div className="preview-bars"><i style={{ height: '36%' }} /><i style={{ height: '52%' }} /><i style={{ height: '43%' }} /><i style={{ height: '72%' }} /><i style={{ height: '61%' }} /><i style={{ height: '88%' }} /></div></section><section className="preview-orders"><header><strong>Dernieres commandes</strong><small>Voir tout</small></header><div><span>CMD-000012</span><b>En preparation</b><em>348 USD</em></div><div><span>CMD-000011</span><b className="confirmed">Confirmee</b><em>580 USD</em></div></section></main></div></div></section><section className="public-cta"><span>Besoin d'un renseignement ?</span><h2>Notre equipe vous repond.</h2><button className="public-primary" onClick={() => goTo('/contact')}>Nous contacter <Send size={18} /></button></section></>
   );
 }
 
@@ -3045,6 +3045,81 @@ function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
   );
 }
 
+const auditFieldLabels = {
+  body: 'Informations enregistrees',
+  articles: 'Articles concernes',
+  client_id: 'Client',
+  produit_id: 'Produit',
+  fournisseur_id: 'Fournisseur',
+  quantite: 'Quantite',
+  prix: 'Prix unitaire',
+  prix_vente: 'Prix de vente',
+  prix_achat: "Prix d'achat",
+  montant: 'Montant',
+  montant_ttc: 'Montant TTC',
+  statut: 'Statut',
+  nom: 'Nom',
+  postnom: 'Postnom',
+  telephone: 'Telephone',
+  email: 'Adresse email',
+  role: 'Role',
+  before: 'Avant la modification',
+  after: 'Apres la modification',
+  avant: 'Avant la modification',
+  apres: 'Apres la modification',
+  note_client: 'Note du client'
+};
+
+const isEmptyAuditValue = (value) => value === null
+  || value === undefined
+  || value === ''
+  || (Array.isArray(value) && value.length === 0)
+  || (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0);
+
+function AuditMetadata({ metadata }) {
+  let parsed = metadata;
+  if (typeof metadata === 'string') {
+    try { parsed = JSON.parse(metadata); } catch { parsed = { information: metadata }; }
+  }
+  const source = parsed?.body && typeof parsed.body === 'object' ? parsed.body : parsed;
+  const labelFor = (key) => auditFieldLabels[key] || String(key).replace(/_/g, ' ').replace(/^./, (letter) => letter.toUpperCase());
+  const valueFor = (key, value) => {
+    if (typeof value === 'boolean') return value ? 'Oui' : 'Non';
+    if (/prix|montant|total|cout/i.test(key) && !Number.isNaN(Number(value))) return `${Number(value).toLocaleString('fr-FR')} USD`;
+    return String(value);
+  };
+  const renderEntry = (key, value, path) => {
+    if (isEmptyAuditValue(value) || ['query', 'params'].includes(key)) return null;
+    if (Array.isArray(value)) {
+      return (
+        <section className="audit-readable-group" key={path}>
+          <h4>{labelFor(key)}</h4>
+          <div className="audit-readable-list">
+            {value.map((item, index) => (
+              <article key={`${path}-${index}`}>
+                <strong>{key === 'articles' ? `Article ${index + 1}` : `Element ${index + 1}`}</strong>
+                {typeof item === 'object'
+                  ? Object.entries(item).map(([childKey, childValue]) => renderEntry(childKey, childValue, `${path}-${index}-${childKey}`))
+                  : <span>{String(item)}</span>}
+              </article>
+            ))}
+          </div>
+        </section>
+      );
+    }
+    if (typeof value === 'object') {
+      const children = Object.entries(value).map(([childKey, childValue]) => renderEntry(childKey, childValue, `${path}-${childKey}`)).filter(Boolean);
+      if (!children.length) return null;
+      return <section className="audit-readable-group" key={path}><h4>{labelFor(key)}</h4><div className="audit-readable-fields">{children}</div></section>;
+    }
+    return <div className="audit-readable-row" key={path}><span>{labelFor(key)}</span><strong>{valueFor(key, value)}</strong></div>;
+  };
+  const details = source && typeof source === 'object'
+    ? Object.entries(source).map(([key, value]) => renderEntry(key, value, key)).filter(Boolean)
+    : [];
+  return details.length ? <div className="audit-readable">{details}</div> : <div className="audit-readable-empty">Aucune information complementaire pour cette action.</div>;
+}
+
 function AuditJournal({ data, searchQuery = '' }) {
   const [moduleFilter, setModuleFilter] = useState('tous');
   const [actionFilter, setActionFilter] = useState('tous');
@@ -3072,15 +3147,6 @@ function AuditJournal({ data, searchQuery = '' }) {
     PUT: 'Modification',
     PATCH: 'Modification',
     DELETE: 'Suppression'
-  };
-  const parseMetadata = (metadata) => {
-    if (!metadata) return {};
-    if (typeof metadata === 'object') return metadata;
-    try { return JSON.parse(metadata); } catch { return { brut: metadata }; }
-  };
-  const metadataText = (metadata) => {
-    const parsed = parseMetadata(metadata);
-    return Object.keys(parsed).length ? JSON.stringify(parsed, null, 2) : 'Aucune donnee detaillee.';
   };
   const modules = Array.from(new Set(logs.map((log) => log.module).filter(Boolean))).sort();
   const actions = Array.from(new Set(logs.map((log) => log.action_type).filter(Boolean))).sort();
@@ -3170,7 +3236,7 @@ function AuditJournal({ data, searchQuery = '' }) {
           <article><Edit3 /><span>Modifications</span><strong>{logs.filter((log) => ['PUT', 'PATCH'].includes(log.action_type)).length}</strong></article>
           <article><Trash2 /><span>Suppressions</span><strong>{logs.filter((log) => log.action_type === 'DELETE').length}</strong></article>
         </div>
-        <p className="muted-note">Les donnees detaillees affichent les parametres, le corps de la requete et la reference concernee quand ils sont disponibles. Les mots de passe, codes et images sont masques automatiquement.</p>
+        <p className="muted-note">Ouvrez une action pour consulter clairement les informations concernees. Les mots de passe, codes et images restent automatiquement masques.</p>
       </section>
       {selected && (
         <Modal title={`Action ${selected.id_log}`} onClose={() => setSelected(null)} className="audit-modal">
@@ -3185,9 +3251,10 @@ function AuditJournal({ data, searchQuery = '' }) {
               <div className="debt-preview"><span>Module</span><strong>{moduleLabels[selected.module] || selected.module || '-'}</strong></div>
             </div>
             <div className="debt-preview"><span>Description</span><strong>{selected.description || '-'}</strong><em>{formatDate(selected.created_at)}</em></div>
-            <label>Donnees de l’action / avant-apres disponible
-              <pre className="audit-metadata">{metadataText(selected.metadata)}</pre>
-            </label>
+            <div className="audit-readable-block">
+              <h4>Informations concernees par cette action</h4>
+              <AuditMetadata metadata={selected.metadata} />
+            </div>
           </div>
         </Modal>
       )}
