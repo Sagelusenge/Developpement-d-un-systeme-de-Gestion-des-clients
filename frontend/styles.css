@@ -10625,3 +10625,234 @@ body:has(.login-page),
     width: 20px !important;
   }
 }
+
+/* Finitions finales : chat, rapports, topbar sticky et transitions publiques. */
+.shell .topbar,
+.shell:not(.admin-shell) .topbar,
+.admin-shell .topbar {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 850 !important;
+}
+
+.page-chat .chat-shell {
+  height: min(72dvh, 720px) !important;
+  min-height: 560px !important;
+}
+
+.page-chat .chat-list {
+  max-height: 100% !important;
+  overflow-y: auto !important;
+  scrollbar-width: thin;
+}
+
+.page-chat .chat-window {
+  grid-template-rows: auto minmax(0, 1fr) auto auto !important;
+  min-height: 0 !important;
+}
+
+.page-chat .chat-messages {
+  max-height: none !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.page-chat .chat-suggestions-bottom {
+  align-content: start !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 7px !important;
+  max-height: 92px !important;
+  overflow-y: auto !important;
+  padding: 9px 14px !important;
+  scrollbar-width: thin;
+}
+
+.page-chat .chat-suggestions-bottom button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.stock-movement-panel {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.stock-movement-panel .table-shell,
+.inventory-panel .table-shell {
+  min-height: 0 !important;
+}
+
+.stock-movement-panel .table-wrap,
+.inventory-panel .table-wrap {
+  max-height: clamp(420px, 58dvh, 720px) !important;
+  overflow: auto !important;
+  padding-bottom: 8px !important;
+}
+
+.stock-movement-panel .table-pagination,
+.inventory-panel .table-pagination {
+  background: #ffffff !important;
+  border-top: 1px solid #dbe3ec !important;
+  bottom: 0;
+  margin-top: 0 !important;
+  position: sticky;
+  z-index: 5;
+}
+
+.public-route-enter {
+  animation: publicRouteEnter .58s cubic-bezier(.16, 1, .3, 1) both;
+}
+
+.public-site .public-header nav button,
+.public-site .public-header .public-login,
+.public-site .public-header .public-signin,
+.public-site .public-primary,
+.public-site .public-secondary,
+.public-site .public-text-link {
+  transition: transform .24s ease, box-shadow .24s ease, background-color .24s ease, color .24s ease !important;
+}
+
+.public-site .public-header nav button:hover,
+.public-site .public-header .public-login:hover,
+.public-site .public-header .public-signin:hover {
+  transform: translateY(-2px);
+}
+
+.public-hero .hero-visual {
+  animation: heroVisualFloat 7s ease-in-out infinite alternate;
+}
+
+.public-hero .hero-float {
+  animation: heroFloatCard 3.8s ease-in-out infinite alternate;
+}
+
+.public-app-preview {
+  align-items: center;
+  background: linear-gradient(135deg, #07192f 0%, #0b3b73 100%);
+  border-radius: 34px;
+  color: #ffffff;
+  display: grid;
+  gap: 36px;
+  grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr);
+  margin-inline: auto;
+  max-width: 1380px;
+  overflow: hidden;
+  padding: clamp(26px, 4vw, 54px);
+  position: relative;
+}
+
+.public-app-preview::before {
+  background: radial-gradient(circle, rgba(255, 165, 31, .24), transparent 62%);
+  content: "";
+  height: 360px;
+  position: absolute;
+  right: -120px;
+  top: -140px;
+  width: 360px;
+}
+
+.public-app-preview > div,
+.public-app-preview figure {
+  position: relative;
+  z-index: 1;
+}
+
+.public-app-preview .section-kicker,
+.public-app-preview h2,
+.public-app-preview p {
+  color: #ffffff;
+}
+
+.public-app-preview p {
+  color: #dce8f7;
+  line-height: 1.75;
+  max-width: 560px;
+}
+
+.public-app-preview figure {
+  background: rgba(255, 255, 255, .08);
+  border: 1px solid rgba(255, 255, 255, .2);
+  border-radius: 24px;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, .28);
+  margin: 0;
+  overflow: hidden;
+  transform: perspective(1100px) rotateY(-7deg) rotateX(2deg);
+}
+
+.public-app-preview img {
+  display: block;
+  height: auto;
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .public-app-preview figure {
+    animation: appPreviewFloat 5.8s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes appPreviewFloat {
+  from { transform: perspective(1100px) rotateY(-7deg) rotateX(2deg) translateY(0); }
+  to { transform: perspective(1100px) rotateY(-4deg) rotateX(1deg) translateY(-12px); }
+}
+
+@keyframes publicRouteEnter {
+  from {
+    filter: blur(5px);
+    opacity: 0;
+    transform: translateY(18px) scale(.992);
+  }
+  to {
+    filter: blur(0);
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes heroVisualFloat {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(0, -8px, 0) scale(1.01); }
+}
+
+@keyframes heroFloatCard {
+  from { transform: translateY(0); }
+  to { transform: translateY(-10px); }
+}
+
+@media (max-width: 760px) {
+  .page-chat .chat-shell {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  .page-chat .chat-list {
+    max-height: 260px !important;
+  }
+
+  .page-chat .chat-messages {
+    min-height: 46dvh !important;
+    max-height: 52dvh !important;
+  }
+
+  .page-chat .chat-suggestions-bottom {
+    max-height: 104px !important;
+  }
+
+  .stock-movement-panel .table-wrap,
+  .inventory-panel .table-wrap {
+    max-height: 62dvh !important;
+  }
+
+  .public-app-preview {
+    border-radius: 24px;
+    grid-template-columns: 1fr;
+    padding: 24px;
+  }
+
+  .public-app-preview figure {
+    transform: none;
+  }
+}

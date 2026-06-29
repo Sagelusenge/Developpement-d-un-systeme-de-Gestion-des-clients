@@ -606,6 +606,17 @@ function PublicHome({ goTo }) {
         <article><span>03</span><Users size={30} /><h3>Conseil de proximite</h3><p>Une equipe qui vous aide à choisir selon votre chantier, votre budget et vos priorites.</p></article>
       </section>
       <section className="public-process"><div><span className="section-kicker">Une experience plus simple</span><h2>Du besoin au chantier, sans perdre le fil.</h2><p>Notre plateforme prolonge le service du magasin : vous preparez votre commande, notre equipe la verifie, puis vous suivez sa confirmation et votre facture depuis votre espace personnel.</p></div><ol><li><b>1</b><span><strong>Choisissez</strong><small>Consultez uniquement les produits disponibles au bon prix de vente.</small></span></li><li><b>2</b><span><strong>Commandez</strong><small>Le montant est calcule automatiquement avec le prix du catalogue.</small></span></li><li><b>3</b><span><strong>Suivez</strong><small>Retrouvez le statut, la facture, le paiement et l'assistance au meme endroit.</small></span></li></ol></section>
+      <section className="public-app-preview">
+        <div>
+          <span className="section-kicker">Apercu de l'espace client</span>
+          <h2>Un suivi clair pour chaque client.</h2>
+          <p>Le client retrouve ses commandes, ses achats, ses reclamations et son assistance depuis une interface unique, simple et professionnelle.</p>
+          <button className="public-primary" onClick={() => goTo('/inscription')}>Creer mon espace <ArrowRight size={18} /></button>
+        </div>
+        <figure>
+          <img src="/assets/client-dashboard-preview.png" alt="Apercu du tableau de bord client Quincaillerie Centrale" />
+        </figure>
+      </section>
       <section className="public-trust-band"><div><strong>1992</strong><span>Fondation à Goma</span><small>Une entreprise locale nee pour servir les besoins de construction de la ville.</small></div><div><strong>2002</strong><span>Engagement dans la reconstruction</span><small>Des materiaux rendus disponibles pour accompagner la reprise apres l'eruption.</small></div><div><strong>Prix clairs</strong><span>Catalogue professionnel</span><small>Des tarifs de vente transparents et une disponibilite verifiee avant commande.</small></div><div><strong>1 espace</strong><span>Commandes, factures et assistance</span><small>Le client retrouve tout son suivi commercial depuis un compte securise.</small></div></section>
       <section className="public-story-band"><div className="story-image"><img src="https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&w=1800&q=88" alt="Travail des materiaux sur un chantier" /></div><div><span className="section-kicker light">Une histoire ancree à Goma</span><h2>De 1992 à aujourd'hui</h2><p>Fondee par Jean-Pierre Bishweka Bufole, l'entreprise s'est distinguee apres l'eruption volcanique de 2002 en fournissant les materiaux necessaires à la reconstruction de la ville.</p><button className="public-text-link" onClick={() => goTo('/about')}>Lire notre histoire <ArrowRight size={18} /></button></div></section>
       <section className="public-cta"><span>Un projet en preparation ?</span><h2>Parlons de vos besoins.</h2><p>Notre equipe est à votre ecoute sur l'Avenue du Commerce, au quartier Murara.</p><button className="public-primary" onClick={() => goTo('/contact')}>Contacter l'equipe <Send size={18} /></button></section>
@@ -706,6 +717,7 @@ function PublicWebsite({ route, goTo, onRegistrationComplete }) {
   useEffect(() => {
     const elements = document.querySelectorAll('.public-site main > section, .public-site main section > article, .public-site .public-footer-grid > div');
     elements.forEach((element, index) => {
+      element.classList.remove('is-visible');
       element.classList.add('scroll-reveal');
       element.style.setProperty('--reveal-delay', `${Math.min(index % 4, 3) * 90}ms`);
       element.style.setProperty('--reveal-x', `${index % 3 === 1 ? 18 : index % 3 === 2 ? -18 : 0}px`);
@@ -720,7 +732,7 @@ function PublicWebsite({ route, goTo, onRegistrationComplete }) {
     elements.forEach((element) => observer.observe(element));
     return () => observer.disconnect();
   }, [route]);
-  return <div className="public-site"><PublicHeader route={route} goTo={goTo} /><main key={route} className="public-main">{route === '/about' ? <PublicAbout goTo={goTo} /> : route === '/services' ? <PublicServices goTo={goTo} /> : route === '/contact' ? <PublicContact /> : route === '/inscription' ? <PublicRegistration goTo={goTo} onComplete={onRegistrationComplete} /> : <PublicHome goTo={goTo} />}</main><PublicFooter goTo={goTo} /></div>;
+  return <div className="public-site"><PublicHeader route={route} goTo={goTo} /><main key={route} className="public-main public-route-enter">{route === '/about' ? <PublicAbout goTo={goTo} /> : route === '/services' ? <PublicServices goTo={goTo} /> : route === '/contact' ? <PublicContact /> : route === '/inscription' ? <PublicRegistration goTo={goTo} onComplete={onRegistrationComplete} /> : <PublicHome goTo={goTo} />}</main><PublicFooter goTo={goTo} /></div>;
 }
 
 function App() {
@@ -3863,6 +3875,8 @@ function ChatPage({ api, notify, data, user, searchQuery = '' }) {
           <button type="button" onClick={() => setMessage('Comment consulter ma facture ?')}>Consulter une facture</button>
           <button type="button" onClick={() => setMessage('Je veux comprendre les moyens de paiement')}>Moyens de paiement</button>
           <button type="button" onClick={() => setMessage('Comment envoyer une reclamation ?')}>Envoyer une reclamation</button>
+          <button type="button" onClick={() => setMessage('Quels produits me conseillez-vous pour mon chantier ?')}>Conseil chantier</button>
+          <button type="button" onClick={() => setMessage('Je veux parler a un manager')}>Parler au manager</button>
         </div>}
         {(user?.role === 'client' || selected) && <Form onSubmit={send}><div className="chat-composer"><textarea value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Ecrivez votre question..." maxLength={2000} /><button className="btn" disabled={!message.trim()}><Send size={19} /> Envoyer</button></div></Form>}
       </section>
