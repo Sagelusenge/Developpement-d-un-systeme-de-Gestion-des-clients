@@ -1,6 +1,6 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import { convertCommande, createCommande, getAchatsClient, getCatalogue, getCommandes, updateCommandeStatus } from '../controllers/commandeController.js';
+import { cancelCommandeClient, convertCommande, createCommande, getAchatClientById, getAchatsClient, getCatalogue, getCommandeClientById, getCommandes, updateCommandeStatus } from '../controllers/commandeController.js';
 
 const router = express.Router();
 const protectAny = (req, res, next) => {
@@ -14,8 +14,11 @@ const protectAny = (req, res, next) => {
 router.use(protectAny);
 router.get('/catalogue', getCatalogue);
 router.get('/achats', getAchatsClient);
+router.get('/achats/:id', getAchatClientById);
 router.get('/', getCommandes);
+router.get('/:id', getCommandeClientById);
 router.post('/', createCommande);
+router.put('/:id/annuler', cancelCommandeClient);
 router.put('/:id/statut', updateCommandeStatus);
 router.post('/:id/convertir', convertCommande);
 export default router;

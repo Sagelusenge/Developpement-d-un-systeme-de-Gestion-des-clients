@@ -1571,14 +1571,21 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage, onCompanyUp
         tasks.push(api('/mail/status').then((r) => { next.extra.mailStatus = r.data || {}; }).catch(() => {}));
         tasks.push(api('/mail/messages').then((r) => { next.extra.mailMessages = r.data || []; }).catch(() => {}));
       }
-      if (page === 'commandes' || (page === 'dashboard' && user?.role === 'client')) {
+      if (page === 'dashboard' && user?.role === 'client') {
+        tasks.push(api('/client-auth/dashboard').then((r) => {
+          next.extra.clientDashboard = r.data || {};
+          next.extra.commandes = r.data?.dernieres_commandes || [];
+          next.extra.achats = r.data?.factures_recentes || [];
+        }));
+      }
+      if (page === 'commandes') {
         tasks.push(api('/commandes').then((r) => { next.extra.commandes = r.data || []; }));
         tasks.push(api('/commandes/catalogue').then((r) => { next.extra.catalogue = r.data || []; }));
       }
-      if (page === 'achats' || (page === 'dashboard' && user?.role === 'client')) {
+      if (page === 'achats') {
         tasks.push(api('/commandes/achats').then((r) => { next.extra.achats = r.data || []; }));
       }
-      if (page === 'reclamations' || (page === 'dashboard' && user?.role === 'client')) {
+      if (page === 'reclamations') {
         tasks.push(api('/reclamations').then((r) => { next.extra.reclamations = r.data || []; }));
         if (user?.role === 'client') tasks.push(api('/commandes').then((r) => { next.extra.commandes = r.data || []; }));
       }
@@ -3728,9 +3735,7 @@ function Categories({ api, notify, data, submit, searchQuery = '', user }) {
 
 function ClientDashboard({ data, setPage, user }) {
   const commandes = data.extra.commandes || [];
-  const achats = data.extra.achats || [];
-  const reclamations = data.extra.reclamations || [];
-  const totalAchats = achats.reduce((sum, item) => sum + Number(item.montant_ttc || 0), 0);
+  const stats = data.extra.clientDashboard?.stats || {};
   return (
     <div className="client-space">
       <section className="client-hero">
@@ -3738,9 +3743,9 @@ function ClientDashboard({ data, setPage, user }) {
         <button className="btn" type="button" onClick={() => setPage('commandes')}><ShoppingCart size={19} /> Commander</button>
       </section>
       <section className="client-kpis">
-        <article><ShoppingCart /><span>Commandes</span><strong>{commandes.length}</strong></article>
-        <article><FileText /><span>Achats cumules</span><strong>{moneySmart(totalAchats)}</strong></article>
-        <article><HelpCircle /><span>Reclamations ouvertes</span><strong>{reclamations.filter((item) => !['resolue', 'cloturee'].includes(item.statut)).length}</strong></article>
+        <article><ShoppingCart /><span>Commandes</span><strong>{stats.total_commandes || 0}</strong></article>
+        <article><FileText /><span>Achats cumules</span><strong>{moneySmart(stats.total_achats)}</strong></article>
+        <article><HelpCircle /><span>Reclamations ouvertes</span><strong>{stats.reclamations_ouvertes || 0}</strong></article>
       </section>
       <section className="panel">
         <div className="panel-heading"><h3>Dernieres commandes</h3><button className="link-button" type="button" onClick={() => setPage('commandes')}>Voir tout</button></div>

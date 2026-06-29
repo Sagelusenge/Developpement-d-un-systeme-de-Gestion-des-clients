@@ -72,6 +72,95 @@ export const getAchatsClient = async (req, res) => {
     } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 };
 
+export const getCommandeClientById = async (req, res) => {
+    if (!isClient(req)) return res.status(403).json({ success: false, message: 'Espace client requis.' });
+    try {
+        const [rows] = await pool.query(
+            `SELECT co.*, v.numero_facture
+             FROM commandes co
+             LEFT JOIN ventes v ON v.id_ventes = co.vente_id
+             WHERE co.id_commande = ? AND co.client_id = ? AND co.entreprise_id = ?
+             LIMIT 1`,
+            [req.params.id, req.user.client_id, req.user.entreprise_id]
+        );
+        if (!rows.length) return res.status(404).json({ success: false, message: 'Commande introuvable.' });
+        const [commande] = await attachLines(rows);
+        res.json({ success: true, data: commande });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getAchatClientById = async (req, res) => {
+    if (!isClient(req)) return res.status(403).json({ success: false, message: 'Espace client requis.' });
+    try {
+        const [[facture]] = await pool.query(
+            `SELECT v.id_ventes, v.numero_facture, v.montant_ttc, v.date_vente,
+                    IFNULL(SUM(p.montant), 0) AS total_paye,
+                    GREATEST(v.montant_ttc - IFNULL(SUM(p.montant), 0), 0) AS reste_a_payer
+             FROM ventes v
+             LEFT JOIN paiement p ON p.vente_id = v.id_ventes
+             WHERE (v.id_ventes = ? OR v.numero_facture = ?)
+               AND v.client_id = ? AND v.entreprise_id = ?
+             GROUP BY v.id_ventes
+             LIMIT 1`,
+            [req.params.id, req.params.id, req.user.client_id, req.user.entreprise_id]
+        );
+        if (!facture) return res.status(404).json({ success: false, message: 'Facture introuvable.' });
+
+        const [[lignes], [paiements]] = await Promise.all([
+            pool.query(
+                `SELECT lv.id_lignes_ventes, lv.produit_id, p.nom AS produit_nom, p.unite,
+                        lv.quantite, lv.prix_unitaire_ht,
+                        lv.quantite * lv.prix_unitaire_ht AS sous_total_ht
+                 FROM lignes_ventes lv
+                 JOIN produits p ON p.id_produit = lv.produit_id
+                 WHERE lv.vente_id = ?
+                 ORDER BY lv.id_lignes_ventes`,
+                [facture.id_ventes]
+            ),
+            pool.query(
+                `SELECT id_paiement, montant, mode_paiement, reference_externe, date_paiement
+                 FROM paiement
+                 WHERE vente_id = ?
+                 ORDER BY date_paiement DESC`,
+                [facture.id_ventes]
+            )
+        ]);
+
+        res.json({ success: true, data: { ...facture, lignes, paiements } });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const cancelCommandeClient = async (req, res) => {
+    if (!isClient(req)) return res.status(403).json({ success: false, message: 'Espace client requis.' });
+    try {
+        const [result] = await pool.query(
+            `UPDATE commandes
+             SET statut = 'annulee'
+             WHERE id_commande = ? AND client_id = ? AND entreprise_id = ?
+               AND statut = 'en_attente' AND vente_id IS NULL`,
+            [req.params.id, req.user.client_id, req.user.entreprise_id]
+        );
+        if (!result.affectedRows) {
+            return res.status(409).json({ success: false, message: 'Seule une commande en attente peut etre annulee.' });
+        }
+        await notifyEnterpriseRoles({
+            entreprise_id: req.user.entreprise_id,
+            roles: ['manager', 'vendeur'],
+            titre: 'Commande annulee par le client',
+            message: `${req.user.nom || 'Un client'} a annule la commande ${req.params.id}.`,
+            entity_type: 'commande',
+            entity_id: req.params.id
+        }).catch(() => null);
+        res.json({ success: true, message: 'Commande annulee.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 export const createCommande = async (req, res) => {
     if (!isClient(req)) return res.status(403).json({ success: false, message: 'Seul un client peut passer une commande.' });
     const articles = Array.isArray(req.body.articles) ? req.body.articles : [];

@@ -87,7 +87,7 @@ export const login = async (req, res) => {
 
         if (!isMatch) {
             const [[client]] = await pool.query(
-                `SELECT c.*, e.raison_sociale AS entreprise_nom
+                `SELECT c.*, e.raison_sociale AS entreprise_nom, e.logo_url AS entreprise_logo
                  FROM client c JOIN entreprise e ON e.id_entreprise = c.entreprise_id
                  WHERE LOWER(c.email) = ? AND c.actif = 1 LIMIT 1`, [email]
             );
@@ -97,7 +97,7 @@ export const login = async (req, res) => {
             const clientToken = jwt.sign({ id: client.id_client, client_id: client.id_client, email: client.email, role: 'client', entreprise_id: client.entreprise_id, nom: client.nom, type: 'client' }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '2h' });
             return res.json({
                 success: true, message: 'Connexion reussie', token: clientToken,
-                user: { id: client.id_client, id_client: client.id_client, nom: client.nom, postnom: client.postnom, email: client.email, telephone: client.telephone, role: 'client', entreprise_id: client.entreprise_id, entreprise_nom: client.entreprise_nom, type: 'client' }
+                user: { id: client.id_client, id_client: client.id_client, nom: client.nom, postnom: client.postnom, email: client.email, telephone: client.telephone, role: 'client', entreprise_id: client.entreprise_id, entreprise_nom: client.entreprise_nom, entreprise_logo: client.entreprise_logo || null, type: 'client' }
             });
         }
 

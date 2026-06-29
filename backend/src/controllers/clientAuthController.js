@@ -24,6 +24,7 @@ const publicClient = (client) => ({
     telephone: client.telephone,
     entreprise_id: client.entreprise_id,
     entreprise_nom: client.entreprise_nom,
+    entreprise_logo: client.entreprise_logo || null,
     role: 'client',
     type: 'client'
 });
@@ -93,7 +94,7 @@ export const verifyClientEmail = async (req, res) => {
         await connection.query(`INSERT INTO chat_conversations (id_conversation,client_id,entreprise_id,statut) VALUES (?,?,?,'ouverte')`, [conversationId, clientId, pending.entreprise_id]);
         await connection.query(`INSERT INTO chat_messages (id_message,conversation_id,sender_type,message) VALUES (?,?,'bot',?)`, [welcomeMessageId, conversationId, `Bienvenue ${pending.nom} chez Quincaillerie Centrale. Votre espace est pret. Je peux vous aider a trouver un materiel, verifier un prix ou suivre une commande.`]);
         const [[client]] = await pool.query(
-            `SELECT c.*, e.raison_sociale AS entreprise_nom FROM client c JOIN entreprise e ON e.id_entreprise = c.entreprise_id WHERE c.id_client = ?`, [clientId]
+            `SELECT c.*, e.raison_sociale AS entreprise_nom, e.logo_url AS entreprise_logo FROM client c JOIN entreprise e ON e.id_entreprise = c.entreprise_id WHERE c.id_client = ?`, [clientId]
         );
         sendClientWelcomeEmail({ to: client.email, name: client.nom }).catch(() => null);
         res.status(201).json({ success: true, message: 'Votre adresse email est confirmee. Bienvenue !', token: tokenFor(client), user: publicClient(client) });
@@ -125,7 +126,7 @@ export const loginClient = async (req, res) => {
     if (!email || !password) return res.status(400).json({ success: false, message: 'Email et mot de passe requis.' });
     try {
         const [rows] = await pool.query(
-            `SELECT c.*, e.raison_sociale AS entreprise_nom
+            `SELECT c.*, e.raison_sociale AS entreprise_nom, e.logo_url AS entreprise_logo
              FROM client c JOIN entreprise e ON e.id_entreprise = c.entreprise_id
              WHERE LOWER(c.email) = ? AND c.actif = 1`, [email]
         );
@@ -142,13 +143,106 @@ export const loginClient = async (req, res) => {
 export const getClientMe = async (req, res) => {
     try {
         const [[client]] = await pool.query(
-            `SELECT c.*, e.raison_sociale AS entreprise_nom
+            `SELECT c.*, e.raison_sociale AS entreprise_nom, e.logo_url AS entreprise_logo
              FROM client c JOIN entreprise e ON e.id_entreprise = c.entreprise_id
              WHERE c.id_client = ? AND c.entreprise_id = ? AND c.actif = 1`,
             [req.user.client_id, req.user.entreprise_id]
         );
         if (!client) return res.status(404).json({ success: false, message: 'Compte client introuvable.' });
         res.json({ success: true, user: publicClient(client) });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getClientDashboard = async (req, res) => {
+    const clientId = req.user.client_id;
+    const entrepriseId = req.user.entreprise_id;
+
+    try {
+        const [
+            [[orderStats]],
+            [[invoiceStats]],
+            [[complaintStats]],
+            [latestOrders],
+            [recentInvoices]
+        ] = await Promise.all([
+            pool.query(
+                `SELECT
+                    COUNT(*) AS total_commandes,
+                    SUM(statut = 'en_attente') AS commandes_en_attente,
+                    SUM(statut IN ('confirmee', 'preparee')) AS commandes_en_cours,
+                    SUM(statut = 'livree') AS commandes_livrees
+                 FROM commandes
+                 WHERE client_id = ? AND entreprise_id = ?`,
+                [clientId, entrepriseId]
+            ),
+            pool.query(
+                `SELECT
+                    COUNT(*) AS total_factures,
+                    COALESCE(SUM(v.montant_ttc), 0) AS total_achats,
+                    COALESCE(SUM(IFNULL(pay.total_paye, 0)), 0) AS total_paye,
+                    COALESCE(SUM(GREATEST(v.montant_ttc - IFNULL(pay.total_paye, 0), 0)), 0) AS total_restant
+                 FROM ventes v
+                 LEFT JOIN (
+                    SELECT vente_id, SUM(montant) AS total_paye
+                    FROM paiement
+                    GROUP BY vente_id
+                 ) pay ON pay.vente_id = v.id_ventes
+                 WHERE v.client_id = ? AND v.entreprise_id = ?`,
+                [clientId, entrepriseId]
+            ),
+            pool.query(
+                `SELECT
+                    COUNT(*) AS total_reclamations,
+                    SUM(statut NOT IN ('resolue', 'cloturee')) AS reclamations_ouvertes
+                 FROM reclamations
+                 WHERE client_id = ? AND entreprise_id = ?`,
+                [clientId, entrepriseId]
+            ),
+            pool.query(
+                `SELECT co.id_commande, co.montant_ttc, co.statut, co.date_commande,
+                        co.updated_at, v.numero_facture
+                 FROM commandes co
+                 LEFT JOIN ventes v ON v.id_ventes = co.vente_id
+                 WHERE co.client_id = ? AND co.entreprise_id = ?
+                 ORDER BY co.date_commande DESC
+                 LIMIT 5`,
+                [clientId, entrepriseId]
+            ),
+            pool.query(
+                `SELECT v.id_ventes, v.numero_facture, v.montant_ttc, v.date_vente,
+                        IFNULL(pay.total_paye, 0) AS total_paye,
+                        GREATEST(v.montant_ttc - IFNULL(pay.total_paye, 0), 0) AS reste_a_payer
+                 FROM ventes v
+                 LEFT JOIN (
+                    SELECT vente_id, SUM(montant) AS total_paye
+                    FROM paiement
+                    GROUP BY vente_id
+                 ) pay ON pay.vente_id = v.id_ventes
+                 WHERE v.client_id = ? AND v.entreprise_id = ?
+                 ORDER BY v.date_vente DESC
+                 LIMIT 5`,
+                [clientId, entrepriseId]
+            )
+        ]);
+
+        const normalizeNumbers = (row) => Object.fromEntries(
+            Object.entries(row || {}).map(([key, value]) => [key, Number(value || 0)])
+        );
+
+        res.json({
+            success: true,
+            data: {
+                stats: {
+                    ...normalizeNumbers(orderStats),
+                    ...normalizeNumbers(invoiceStats),
+                    ...normalizeNumbers(complaintStats)
+                },
+                dernieres_commandes: latestOrders,
+                factures_recentes: recentInvoices
+            }
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
