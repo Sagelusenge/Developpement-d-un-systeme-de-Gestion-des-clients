@@ -8324,6 +8324,70 @@ body:has(.login-page),
   max-width: 190px;
 }
 
+.settings-section-heading {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 12px;
+  margin: 28px 0 18px;
+  padding-bottom: 12px;
+}
+
+.settings-section-heading:first-child {
+  margin-top: 0;
+}
+
+.settings-section-heading svg {
+  color: var(--brand);
+}
+
+.settings-section-heading h4,
+.settings-section-heading p {
+  margin: 0;
+}
+
+.settings-section-heading h4 {
+  font-size: 16px;
+}
+
+.settings-section-heading p {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 3px;
+}
+
+.company-settings-form input[type="color"] {
+  cursor: pointer;
+  min-height: 48px;
+  padding: 5px;
+}
+
+.company-announcement-preview {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  margin-top: 18px;
+  padding: 11px 13px;
+}
+
+.company-site-preview-button {
+  gap: 8px;
+  justify-content: center;
+  margin-top: 18px;
+  width: 100%;
+}
+
+.public-announcement {
+  background: var(--public-blue);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  padding: 9px 20px;
+  text-align: center;
+}
+
 @media (max-width: 920px) {
   .company-settings-layout {
     grid-template-columns: 1fr;

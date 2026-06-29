@@ -195,7 +195,7 @@ export const getClientDashboard = async (req, res) => {
             pool.query(
                 `SELECT
                     COUNT(*) AS total_reclamations,
-                    SUM(statut NOT IN ('resolue', 'cloturee')) AS reclamations_ouvertes
+                    COUNT(CASE WHEN statut IN ('ouverte', 'en_cours') THEN 1 END) AS reclamations_ouvertes
                  FROM reclamations
                  WHERE client_id = ? AND entreprise_id = ?`,
                 [clientId, entrepriseId]

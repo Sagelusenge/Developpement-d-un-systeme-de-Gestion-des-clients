@@ -563,14 +563,30 @@ function printTableDocument(title, headers, rows, options = {}) {
 
 const publicPages = ['/', '/about', '/services', '/contact', '/inscription'];
 
-function PublicHeader({ route, goTo }) {
+const DEFAULT_SITE_CONFIG = {
+  raison_sociale: APP_NAME,
+  logo_url: LOGO_URL,
+  slogan: 'Materiaux & construction',
+  description_site: 'Des materiaux fiables pour construire Goma, depuis 1992.',
+  telephone: '',
+  adresse: 'Quartier Murara, Avenue du Commerce, Karisimbi, Goma',
+  horaires: '',
+  annonce_site: '',
+  hero_titre: 'Construire solide. Construire ensemble.',
+  hero_description: 'Materiaux de construction et articles de quincaillerie de qualite, accessibles aux professionnels comme aux particuliers.',
+  couleur_principale: '#0b5ea8',
+  email: '',
+  ville: 'Goma'
+};
+
+function PublicHeader({ route, goTo, config }) {
   const [open, setOpen] = useState(false);
   const links = [['/', 'Accueil'], ['/about', 'A propos'], ['/services', 'Services'], ['/contact', 'Contact']];
   const move = (path) => { setOpen(false); goTo(path); };
   return (
     <header className="public-header">
       <button className="public-brand" type="button" onClick={() => move('/')}>
-        <img src={LOGO_URL} alt="" /><span><strong>Quincaillerie Centrale</strong><small>Materiaux & construction</small></span>
+        <img src={config.logo_url || LOGO_URL} alt="" /><span><strong>{config.raison_sociale || APP_NAME}</strong><small>{config.slogan || DEFAULT_SITE_CONFIG.slogan}</small></span>
       </button>
       <button className="public-menu-toggle" type="button" onClick={() => setOpen(!open)} aria-label="Ouvrir le menu"><Menu size={25} /></button>
       <nav className={open ? 'open' : ''}>
@@ -582,20 +598,20 @@ function PublicHeader({ route, goTo }) {
   );
 }
 
-function PublicFooter({ goTo }) {
+function PublicFooter({ goTo, config }) {
   return (
     <footer className="public-footer">
       <div className="public-footer-grid">
-        <div><div className="footer-brand"><img src={LOGO_URL} alt="" /><strong>Quincaillerie Centrale</strong></div><p>Des materiaux fiables pour construire Goma, depuis 1992.</p></div>
+        <div><div className="footer-brand"><img src={config.logo_url || LOGO_URL} alt="" /><strong>{config.raison_sociale || APP_NAME}</strong></div><p>{config.description_site || DEFAULT_SITE_CONFIG.description_site}</p></div>
         <div><strong>Navigation</strong><button onClick={() => goTo('/about')}>Notre histoire</button><button onClick={() => goTo('/services')}>Nos services</button><button onClick={() => goTo('/contact')}>Nous contacter</button></div>
-        <div><strong>Nous trouver</strong><p>Quartier Murara<br />Avenue du Commerce<br />Karisimbi, Goma</p></div>
+        <div><strong>Nous trouver</strong><p>{config.adresse || DEFAULT_SITE_CONFIG.adresse}<br />{config.telephone || ''}<br />{config.horaires || ''}</p></div>
       </div>
-      <div className="footer-bottom"><span>© 2026 Quincaillerie Centrale</span><span>Qualite • Proximite • Confiance</span></div>
+      <div className="footer-bottom"><span>© 2026 {config.raison_sociale || APP_NAME}</span><span>{config.slogan || 'Qualite • Proximite • Confiance'}</span></div>
     </footer>
   );
 }
 
-function PublicHome({ goTo }) {
+function PublicHome({ goTo, config }) {
   const previewScreens = [
     { id: 'dashboard', label: 'Tableau de bord', icon: Grid2X2 },
     { id: 'achats', label: 'Mes achats', icon: FileText },
@@ -611,7 +627,7 @@ function PublicHome({ goTo }) {
   return (
     <>
       <section className="public-hero">
-        <div className="hero-copy"><span className="eyebrow">Au service de Goma depuis 1992</span><h1>Construire solide.<br /><em>Construire ensemble.</em></h1><p>Materiaux de construction et articles de quincaillerie de qualite, accessibles aux professionnels comme aux particuliers.</p><div className="hero-actions"><button className="public-primary" onClick={() => goTo('/services')}>Decouvrir nos services <ArrowRight size={19} /></button><button className="public-secondary" onClick={() => goTo('/contact')}>Nous contacter</button></div><div className="hero-proof"><div><strong>3 decennies</strong><span>d'experience locale</span></div><div><strong>Goma</strong><span>au coeur de notre action</span></div><div><strong>Qualite</strong><span>a prix competitifs</span></div></div></div>
+        <div className="hero-copy"><span className="eyebrow">{config.slogan || 'Au service de Goma depuis 1992'}</span><h1>{config.hero_titre || DEFAULT_SITE_CONFIG.hero_titre}</h1><p>{config.hero_description || DEFAULT_SITE_CONFIG.hero_description}</p><div className="hero-actions"><button className="public-primary" onClick={() => goTo('/services')}>Decouvrir nos services <ArrowRight size={19} /></button><button className="public-secondary" onClick={() => goTo('/contact')}>Nous contacter</button></div><div className="hero-proof"><div><strong>3 decennies</strong><span>d'experience locale</span></div><div><strong>{config.ville || 'Goma'}</strong><span>au coeur de notre action</span></div><div><strong>Qualite</strong><span>a prix competitifs</span></div></div></div>
         <div className="hero-visual"><img src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1800&q=88" alt="Chantier de construction et ouvriers du batiment" /><div className="hero-float"><ShieldCheck size={28} /><span><strong>Votre chantier, notre engagement</strong><small>Conseil, disponibilite et suivi</small></span></div></div>
       </section>
       <section className="public-intro"><div><span className="section-kicker">Notre raison d'etre</span><h2>La confiance se construit avec de bons materiaux.</h2></div><p>La Quincaillerie Centrale accompagne la croissance de Goma en proposant des produits de construction de qualite superieure à des prix competitifs. Notre expertise locale nous permet de comprendre vos besoins et de vous orienter vers les bonnes solutions.</p></section>
@@ -756,6 +772,19 @@ function PublicRegistration({ goTo, onComplete }) {
 }
 
 function PublicWebsite({ route, goTo, onRegistrationComplete }) {
+  const [siteConfig, setSiteConfig] = useState(DEFAULT_SITE_CONFIG);
+
+  useEffect(() => {
+    let active = true;
+    fetch(`${API_URL}/public/config`)
+      .then((response) => response.ok ? response.json() : Promise.reject())
+      .then((body) => {
+        if (active && body.data) setSiteConfig({ ...DEFAULT_SITE_CONFIG, ...body.data });
+      })
+      .catch(() => null);
+    return () => { active = false; };
+  }, []);
+
   useEffect(() => {
     const elements = document.querySelectorAll('.public-site main > section, .public-site main section > article, .public-site .public-footer-grid > div');
     elements.forEach((element, index) => {
@@ -774,7 +803,18 @@ function PublicWebsite({ route, goTo, onRegistrationComplete }) {
     elements.forEach((element) => observer.observe(element));
     return () => observer.disconnect();
   }, [route]);
-  return <div className="public-site"><PublicHeader route={route} goTo={goTo} /><main key={route} className="public-main public-route-enter">{route === '/about' ? <PublicAbout goTo={goTo} /> : route === '/services' ? <PublicServices goTo={goTo} /> : route === '/contact' ? <PublicContact /> : route === '/inscription' ? <PublicRegistration goTo={goTo} onComplete={onRegistrationComplete} /> : <PublicHome goTo={goTo} />}</main><PublicFooter goTo={goTo} /></div>;
+  return <div className="public-site" style={{ '--public-blue': siteConfig.couleur_principale || DEFAULT_SITE_CONFIG.couleur_principale }}>
+    {siteConfig.annonce_site && <div className="public-announcement">{siteConfig.annonce_site}</div>}
+    <PublicHeader route={route} goTo={goTo} config={siteConfig} />
+    <main key={route} className="public-main public-route-enter">
+      {route === '/about' ? <PublicAbout goTo={goTo} />
+        : route === '/services' ? <PublicServices goTo={goTo} />
+          : route === '/contact' ? <PublicContact />
+            : route === '/inscription' ? <PublicRegistration goTo={goTo} onComplete={onRegistrationComplete} />
+              : <PublicHome goTo={goTo} config={siteConfig} />}
+    </main>
+    <PublicFooter goTo={goTo} config={siteConfig} />
+  </div>;
 }
 
 function App() {
@@ -1577,6 +1617,9 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage, onCompanyUp
           next.extra.commandes = r.data?.dernieres_commandes || [];
           next.extra.achats = r.data?.factures_recentes || [];
         }));
+        tasks.push(api('/reclamations').then((r) => {
+          next.extra.reclamations = r.data || [];
+        }).catch(() => {}));
       }
       if (page === 'commandes') {
         tasks.push(api('/commandes').then((r) => { next.extra.commandes = r.data || []; }));
@@ -1651,7 +1694,14 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage, onCompanyUp
 }
 
 function ParametresEntreprise({ api, notify, onCompanyUpdated }) {
-  const emptyForm = { raison_sociale: '', logo_url: '', num_id_nationale: '', email: '', ville: '' };
+  const emptyForm = {
+    raison_sociale: '', logo_url: '', num_id_nationale: '', email: '', ville: '',
+    slogan: '', description_site: '', telephone: '', adresse: '', horaires: '',
+    annonce_site: '', hero_titre: '', hero_description: '', couleur_principale: '#0b5ea8'
+  };
+  const normalizeForm = (values = {}) => Object.fromEntries(
+    Object.keys(emptyForm).map((key) => [key, values[key] ?? emptyForm[key]])
+  );
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -1662,13 +1712,7 @@ function ParametresEntreprise({ api, notify, onCompanyUpdated }) {
       .then((response) => {
         if (!active) return;
         const entreprise = response.data || {};
-        setForm({
-          raison_sociale: entreprise.raison_sociale || '',
-          logo_url: entreprise.logo_url || '',
-          num_id_nationale: entreprise.num_id_nationale || '',
-          email: entreprise.email || '',
-          ville: entreprise.ville || ''
-        });
+        setForm(normalizeForm(entreprise));
       })
       .catch((error) => notify(error.message))
       .finally(() => active && setLoading(false));
@@ -1679,13 +1723,7 @@ function ParametresEntreprise({ api, notify, onCompanyUpdated }) {
     setSaving(true);
     try {
       const response = await api('/entreprise', { method: 'PUT', body: JSON.stringify(form) });
-      setForm({
-        raison_sociale: response.data.raison_sociale || '',
-        logo_url: response.data.logo_url || '',
-        num_id_nationale: response.data.num_id_nationale || '',
-        email: response.data.email || '',
-        ville: response.data.ville || ''
-      });
+      setForm(normalizeForm(response.data));
       onCompanyUpdated?.(response.data);
       notify('Configuration enregistree avec succes.');
     } catch (error) {
@@ -1705,7 +1743,9 @@ function ParametresEntreprise({ api, notify, onCompanyUpdated }) {
           <img src={form.logo_url || LOGO_URL} alt={`Logo ${form.raison_sociale || "de l'entreprise"}`} />
         </div>
         <h2>{form.raison_sociale || "Nom de l'entreprise"}</h2>
-        <p>{[form.ville, form.email].filter(Boolean).join(' • ') || 'Vos informations apparaitront ici.'}</p>
+        <p>{form.slogan || [form.ville, form.email].filter(Boolean).join(' • ') || 'Vos informations apparaitront ici.'}</p>
+        {form.annonce_site && <div className="company-announcement-preview">{form.annonce_site}</div>}
+        <button className="btn secondary company-site-preview-button" type="button" onClick={() => window.open('/', '_blank')}>Voir le site public <ArrowRight size={17} /></button>
       </article>
 
       <article className="panel company-settings-form">
@@ -1716,13 +1756,37 @@ function ParametresEntreprise({ api, notify, onCompanyUpdated }) {
           </div>
         </div>
         <Form onSubmit={save}>
+          <div className="settings-section-heading">
+            <Building2 size={21} />
+            <div><h4>Informations generales</h4><p>Identite legale et coordonnees de contact.</p></div>
+          </div>
           <div className="form-grid">
             <Input label="Nom de l'entreprise" value={form.raison_sociale} onChange={(value) => setForm({ ...form, raison_sociale: value })} required maxLength={200} />
             <Input label="Numero d'identification" value={form.num_id_nationale} onChange={(value) => setForm({ ...form, num_id_nationale: value })} maxLength={50} />
             <Input label="Email de l'entreprise" type="email" value={form.email} onChange={(value) => setForm({ ...form, email: value })} maxLength={150} />
             <Input label="Ville" value={form.ville} onChange={(value) => setForm({ ...form, ville: value })} maxLength={100} />
+            <Input label="Telephone" value={form.telephone} onChange={(value) => setForm({ ...form, telephone: value })} maxLength={30} placeholder="+243..." />
+            <Input label="Adresse physique" value={form.adresse} onChange={(value) => setForm({ ...form, adresse: value })} maxLength={255} />
           </div>
           <PhotoInput label="Logo de l'entreprise" value={form.logo_url} onChange={(value) => setForm({ ...form, logo_url: value })} api={api} folder="companies" notify={notify} />
+
+          <div className="settings-section-heading">
+            <Home size={21} />
+            <div><h4>Site public</h4><p>Contenus visibles sur la page d'accueil, la page contact et le pied de page.</p></div>
+          </div>
+          <div className="form-grid">
+            <Input label="Slogan" value={form.slogan} onChange={(value) => setForm({ ...form, slogan: value })} maxLength={200} placeholder="Materiaux & construction" />
+            <Input label="Horaires d'ouverture" value={form.horaires} onChange={(value) => setForm({ ...form, horaires: value })} maxLength={200} placeholder="Lun - Sam : 8h00 - 17h00" />
+            <Input label="Titre principal de l'accueil" value={form.hero_titre} onChange={(value) => setForm({ ...form, hero_titre: value })} maxLength={200} placeholder="Construire solide. Construire ensemble." />
+            <Input label="Couleur principale du site" type="color" value={form.couleur_principale} onChange={(value) => setForm({ ...form, couleur_principale: value })} />
+          </div>
+          <label>Description principale
+            <textarea value={form.hero_description} onChange={(event) => setForm({ ...form, hero_description: event.target.value })} maxLength={500} placeholder="Presentez votre offre en quelques mots." />
+          </label>
+          <label>Presentation courte de l'entreprise
+            <textarea value={form.description_site} onChange={(event) => setForm({ ...form, description_site: event.target.value })} maxLength={2000} placeholder="Texte affiche dans le pied de page du site." />
+          </label>
+          <Input label="Bandeau d'annonce (optionnel)" value={form.annonce_site} onChange={(value) => setForm({ ...form, annonce_site: value })} maxLength={255} placeholder="Exemple : Livraison disponible dans toute la ville." />
           <div className="form-actions">
             <button className="btn" type="submit" disabled={saving || !form.raison_sociale.trim()}>
               {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
@@ -3736,6 +3800,10 @@ function Categories({ api, notify, data, submit, searchQuery = '', user }) {
 function ClientDashboard({ data, setPage, user }) {
   const commandes = data.extra.commandes || [];
   const stats = data.extra.clientDashboard?.stats || {};
+  const reclamations = data.extra.reclamations;
+  const reclamationsOuvertes = Array.isArray(reclamations)
+    ? reclamations.filter((item) => ['ouverte', 'en_cours'].includes(item.statut)).length
+    : Number(stats.reclamations_ouvertes || 0);
   return (
     <div className="client-space">
       <section className="client-hero">
@@ -3745,7 +3813,7 @@ function ClientDashboard({ data, setPage, user }) {
       <section className="client-kpis">
         <article><ShoppingCart /><span>Commandes</span><strong>{stats.total_commandes || 0}</strong></article>
         <article><FileText /><span>Achats cumules</span><strong>{moneySmart(stats.total_achats)}</strong></article>
-        <article><HelpCircle /><span>Reclamations ouvertes</span><strong>{stats.reclamations_ouvertes || 0}</strong></article>
+        <article><HelpCircle /><span>Reclamations ouvertes</span><strong>{reclamationsOuvertes}</strong></article>
       </section>
       <section className="panel">
         <div className="panel-heading"><h3>Dernieres commandes</h3><button className="link-button" type="button" onClick={() => setPage('commandes')}>Voir tout</button></div>

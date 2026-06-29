@@ -4,6 +4,23 @@ import { sendPublicContactReceivedEmail } from '../services/mailService.js';
 
 const publicSiteUrl = () => String(process.env.FRONTEND_URL || 'http://127.0.0.1:5174').split(',')[0].trim().replace(/\/$/, '');
 
+export const getPublicSiteConfig = async (_req, res) => {
+    try {
+        const [[config]] = await pool.query(
+            `SELECT raison_sociale, logo_url, email, ville, slogan, description_site,
+                    telephone, adresse, horaires, annonce_site, hero_titre,
+                    hero_description, couleur_principale
+             FROM entreprise
+             ORDER BY id_entreprise
+             LIMIT 1`
+        );
+        if (!config) return res.status(404).json({ success: false, message: 'Configuration du site introuvable.' });
+        res.json({ success: true, data: config });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 export const sendPublicContact = async (req, res) => {
     const nom = String(req.body.nom || '').trim();
     const email = String(req.body.email || '').trim().toLowerCase();
