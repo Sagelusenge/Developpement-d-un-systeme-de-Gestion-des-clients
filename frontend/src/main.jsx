@@ -1743,8 +1743,7 @@ function ParametresEntreprise({ api, notify, onCompanyUpdated }) {
           <img src={form.logo_url || LOGO_URL} alt={`Logo ${form.raison_sociale || "de l'entreprise"}`} />
         </div>
         <h2>{form.raison_sociale || "Nom de l'entreprise"}</h2>
-        <p>{form.slogan || [form.ville, form.email].filter(Boolean).join(' • ') || 'Vos informations apparaitront ici.'}</p>
-        {form.annonce_site && <div className="company-announcement-preview">{form.annonce_site}</div>}
+        <p>{[form.ville, form.email].filter(Boolean).join(' • ') || 'Vos informations apparaitront ici.'}</p>
         <button className="btn secondary company-site-preview-button" type="button" onClick={() => window.open('/', '_blank')}>Voir le site public <ArrowRight size={17} /></button>
       </article>
 
@@ -1770,23 +1769,6 @@ function ParametresEntreprise({ api, notify, onCompanyUpdated }) {
           </div>
           <PhotoInput label="Logo de l'entreprise" value={form.logo_url} onChange={(value) => setForm({ ...form, logo_url: value })} api={api} folder="companies" notify={notify} />
 
-          <div className="settings-section-heading">
-            <Home size={21} />
-            <div><h4>Site public</h4><p>Contenus visibles sur la page d'accueil, la page contact et le pied de page.</p></div>
-          </div>
-          <div className="form-grid">
-            <Input label="Slogan" value={form.slogan} onChange={(value) => setForm({ ...form, slogan: value })} maxLength={200} placeholder="Materiaux & construction" />
-            <Input label="Horaires d'ouverture" value={form.horaires} onChange={(value) => setForm({ ...form, horaires: value })} maxLength={200} placeholder="Lun - Sam : 8h00 - 17h00" />
-            <Input label="Titre principal de l'accueil" value={form.hero_titre} onChange={(value) => setForm({ ...form, hero_titre: value })} maxLength={200} placeholder="Construire solide. Construire ensemble." />
-            <Input label="Couleur principale du site" type="color" value={form.couleur_principale} onChange={(value) => setForm({ ...form, couleur_principale: value })} />
-          </div>
-          <label>Description principale
-            <textarea value={form.hero_description} onChange={(event) => setForm({ ...form, hero_description: event.target.value })} maxLength={500} placeholder="Presentez votre offre en quelques mots." />
-          </label>
-          <label>Presentation courte de l'entreprise
-            <textarea value={form.description_site} onChange={(event) => setForm({ ...form, description_site: event.target.value })} maxLength={2000} placeholder="Texte affiche dans le pied de page du site." />
-          </label>
-          <Input label="Bandeau d'annonce (optionnel)" value={form.annonce_site} onChange={(value) => setForm({ ...form, annonce_site: value })} maxLength={255} placeholder="Exemple : Livraison disponible dans toute la ville." />
           <div className="form-actions">
             <button className="btn" type="submit" disabled={saving || !form.raison_sociale.trim()}>
               {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
@@ -3898,7 +3880,7 @@ function Commandes({ api, notify, data, submit, user, searchQuery = '' }) {
           {catalogue.map((product, index) => (
             <article key={product.id_produit}>
               <img src={productPhotoUrl(product, index)} alt="" />
-              <div><small>{product.categorie_nom || 'Produit'}</small><h4>{product.nom}</h4><span>Stock {product.quantite_stock} {product.unite}</span><strong>{moneySmart(priceWithTax(product))}{hasTax(product.taux_tva) ? ' TTC' : ''}</strong><em>{taxText(product)}</em></div>
+              <div><small>{product.categorie_nom || 'Produit'}</small><h4>{product.nom}</h4><span>Stock {product.quantite_stock} {product.unite}</span><strong>{moneySmart(priceWithTax(product))}</strong></div>
               <div className="cart-stepper"><button type="button" onClick={() => add(product, -1)}>-</button><b>{cart[product.id_produit] || 0}</b><button type="button" onClick={() => add(product, 1)}>+</button></div>
             </article>
           ))}

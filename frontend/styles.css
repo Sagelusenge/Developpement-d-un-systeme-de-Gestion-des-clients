@@ -8262,7 +8262,7 @@ body:has(.login-page),
   align-items: start;
   display: grid;
   gap: 24px;
-  grid-template-columns: minmax(240px, 0.7fr) minmax(460px, 1.5fr);
+  grid-template-columns: 1fr;
   padding-bottom: 32px;
 }
 
@@ -8273,9 +8273,7 @@ body:has(.login-page),
 .company-settings-preview {
   overflow: hidden;
   padding: 30px;
-  position: sticky;
   text-align: center;
-  top: 92px;
 }
 
 .company-logo-preview {
