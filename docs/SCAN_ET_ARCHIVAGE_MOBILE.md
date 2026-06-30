@@ -26,12 +26,14 @@ Les captures et les documents scannés sont conservés côté serveur. Le mobile
 
 Le backend vérifie le rôle contenu dans le JWT. Il ne faut pas se contenter de masquer les boutons dans l’application mobile.
 
-## 3. Configuration API
+## 3. Infrastructure AWS et configuration API
 
-La variable mobile doit contenir l’URL de l’API avec le préfixe `/api`.
+Le backend de production est hébergé sur AWS et répond à l’adresse IP publique `13.61.230.65`.
+
+La variable mobile doit contenir l’URL de l’API avec le préfixe `/api` :
 
 ```text
-API_URL=https://votre-backend.onrender.com/api
+API_URL=https://13.61.230.65/api
 ```
 
 Toutes les requêtes utilisent :
@@ -40,6 +42,16 @@ Toutes les requêtes utilisent :
 Authorization: Bearer <token_interne>
 Content-Type: application/json
 ```
+
+Configuration backend recommandée sur AWS :
+
+```text
+API_PUBLIC_URL=https://13.61.230.65
+```
+
+`API_PUBLIC_URL` est nécessaire pour que le backend retourne des liens publics corrects vers les scans archivés.
+
+L’instance AWS doit accepter les connexions HTTPS sur le port 443. Le certificat TLS doit être valide et reconnu par Android et iOS. À terme, un nom de domaine relié à cette adresse IP est préférable, car un certificat HTTPS associé directement à une adresse IP peut être difficile à gérer.
 
 ## 4. Formats acceptés
 
@@ -115,7 +127,7 @@ Statut HTTP : `201`.
   "message": "Document archive.",
   "data": {
     "id_document": "ARC-000001",
-    "file_url": "https://votre-backend.onrender.com/uploads/archives/1719740000000-a1b2c3d4.jpg"
+    "file_url": "https://13.61.230.65/uploads/archives/1719740000000-a1b2c3d4.jpg"
   }
 }
 ```
@@ -146,7 +158,7 @@ Rôles autorisés : `manager`, `vendeur`.
       "titre": "Facture fournisseur ciment - juin 2026",
       "type_document": "facture_fournisseur",
       "description": "Document scanné au dépôt principal",
-      "file_url": "https://votre-backend.onrender.com/uploads/archives/1719740000000-a1b2c3d4.jpg",
+      "file_url": "https://13.61.230.65/uploads/archives/1719740000000-a1b2c3d4.jpg",
       "file_name": "facture-ciment-2026-06.jpg",
       "mime_type": "image/jpeg",
       "created_at": "2026-06-30T08:30:00.000Z"
@@ -279,7 +291,7 @@ Toujours afficher en priorité le champ `message` renvoyé par l’API.
 - Ne jamais afficher les archives d’une autre entreprise.
 - Ne pas transmettre `entreprise_id` depuis le mobile : le backend le récupère depuis le token.
 
-## 14. Stockage persistant côté serveur
+## 14. Stockage persistant sur AWS
 
 Point important pour la mise en production : le backend actuel écrit les fichiers dans :
 
@@ -287,13 +299,38 @@ Point important pour la mise en production : le backend actuel écrit les fichie
 backend/src/uploads/archives
 ```
 
-Sur un hébergement Render sans disque persistant, ces fichiers peuvent disparaître lors d’un redéploiement ou d’un redémarrage. Avant d’utiliser l’archivage comme conservation définitive, l’équipe backend doit mettre en place l’une des solutions suivantes :
+Sur AWS, les captures et les images scannées doivent survivre aux redémarrages, aux redéploiements et au remplacement éventuel de l’instance. Il ne faut donc pas dépendre uniquement du système de fichiers temporaire d’un conteneur.
 
-- un disque persistant Render monté sur le dossier d’archives ;
-- un stockage objet durable comme S3, Cloudinary ou un service compatible ;
-- une sauvegarde externe régulière.
+Solutions recommandées :
+
+1. **Amazon S3 — solution recommandée**
+
+   Le backend envoie chaque scan dans un bucket S3 privé, conserve la clé du fichier dans la base et retourne une URL sécurisée ou signée au mobile.
+
+2. **Volume Amazon EBS persistant**
+
+   Le dossier `backend/src/uploads/archives` doit être placé ou monté sur un volume EBS conservé indépendamment du code et des conteneurs.
+
+3. **Sauvegarde AWS régulière**
+
+   Configurer des snapshots EBS ou une copie planifiée vers S3.
+
+Si le backend continue à servir les fichiers localement, le reverse proxy AWS doit rendre accessible :
+
+```text
+https://13.61.230.65/uploads/archives/<nom-du-fichier>
+```
 
 La base de données conserve les métadonnées et `file_url`, mais elle ne contient pas le fichier lui-même.
+
+### Configuration réseau AWS à vérifier
+
+- port 443 autorisé dans le Security Group ;
+- port interne du backend accessible uniquement par le reverse proxy ;
+- taille maximale des requêtes augmentée dans Nginx ou le proxy si nécessaire ;
+- sauvegarde du volume ou du bucket ;
+- droits d’écriture du processus Node.js sur le dossier d’archives ;
+- `API_PUBLIC_URL=https://13.61.230.65` défini dans l’environnement du backend.
 
 ## 15. Limites actuelles de l’API
 
@@ -306,7 +343,7 @@ La base de données conserve les métadonnées et `file_url`, mais elle ne conti
 - aucune pagination ;
 - aucune clé d’idempotence ;
 - aucun rattachement direct à une commande, une vente ou un fournisseur ;
-- stockage local non durable si aucun disque persistant n’est configuré.
+- stockage local non durable si aucun volume EBS ou stockage S3 n’est configuré.
 
 Le développeur mobile doit respecter ces limites et ne pas simuler côté mobile une fonction que le backend ne propose pas.
 

@@ -44,7 +44,9 @@ export const createReclamation = async (req, res) => {
 };
 
 export const updateReclamation = async (req, res) => {
-    if (isClient(req) || req.user.role !== 'manager') return res.status(403).json({ success: false, message: 'Acces reserve au manager.' });
+    if (isClient(req) || !['manager', 'vendeur'].includes(req.user.role)) {
+        return res.status(403).json({ success: false, message: 'Acces reserve au manager et au vendeur.' });
+    }
     const statuses = ['ouverte', 'en_cours', 'resolue', 'cloturee'];
     if (!statuses.includes(req.body.statut)) return res.status(400).json({ success: false, message: 'Statut invalide.' });
     try {
