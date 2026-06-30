@@ -367,7 +367,10 @@ function QcLoader({ label = 'Chargement' }) {
     <div className="qc-loader-panel" role="status" aria-live="polite">
       <div className="qc-loader-orbit">
         <img src={LOGO_URL} alt="" />
-        <span />
+        <svg className="qc-loader-progress" viewBox="0 0 100 100" aria-hidden="true">
+          <circle className="qc-loader-track" cx="50" cy="50" r="46" />
+          <circle className="qc-loader-fill" cx="50" cy="50" r="46" />
+        </svg>
       </div>
       <strong>{label}</strong>
     </div>
@@ -847,7 +850,7 @@ function App() {
   }, [route, token]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setBooting(false), 650);
+    const timer = window.setTimeout(() => setBooting(false), 1050);
     return () => window.clearTimeout(timer);
   }, []);
 
@@ -984,7 +987,7 @@ function App() {
       { id: 'paiements', label: tr(lang, 'paiements'), roles: ['manager', 'vendeur'] },
       { id: 'commandes', label: 'Commandes', roles: ['manager', 'vendeur', 'client'] },
       { id: 'achats', label: 'Mes achats', roles: ['client'] },
-      { id: 'reclamations', label: 'Reclamations', roles: ['manager', 'client'] },
+      { id: 'reclamations', label: 'Reclamations', roles: ['manager', 'vendeur', 'client'] },
       { id: 'rapports', label: tr(lang, 'rapports'), roles: ['manager', 'vendeur', 'magasinier'] },
       { id: 'chat', label: role === 'client' ? 'Assistance' : 'Chat', roles: ['manager', 'client'] },
       { id: 'mails', label: tr(lang, 'mails'), roles: ['manager'] },
@@ -3959,7 +3962,7 @@ function Reclamations({ api, notify, data, submit, user, searchQuery = '' }) {
   return (
     <div className="grid">
       {user?.role === 'client' && <section className="panel complaint-form"><div className="panel-heading"><div><h3>Nouvelle reclamation</h3><p>Notre equipe prendra connaissance de votre demande.</p></div></div><Form onSubmit={send}><Input label="Sujet" value={form.sujet} onChange={(sujet) => setForm({ ...form, sujet })} required /><Select label="Commande concernee (optionnel)" value={form.commande_id} onChange={(commande_id) => setForm({ ...form, commande_id })} required={false} options={[["", "Aucune commande"], ...(data.extra.commandes || []).map((item) => [item.id_commande, item.id_commande])]} /><label>Message<textarea value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} required /></label><button className="btn modal-submit">Envoyer la reclamation <ArrowRight size={18} /></button></Form></section>}
-      <section className="panel"><div className="panel-heading"><div><h3>{user?.role === 'client' ? 'Mes reclamations' : 'Reclamations clientes'}</h3><p>{openCount} ouverte(s) ou en cours · {rows.length} au total</p></div></div><Table headers={['Reference', ...(user?.role === 'manager' ? ['Client'] : []), 'Sujet', 'Message', 'Reponse', 'Statut', ...(user?.role === 'manager' ? ['Action'] : [])]} rows={rows.map((item) => [item.id_reclamation, ...(user?.role === 'manager' ? [`${item.client_nom} ${item.client_postnom || ''}`] : []), item.sujet, item.message, item.reponse || 'En attente', <Badge>{item.statut}</Badge>, ...(user?.role === 'manager' ? [<button className="btn small" type="button" onClick={() => setEditing(item)}>Traiter</button>] : [])])} /></section>
+      <section className="panel"><div className="panel-heading"><div><h3>{user?.role === 'client' ? 'Mes reclamations' : 'Reclamations clientes'}</h3><p>{openCount} ouverte(s) ou en cours · {rows.length} au total</p></div></div><Table headers={['Reference', ...(user?.role !== 'client' ? ['Client'] : []), 'Sujet', 'Message', 'Reponse', 'Statut', ...(user?.role === 'manager' ? ['Action'] : [])]} rows={rows.map((item) => [item.id_reclamation, ...(user?.role !== 'client' ? [`${item.client_nom} ${item.client_postnom || ''}`] : []), item.sujet, item.message, item.reponse || 'En attente', <Badge>{item.statut}</Badge>, ...(user?.role === 'manager' ? [<button className="btn small" type="button" onClick={() => setEditing(item)}>Traiter</button>] : [])])} /></section>
       {editing && <Modal title={`Traiter ${editing.id_reclamation}`} onClose={() => setEditing(null)}><Form onSubmit={save}><Select label="Statut" value={editing.statut} onChange={(statut) => setEditing({ ...editing, statut })} options={[['ouverte', 'Ouverte'], ['en_cours', 'En cours'], ['resolue', 'Resolue'], ['cloturee', 'Cloturee']]} /><label>Reponse au client<textarea value={editing.reponse || ''} onChange={(event) => setEditing({ ...editing, reponse: event.target.value })} /></label><button className="btn modal-submit">Enregistrer la reponse</button></Form></Modal>}
     </div>
   );

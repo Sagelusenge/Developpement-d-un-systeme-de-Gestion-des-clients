@@ -1,13 +1,13 @@
 import pool from '../config/db.js';
 import { nextId } from '../services/idService.js';
-import { notifyEnterpriseAdmins } from '../services/notificationService.js';
+import { notifyEnterpriseRoles } from '../services/notificationService.js';
 import { sendReclamationReceivedEmail, sendReclamationStatusEmail } from '../services/mailService.js';
 
 const isClient = (req) => req.user.type === 'client';
 const espaceClientUrl = () => `${String(process.env.FRONTEND_URL || 'http://127.0.0.1:5174').split(',')[0].trim().replace(/\/$/, '')}/connexion`;
 export const getReclamations = async (req, res) => {
     try {
-        if (!isClient(req) && req.user.role !== 'manager') return res.status(403).json({ success: false, message: 'Acces reserve au manager.' });
+        if (!isClient(req) && !['manager', 'vendeur'].includes(req.user.role)) return res.status(403).json({ success: false, message: 'Acces reserve au manager et au vendeur.' });
         const params = [req.user.entreprise_id];
         const filter = isClient(req) ? ' AND r.client_id = ?' : '';
         if (isClient(req)) params.push(req.user.client_id);
@@ -35,9 +35,9 @@ export const createReclamation = async (req, res) => {
             [id, req.user.client_id, req.user.entreprise_id, req.body.commande_id || null, req.body.vente_id || null, sujet, message]
         );
         await connection.commit();
-        await notifyEnterpriseAdmins({ entreprise_id: req.user.entreprise_id, titre: 'Nouvelle reclamation client', message: `${req.user.nom || 'Un client'} a envoye la reclamation ${id}: ${sujet}.`, entity_type: 'reclamation', entity_id: id }).catch(() => null);
+        await notifyEnterpriseRoles({ entreprise_id: req.user.entreprise_id, roles: ['manager', 'vendeur'], titre: 'Nouvelle reclamation client', message: `${req.user.nom || 'Un client'} a envoye la reclamation ${id}: ${sujet}.`, entity_type: 'reclamation', entity_id: id }).catch(() => null);
         sendReclamationReceivedEmail({ to: req.user.email, name: req.user.nom, complaintId: id, subject: sujet, espaceUrl: espaceClientUrl() }).catch(() => null);
-        res.status(201).json({ success: true, message: 'Reclamation envoyee au manager.', id });
+        res.status(201).json({ success: true, message: 'Reclamation envoyee a notre equipe.', id });
     } catch (error) {
         await connection.rollback(); res.status(400).json({ success: false, message: error.message });
     } finally { connection.release(); }
