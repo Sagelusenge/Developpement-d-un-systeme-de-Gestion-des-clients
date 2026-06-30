@@ -3045,7 +3045,7 @@ function Rapports({ data, searchQuery = '', user }) {
 }
 
 function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
-  const emptyUserForm = { nom: '', email: '', role: 'vendeur' };
+  const emptyUserForm = { nom: '', email: '', role: 'vendeur', mot_de_passe: '' };
   const [form, setForm] = useState(emptyUserForm);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -3136,9 +3136,9 @@ function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
     });
   };
   const create = () => submit(async () => {
-    await api('/utilisateurs', { method: 'POST', body: JSON.stringify(form) });
+    const response = await api('/utilisateurs', { method: 'POST', body: JSON.stringify(form) });
     closeCreate();
-    notify('Utilisateur cree et email envoye');
+    notify(response.message || (response.data?.email_sent ? 'Utilisateur cree et email envoye' : 'Utilisateur cree'));
   });
   const closeCreate = () => {
     setForm(emptyUserForm);
@@ -3196,7 +3196,9 @@ function Utilisateurs({ api, notify, data, submit, user, searchQuery = '' }) {
             <Input label="Nom" value={form.nom} onChange={(nom) => setForm({ ...form, nom })} required />
             <Input label="Email" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} required />
             <Select label="Role" value={form.role} onChange={(role) => setForm({ ...form, role })} options={roles} />
-            <button className="btn modal-submit">Creer et notifier <ArrowRight size={20} /></button>
+            <Input label="Mot de passe initial (optionnel)" name="new_internal_password" autoComplete="new-password" type="password" minLength="6" value={form.mot_de_passe} onChange={(mot_de_passe) => setForm({ ...form, mot_de_passe })} />
+            <p className="form-help">Un email de bienvenue avec les liens de connexion et de reinitialisation sera envoye.</p>
+            <button className="btn modal-submit">Creer et envoyer l'email <ArrowRight size={20} /></button>
           </Form>
         </Modal>
       )}
@@ -3502,7 +3504,8 @@ function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
       let sentMessage = '';
       await submit(async () => {
         const controller = new AbortController();
-        const timer = window.setTimeout(() => controller.abort(), 18000);
+        const timeoutMs = isClientsMail ? 120000 : 30000;
+        const timer = window.setTimeout(() => controller.abort(), timeoutMs);
         let response;
         try {
           const endpoint = isTeamNotification ? '/mail/notify-team' : isClientsMail ? '/mail/send-clients' : '/mail/send';
@@ -3513,7 +3516,9 @@ function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
           });
         } catch (error) {
           if (error.name === 'AbortError') {
-            throw new Error("L'envoi prend trop de temps. Verifiez la configuration email dans Render ou reessayez.");
+            throw new Error(isClientsMail
+              ? "L'envoi collectif depasse deux minutes. Certains emails ont peut-etre deja ete envoyes; consultez l'historique avant de reessayer."
+              : "L'envoi prend trop de temps. Verifiez la configuration email dans Render ou reessayez.");
           }
           throw error;
         } finally {
@@ -3596,6 +3601,7 @@ function Mails({ api, notify, data, submit, user, searchQuery = '' }) {
               {isTeamNotification ? <Bell size={18} /> : isClientsMail ? <Users size={18} /> : <Mail size={18} />}
               {sending ? 'Envoi en cours...' : 'Envoyer'}
             </button>
+            {isClientsMail && sending && <p className="form-help">Envoi par groupes en cours. Gardez cette fenetre ouverte jusqu'au resultat.</p>}
           </Form>
         </Modal>
       )}
@@ -3807,6 +3813,7 @@ function Commandes({ api, notify, data, submit, user, searchQuery = '' }) {
   const [cart, setCart] = useState({});
   const [note, setNote] = useState('');
   const [query, setQuery] = useState('');
+  const [processing, setProcessing] = useState(null);
   const term = `${searchQuery} ${query}`.trim().toLowerCase();
   const filtered = commandes.filter((item) => `${item.id_commande} ${item.client_nom || ''} ${item.statut}`.toLowerCase().includes(term));
   const cartItems = catalogue.filter((product) => Number(cart[product.id_produit] || 0) > 0);
@@ -3822,6 +3829,11 @@ function Commandes({ api, notify, data, submit, user, searchQuery = '' }) {
   const updateStatus = (item, statut) => submit(async () => {
     await api(`/commandes/${item.id_commande}/statut`, { method: 'PUT', body: JSON.stringify({ statut }) });
     notify('Commande mise a jour.');
+  });
+  const processOrder = () => submit(async () => {
+    await api(`/commandes/${processing.id_commande}/statut`, { method: 'PUT', body: JSON.stringify({ statut: processing.statut }) });
+    setProcessing(null);
+    notify('Commande traitee par le vendeur.');
   });
   const convert = (item) => submit(async () => {
     const result = await api(`/commandes/${item.id_commande}/convertir`, { method: 'POST', body: '{}' });
@@ -3893,20 +3905,28 @@ function Commandes({ api, notify, data, submit, user, searchQuery = '' }) {
     </div>
   );
 
-  return (
+  return (<>
     <section className="panel">
       <div className="panel-heading client-toolbar"><div><h3>Commandes clients</h3><p>{commandes.filter((item) => item.statut === 'en_attente').length} en attente</p></div><SearchInput value={query} onChange={setQuery} placeholder="Commande ou client" /></div>
       <Table headers={['Commande', 'Client', 'Date', 'Articles', 'Montant', 'Statut', 'Actions']} rows={filtered.map((item) => [
         item.id_commande, `${item.client_nom} ${item.client_postnom || ''}`, formatDate(item.date_commande), item.lignes?.map((line) => `${line.produit_nom} × ${line.quantite}`).join(', '), money(item.montant_ttc), <Badge>{item.statut}</Badge>,
         <div className="actions order-actions">
-          {!item.vente_id && !['annulee', 'rejetee'].includes(item.statut) && <select value={item.statut} onChange={(event) => updateStatus(item, event.target.value)}><option value="en_attente">En attente</option><option value="confirmee">Confirmee</option><option value="preparee">Preparee</option><option value="livree">Livree</option><option value="annulee">Annulee</option><option value="rejetee">Rejetee</option></select>}
+          {user?.role === 'manager' && !item.vente_id && !['annulee', 'rejetee'].includes(item.statut) && <select value={item.statut} onChange={(event) => updateStatus(item, event.target.value)}><option value="en_attente">En attente</option><option value="confirmee">Confirmee</option><option value="preparee">Preparee</option><option value="livree">Livree</option><option value="annulee">Annulee</option><option value="rejetee">Rejetee</option></select>}
+          {user?.role === 'vendeur' && !item.vente_id && !['annulee', 'rejetee'].includes(item.statut) && <button className="btn small" type="button" onClick={() => setProcessing({ ...item })}>Traiter</button>}
           {user?.role === 'vendeur' && <button className="action print-action" type="button" title="Imprimer la commande" onClick={() => printOrder(item)}><Printer size={17} /></button>}
           {user?.role === 'vendeur' && !item.vente_id && !['annulee', 'rejetee'].includes(item.statut) && <button className="btn small" type="button" onClick={() => convert(item)}>Facturer</button>}
           {item.numero_facture && <Badge>{item.numero_facture}</Badge>}
         </div>
       ])} />
     </section>
-  );
+    {processing && <Modal title={`Traiter ${processing.id_commande}`} onClose={() => setProcessing(null)}>
+      <Form onSubmit={processOrder}>
+        <Select label="Nouveau statut" value={processing.statut} onChange={(statut) => setProcessing({ ...processing, statut })} options={[['en_attente', 'En attente'], ['confirmee', 'Confirmee'], ['preparee', 'Preparee'], ['livree', 'Livree'], ['annulee', 'Annulee'], ['rejetee', 'Rejetee']]} />
+        <p className="form-help">Le client recevra automatiquement un email lorsque le statut change.</p>
+        <button className="btn modal-submit">Enregistrer le traitement <ArrowRight size={18} /></button>
+      </Form>
+    </Modal>}
+  </>);
 }
 
 function AchatsClient({ api, notify, data, submit, setPage, searchQuery = '' }) {

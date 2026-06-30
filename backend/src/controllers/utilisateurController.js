@@ -1,7 +1,7 @@
 import pool from '../config/db.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { sendWelcomeUserEmail } from '../services/mailService.js';
+import { sendSecurityNoticeEmail, sendWelcomeUserEmail } from '../services/mailService.js';
 import { nextId } from '../services/idService.js';
 
 const rolesAutorises = ['manager', 'vendeur', 'magasinier'];
@@ -114,7 +114,7 @@ export const getJournalAudit = async (req, res) => {
 
 // POST /api/utilisateurs
 export const createUtilisateur = async (req, res) => {
-    const { nom, email, role } = req.body;
+    const { nom, email, role, mot_de_passe } = req.body;
     const entreprise_id = req.user.entreprise_id;
 
     if (!nom || !email || !role) {
@@ -131,15 +131,23 @@ export const createUtilisateur = async (req, res) => {
         });
     }
 
+    if (mot_de_passe && String(mot_de_passe).length < 6) {
+        return res.status(400).json({ success: false, message: 'Le mot de passe initial doit contenir au moins 6 caracteres' });
+    }
+
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
 
         const id_utilisateur = await nextId(connection, 'utilisateur', 'USR', 5);
-        const initialPassword = crypto.randomBytes(24).toString('base64url');
+        const initialPassword = mot_de_passe ? String(mot_de_passe) : crypto.randomBytes(24).toString('base64url');
         const hashedMdp = await bcrypt.hash(initialPassword, 10);
         const resetCode = createResetCode();
         const normalizedEmail = normalizeEmail(email);
+        const [[company]] = await connection.query(
+            `SELECT raison_sociale FROM entreprise WHERE id_entreprise = ? LIMIT 1`,
+            [entreprise_id]
+        );
 
         await connection.query(
             `INSERT INTO utilisateur
@@ -156,17 +164,31 @@ export const createUtilisateur = async (req, res) => {
 
         await connection.commit();
 
-        sendWelcomeUserEmail({
-            to: normalizedEmail,
-            name: nom,
-            role,
-            resetUrl: resetPasswordUrl({ email: normalizedEmail, code: resetCode })
-        }).catch((error) => console.error('Erreur email utilisateur:', error.message));
+        let emailSent = false;
+        let emailMessage = '';
+        try {
+            const delivery = await sendWelcomeUserEmail({
+                to: normalizedEmail,
+                name: nom,
+                role,
+                company: company?.raison_sociale,
+                initialPasswordConfigured: Boolean(mot_de_passe),
+                loginUrl: `${getFrontendUrl()}/connexion`,
+                resetUrl: resetPasswordUrl({ email: normalizedEmail, code: resetCode })
+            });
+            emailSent = !delivery.skipped;
+            emailMessage = delivery.message || '';
+        } catch (error) {
+            emailMessage = error.message;
+            console.error('Erreur email utilisateur:', error.message);
+        }
 
         res.status(201).json({
             success: true,
-            message: `Utilisateur ${nom} cree avec le role ${role}`,
-            data: { id_utilisateur, nom, email: normalizedEmail, role }
+            message: emailSent
+                ? `Utilisateur ${nom} cree avec le role ${role}. Email de bienvenue envoye.`
+                : `Utilisateur ${nom} cree avec le role ${role}, mais l'email n'a pas pu etre envoye.`,
+            data: { id_utilisateur, nom, email: normalizedEmail, role, email_sent: emailSent, email_message: emailMessage }
         });
     } catch (error) {
         await connection.rollback();
@@ -190,27 +212,41 @@ export const updateUtilisateur = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Role invalide' });
     }
 
+    if (mot_de_passe && String(mot_de_passe).length < 6) {
+        return res.status(400).json({ success: false, message: 'Le nouveau mot de passe doit contenir au moins 6 caracteres' });
+    }
+
     try {
+        const normalizedEmail = normalizeEmail(email);
         let result;
         if (mot_de_passe) {
-            const hashedMdp = await bcrypt.hash(mot_de_passe, 10);
+            const hashedMdp = await bcrypt.hash(String(mot_de_passe), 10);
             [result] = await pool.query(
                 `UPDATE utilisateur
                  SET nom = ?, email = ?, role = ?, mot_de_passe = ?
                  WHERE id_utilisateur = ? AND entreprise_id = ?`,
-                [nom, email, role, hashedMdp, id, entreprise_id]
+                [nom, normalizedEmail, role, hashedMdp, id, entreprise_id]
             );
         } else {
             [result] = await pool.query(
                 `UPDATE utilisateur
                  SET nom = ?, email = ?, role = ?
                  WHERE id_utilisateur = ? AND entreprise_id = ?`,
-                [nom, email, role, id, entreprise_id]
+                [nom, normalizedEmail, role, id, entreprise_id]
             );
         }
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Utilisateur introuvable' });
+        }
+
+        if (mot_de_passe) {
+            sendSecurityNoticeEmail({
+                to: normalizedEmail,
+                name: nom,
+                title: 'Votre mot de passe a ete modifie',
+                message: 'Un responsable a defini un nouveau mot de passe pour votre compte interne. Vous pouvez maintenant vous connecter avec ce nouvel acces.'
+            }).catch((error) => console.error('Erreur email securite utilisateur:', error.message));
         }
 
         res.json({ success: true, message: 'Utilisateur mis a jour' });
@@ -226,7 +262,7 @@ export const toggleUtilisateur = async (req, res) => {
 
     try {
         const [users] = await pool.query(
-            `SELECT actif FROM utilisateur WHERE id_utilisateur = ? AND entreprise_id = ?`,
+            `SELECT nom, email, actif FROM utilisateur WHERE id_utilisateur = ? AND entreprise_id = ?`,
             [id, entreprise_id]
         );
 
@@ -242,6 +278,14 @@ export const toggleUtilisateur = async (req, res) => {
         );
 
         const wasActive = Boolean(users[0].actif);
+        sendSecurityNoticeEmail({
+            to: users[0].email,
+            name: users[0].nom,
+            title: wasActive ? 'Votre compte a ete suspendu' : 'Votre compte a ete reactive',
+            message: wasActive
+                ? 'Votre compte interne a ete suspendu par un responsable. La connexion est temporairement indisponible.'
+                : 'Votre compte interne a ete reactive par un responsable. Vous pouvez de nouveau vous connecter.'
+        }).catch((error) => console.error('Erreur email statut utilisateur:', error.message));
         res.json({
             success: true,
             message: wasActive ? 'Utilisateur suspendu. Il ne peut plus se connecter.' : 'Utilisateur reactive. Il peut se connecter.'

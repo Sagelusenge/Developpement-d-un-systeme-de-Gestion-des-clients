@@ -1,16 +1,33 @@
 import nodemailer from 'nodemailer';
 
 const APP_NAME = 'Quincaillerie Centrale';
+let cachedTransporter = null;
+let cachedTransporterKey = '';
 
 const getTransporter = () => {
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
         return null;
     }
 
-    return nodemailer.createTransport({
+    const transporterKey = [
+        process.env.EMAIL_HOST || 'smtp.gmail.com',
+        process.env.EMAIL_PORT || '465',
+        process.env.EMAIL_SECURE || 'true',
+        process.env.EMAIL_USER
+    ].join('|');
+
+    if (cachedTransporter && cachedTransporterKey === transporterKey) {
+        return cachedTransporter;
+    }
+
+    cachedTransporterKey = transporterKey;
+    cachedTransporter = nodemailer.createTransport({
         host: process.env.EMAIL_HOST || 'smtp.gmail.com',
         port: Number(process.env.EMAIL_PORT || 465),
         secure: String(process.env.EMAIL_SECURE || 'true') !== 'false',
+        pool: true,
+        maxConnections: Number(process.env.EMAIL_MAX_CONNECTIONS || 4),
+        maxMessages: Number(process.env.EMAIL_MAX_MESSAGES || 100),
         family: Number(process.env.EMAIL_IP_FAMILY || 4),
         connectionTimeout: Number(process.env.EMAIL_CONNECTION_TIMEOUT || 10000),
         greetingTimeout: Number(process.env.EMAIL_GREETING_TIMEOUT || 10000),
@@ -20,6 +37,8 @@ const getTransporter = () => {
             pass: process.env.EMAIL_PASS
         }
     });
+
+    return cachedTransporter;
 };
 
 export const isMailReady = () => Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
@@ -393,7 +412,7 @@ export const getMailErrorMessage = (error) => {
     return rawMessage || "Impossible d'envoyer l'email pour le moment.";
 };
 
-export const sendWelcomeUserEmail = async ({ to, name, role, resetUrl, company }) => {
+export const sendWelcomeUserEmail = async ({ to, name, role, resetUrl, loginUrl, company, initialPasswordConfigured = false }) => {
     if (!to) return { skipped: true, message: 'Destinataire absent' };
 
     const displayName = name || 'cher utilisateur';
@@ -409,6 +428,7 @@ export const sendWelcomeUserEmail = async ({ to, name, role, resetUrl, company }
         `Identifiant : ${to}`,
         `Role : ${displayRole}`,
         '',
+        initialPasswordConfigured && loginUrl ? `Votre responsable a defini un mot de passe initial. Connexion : ${loginUrl}` : '',
         resetUrl ? `Cliquez ici pour definir votre mot de passe personnel : ${resetUrl}` : 'Utilisez la fonction Mot de passe oublie pour definir votre mot de passe personnel.',
         '',
         `${APP_NAME} centralise les clients, factures, paiements et stocks de votre entreprise.`,
@@ -431,7 +451,8 @@ export const sendWelcomeUserEmail = async ({ to, name, role, resetUrl, company }
                         <p style="margin:0 0 8px"><strong>Identifiant :</strong> ${escapeHtml(to)}</p>
                         <p style="margin:0 0 8px"><strong>Role :</strong> ${escapeHtml(displayRole)}</p>
                     </div>
-                    <p style="margin:0 0 18px">Pour votre securite, aucun mot de passe n'est envoye en clair. Definissez votre mot de passe personnel avec le bouton ci-dessous.</p>
+                    <p style="margin:0 0 18px">${initialPasswordConfigured ? 'Un mot de passe initial a ete defini par votre responsable. Vous pouvez vous connecter avec celui-ci ou choisir immédiatement un mot de passe personnel.' : 'Pour votre securite, aucun mot de passe n’est envoye en clair. Definissez votre mot de passe personnel avec le bouton ci-dessous.'}</p>
+                    ${initialPasswordConfigured && loginUrl ? `<p style="text-align:center;margin:22px 0"><a href="${escapeHtml(loginUrl)}" style="background:#06264a;border-radius:8px;color:#ffffff;display:inline-block;font-size:14px;font-weight:700;padding:13px 22px;text-decoration:none">Se connecter</a></p>` : ''}
                     ${resetUrl ? `<p style="text-align:center;margin:22px 0"><a href="${escapeHtml(resetUrl)}" style="background:#0b5ea8;border-radius:8px;color:#ffffff;display:inline-block;font-size:14px;font-weight:700;padding:13px 22px;text-decoration:none">Cliquez ici pour reinitialiser mon mot de passe</a></p>` : ''}
                     <p style="margin:0">${APP_NAME} vous permet de centraliser les clients, factures, paiements et stocks de votre entreprise.</p>
                     <p style="margin:24px 0 0">Cordialement,<br><strong>Equipe ${APP_NAME}</strong></p>
