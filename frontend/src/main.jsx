@@ -616,7 +616,6 @@ function PublicHome({ goTo, config }) {
     { id: 'dashboard', label: 'Tableau de bord', icon: Grid2X2 },
     { id: 'achats', label: 'Mes achats', icon: FileText },
     { id: 'commandes', label: 'Commandes', icon: ShoppingCart },
-    { id: 'reclamations', label: 'Reclamations', icon: HelpCircle },
     { id: 'assistance', label: 'Assistance', icon: MessageCircle }
   ];
   const [previewIndex, setPreviewIndex] = useState(0);
@@ -656,7 +655,6 @@ function PublicHome({ goTo, config }) {
             {activePreview.id === 'dashboard' && <img src="/assets/client-dashboard-preview.png" alt="Apercu du tableau de bord client Quincaillerie Centrale" />}
             {activePreview.id === 'achats' && <img src="/assets/client-achats-real.png" alt="Apercu reel des achats et factures dans l'espace client" />}
             {activePreview.id === 'commandes' && <img src="/assets/client-commandes-real.png" alt="Apercu reel du catalogue de commandes dans l'espace client" />}
-            {activePreview.id === 'reclamations' && <img src="/assets/client-reclamations-real.png" alt="Apercu reel des reclamations dans l'espace client" />}
             {activePreview.id === 'assistance' && <img src="/assets/client-assistance-real.png" alt="Apercu reel de l'assistance client" />}
           </div>
         </figure>
@@ -1724,13 +1722,27 @@ function ParametresEntreprise({ api, notify, onCompanyUpdated }) {
   return (
     <section className="company-settings-layout">
       <article className="panel company-settings-preview">
-        <span className="section-kicker">Apercu</span>
-        <div className="company-logo-preview">
-          <img src={form.logo_url || LOGO_URL} alt={`Logo ${form.raison_sociale || "de l'entreprise"}`} />
+        <div className="company-preview-cover">
+          <span className="section-kicker light">Apercu</span>
+          <strong>Fiche entreprise</strong>
+          <small>Visible dans l'application et les documents</small>
         </div>
-        <h2>{form.raison_sociale || "Nom de l'entreprise"}</h2>
-        <p>{[form.ville, form.email].filter(Boolean).join(' • ') || 'Vos informations apparaitront ici.'}</p>
-        <button className="btn secondary company-site-preview-button" type="button" onClick={() => window.open('/', '_blank')}>Voir le site public <ArrowRight size={17} /></button>
+        <div className="company-preview-card">
+          <div className="company-logo-preview">
+            <img src={form.logo_url || LOGO_URL} alt={`Logo ${form.raison_sociale || "de l'entreprise"}`} />
+          </div>
+          <div className="company-preview-main">
+            <h2>{form.raison_sociale || "Nom de l'entreprise"}</h2>
+            <p>{form.adresse || [form.ville, form.email].filter(Boolean).join(' • ') || 'Vos informations apparaitront ici.'}</p>
+          </div>
+          <div className="company-preview-details">
+            <span><b>Ville</b><strong>{form.ville || '-'}</strong></span>
+            <span><b>Email</b><strong>{form.email || '-'}</strong></span>
+            <span><b>Telephone</b><strong>{form.telephone || '-'}</strong></span>
+            <span><b>ID nationale</b><strong>{form.num_id_nationale || '-'}</strong></span>
+          </div>
+          <button className="btn secondary company-site-preview-button" type="button" onClick={() => window.open('/', '_blank')}>Voir le site public <ArrowRight size={17} /></button>
+        </div>
       </article>
 
       <article className="panel company-settings-form">
