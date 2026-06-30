@@ -222,6 +222,47 @@ export const sendInvoiceAvailableEmail = ({ to, name, orderId, invoiceId, total,
     })
 });
 
+export const sendInvoiceBalanceEmail = ({ to, name, invoiceId, total, paid = 0, remaining = 0, espaceUrl }) => {
+    const totalNumber = Number(total || 0);
+    const paidNumber = Number(paid || 0);
+    const remainingNumber = Math.max(Number(remaining || 0), 0);
+    const isPaid = remainingNumber <= 0.005;
+    const title = isPaid
+        ? `Facture ${invoiceId} payee`
+        : `Facture ${invoiceId} : solde restant`;
+    const intro = isPaid
+        ? `Votre facture ${invoiceId} est entierement payee. Merci pour votre paiement.`
+        : `Votre facture ${invoiceId} est enregistree. Un montant de ${remainingNumber.toFixed(2)} USD reste a payer.`;
+    const subject = isPaid
+        ? `Paiement complet - ${invoiceId} | ${APP_NAME}`
+        : `Solde restant ${remainingNumber.toFixed(2)} USD - ${invoiceId} | ${APP_NAME}`;
+
+    return sendMail({
+        to,
+        subject,
+        text: isPaid
+            ? `Bonjour ${name || 'cher client'},\n\nVous avez paye la totalite de la facture ${invoiceId}. Montant total: ${totalNumber.toFixed(2)} USD.\n\n${espaceUrl || ''}\n\nL'equipe ${APP_NAME}`
+            : `Bonjour ${name || 'cher client'},\n\nLa facture ${invoiceId} est de ${totalNumber.toFixed(2)} USD. Montant deja paye: ${paidNumber.toFixed(2)} USD. Il reste a payer: ${remainingNumber.toFixed(2)} USD.\n\n${espaceUrl || ''}\n\nL'equipe ${APP_NAME}`,
+        html: brandedEmail({
+            eyebrow: isPaid ? 'PAIEMENT CONFIRME' : 'SUIVI DE FACTURE',
+            title,
+            greeting: `Bonjour ${name || 'cher client'}`,
+            intro,
+            content: `
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #dce4ee;border-radius:10px;border-collapse:separate;overflow:hidden">
+                <tr><td style="background:#f8fafc;color:#45566b;font-weight:700;padding:12px">Facture</td><td style="padding:12px;text-align:right"><strong>${escapeHtml(invoiceId)}</strong></td></tr>
+                <tr><td style="background:#f8fafc;color:#45566b;font-weight:700;padding:12px">Montant total</td><td style="padding:12px;text-align:right">${escapeHtml(totalNumber.toFixed(2))} USD</td></tr>
+                <tr><td style="background:#f8fafc;color:#45566b;font-weight:700;padding:12px">Deja paye</td><td style="padding:12px;text-align:right">${escapeHtml(paidNumber.toFixed(2))} USD</td></tr>
+                <tr><td style="background:${isPaid ? '#ecfdf3' : '#fff7ed'};color:#06264a;font-weight:800;padding:14px">Reste a payer</td><td style="background:${isPaid ? '#ecfdf3' : '#fff7ed'};color:${isPaid ? '#137333' : '#9a6400'};font-size:18px;font-weight:800;padding:14px;text-align:right">${escapeHtml(remainingNumber.toFixed(2))} USD</td></tr>
+              </table>
+              ${espaceUrl ? `<div style="margin-top:24px;text-align:center"><a href="${escapeHtml(espaceUrl)}" style="background:#0b5ea8;border-radius:8px;color:#ffffff;display:inline-block;font-size:14px;font-weight:700;padding:13px 22px;text-decoration:none">Consulter mes factures</a></div>` : ''}`,
+            notice: isPaid
+                ? 'Conservez cette information avec vos documents de paiement.'
+                : 'Si vous avez deja effectue un paiement, contactez notre equipe avec la reference de transaction.'
+        })
+    });
+};
+
 export const sendDebtReminderEmail = ({ to, name, invoices = [], totalDue, espaceUrl }) => {
     const invoiceRows = invoices.map((invoice) => `
         <tr>

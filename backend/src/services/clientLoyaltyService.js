@@ -4,9 +4,11 @@ import { publishChatUpdate } from './chatRealtimeService.js';
 import {
     sendCategoryNewProductEmail,
     sendDebtReminderEmail,
+    sendInvoiceBalanceEmail,
     sendInactiveClientEmail,
     sendProspectDiscoveryEmail
 } from './mailService.js';
+import { createNotification } from './notificationService.js';
 
 const prospectCampaignKey = 'prospect_discovery_v1';
 const inactiveCampaignPrefix = 'inactive_client';
@@ -16,7 +18,102 @@ const debtCampaignPrefix = 'debt_reminder';
 const getFrontendOrigin = () => String(process.env.FRONTEND_URL || 'http://127.0.0.1:5174')
     .split(',')[0]
     .trim()
-    .replace(/\/$/, '');
+        .replace(/\/$/, '');
+
+const positiveIntegerFromEnv = (name, fallback, min = 1, max = 365) => {
+    const value = Number.parseInt(process.env[name] || '', 10);
+    return Math.max(min, Math.min(max, Number.isFinite(value) && value > 0 ? value : fallback));
+};
+
+const debtReminderMode = () => {
+    const minutes = Number.parseInt(process.env.DEBT_REMINDER_INTERVAL_MINUTES || '', 10);
+    if (Number.isFinite(minutes) && minutes > 0) {
+        return {
+            minimumAgeClause: 'v.date_vente <= DATE_SUB(NOW(),INTERVAL ? MINUTE)',
+            minimumAgeValue: Math.max(0, Math.min(1440, Number.parseInt(process.env.DEBT_REMINDER_MIN_AGE_MINUTES || '0', 10) || 0)),
+            intervalClause: 'ce.sent_at >= DATE_SUB(NOW(),INTERVAL ? MINUTE)',
+            intervalValue: Math.max(1, Math.min(1440, minutes)),
+            bucket: new Date(Math.floor(Date.now() / (Math.max(1, minutes) * 60 * 1000)) * Math.max(1, minutes) * 60 * 1000)
+                .toISOString()
+                .slice(0, 16)
+                .replace(/[-:T]/g, '')
+        };
+    }
+
+    const minimumAgeDays = positiveIntegerFromEnv('DEBT_REMINDER_MIN_AGE_DAYS', 7, 1, 365);
+    const intervalDays = positiveIntegerFromEnv('DEBT_REMINDER_INTERVAL_DAYS', 7, 1, 90);
+    return {
+        minimumAgeClause: 'v.date_vente <= DATE_SUB(NOW(),INTERVAL ? DAY)',
+        minimumAgeValue: minimumAgeDays,
+        intervalClause: 'ce.sent_at >= DATE_SUB(NOW(),INTERVAL ? DAY)',
+        intervalValue: intervalDays,
+        bucket: new Date().toISOString().slice(0, 10)
+    };
+};
+
+export const notifyClientInvoiceBalance = async ({ venteId, entrepriseId, connection = pool }) => {
+    const [[invoice]] = await connection.query(
+        `SELECT c.id_client,c.nom,c.email,c.entreprise_id,
+                v.id_ventes,v.numero_facture,v.montant_ttc,
+                IFNULL(SUM(p.montant),0) AS total_paye,
+                GREATEST(v.montant_ttc-IFNULL(SUM(p.montant),0),0) AS reste_a_payer
+         FROM ventes v
+         JOIN client c ON c.id_client=v.client_id AND c.entreprise_id=v.entreprise_id
+         LEFT JOIN paiement p ON p.vente_id=v.id_ventes
+         WHERE v.id_ventes=? AND v.entreprise_id=?
+         GROUP BY c.id_client,c.nom,c.email,c.entreprise_id,v.id_ventes,v.numero_facture,v.montant_ttc`,
+        [venteId, entrepriseId]
+    );
+
+    if (!invoice) return { skipped: true, reason: 'Facture introuvable' };
+
+    const total = Number(invoice.montant_ttc || 0);
+    const paid = Number(invoice.total_paye || 0);
+    const remaining = Number(invoice.reste_a_payer || 0);
+    const invoiceId = invoice.numero_facture || invoice.id_ventes;
+    const title = remaining <= 0.005 ? 'Facture payee' : 'Solde restant';
+    const message = remaining <= 0.005
+        ? `Vous avez paye la totalite de la facture ${invoiceId}.`
+        : `Il reste ${remaining.toFixed(2)} USD a payer sur la facture ${invoiceId}.`;
+
+    await createNotification({
+        recipient_type: 'user',
+        recipient_user_id: invoice.id_client,
+        entreprise_id: invoice.entreprise_id,
+        titre: title,
+        message,
+        entity_type: 'vente',
+        entity_id: invoice.id_ventes
+    }).catch(() => null);
+
+    if (!invoice.email) return { skipped: true, reason: 'Email client absent' };
+
+    const result = await sendInvoiceBalanceEmail({
+        to: invoice.email,
+        name: invoice.nom,
+        invoiceId,
+        total,
+        paid,
+        remaining,
+        espaceUrl: `${getFrontendOrigin()}/connexion`
+    });
+
+    await connection.query(
+        `INSERT INTO mail_messages
+            (entreprise_id,sender_email,to_email,subject,message,status)
+         VALUES (?,?,?,?,?,?)`,
+        [
+            invoice.entreprise_id,
+            process.env.EMAIL_USER || null,
+            invoice.email,
+            title,
+            message,
+            result?.skipped ? 'ignore' : 'envoye'
+        ]
+    ).catch(() => null);
+
+    return result;
+};
 
 const claimCampaign = async ({ clientId, entrepriseId, campaignKey }) => {
     const [claim] = await pool.query(
@@ -146,8 +243,7 @@ export const sendInactiveClientEmails = async () => {
 };
 
 export const sendDebtReminderEmails = async () => {
-    const minimumAgeDays = Math.max(1, Math.min(365, Number.parseInt(process.env.DEBT_REMINDER_MIN_AGE_DAYS || '7', 10) || 7));
-    const intervalDays = Math.max(1, Math.min(90, Number.parseInt(process.env.DEBT_REMINDER_INTERVAL_DAYS || '7', 10) || 7));
+    const reminder = debtReminderMode();
     const frontendOrigin = getFrontendOrigin();
     const [rows] = await pool.query(
         `SELECT c.id_client,c.nom,c.email,c.entreprise_id,
@@ -160,20 +256,20 @@ export const sendDebtReminderEmails = async () => {
          WHERE c.actif=1
            AND c.email IS NOT NULL AND c.email<>''
            AND c.email_verified_at IS NOT NULL
-           AND v.date_vente <= DATE_SUB(NOW(),INTERVAL ? DAY)
+           AND ${reminder.minimumAgeClause}
            AND NOT EXISTS (
                SELECT 1 FROM crm_email_campaigns ce
                WHERE ce.client_id=c.id_client
                  AND ce.campaign_key LIKE ?
                  AND ce.statut='envoye'
-                 AND ce.sent_at >= DATE_SUB(NOW(),INTERVAL ? DAY)
+                 AND ${reminder.intervalClause}
            )
          GROUP BY c.id_client,c.nom,c.email,c.entreprise_id,
                   v.id_ventes,v.numero_facture,v.date_vente,v.montant_ttc
          HAVING reste_a_payer > 0.005
          ORDER BY c.id_client,v.date_vente ASC
          LIMIT 500`,
-        [minimumAgeDays, `${debtCampaignPrefix}_%`, intervalDays]
+        [reminder.minimumAgeValue, `${debtCampaignPrefix}_%`, reminder.intervalValue]
     );
 
     const clients = new Map();
@@ -198,7 +294,7 @@ export const sendDebtReminderEmails = async () => {
     for (const client of clients.values()) {
         const totalDue = client.invoices.reduce((sum, invoice) => sum + invoice.reste_a_payer, 0);
         if (totalDue <= 0.005) continue;
-        const campaignKey = `${debtCampaignPrefix}_${new Date().toISOString().slice(0, 10)}`;
+        const campaignKey = `${debtCampaignPrefix}_${reminder.bucket}`;
         if (!await claimCampaign({ clientId: client.id_client, entrepriseId: client.entreprise_id, campaignKey })) continue;
         const subject = `Rappel de solde restant - ${totalDue.toFixed(2)} USD`;
         try {

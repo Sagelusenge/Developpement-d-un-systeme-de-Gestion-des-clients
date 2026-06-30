@@ -2,6 +2,7 @@ import pool from '../config/db.js';
 import { nextId } from '../services/idService.js';
 import { initiateMobileMoneyPayment } from '../services/mobileMoneyService.js';
 import { createStripeCheckoutSession, isStripeReady, verifyStripeSignature } from '../services/stripeService.js';
+import { notifyClientInvoiceBalance } from '../services/clientLoyaltyService.js';
 
 // POST /api/paiements
 export const createPaiement = async (req, res) => {
@@ -54,6 +55,8 @@ export const createPaiement = async (req, res) => {
         );
 
         await connection.commit();
+        notifyClientInvoiceBalance({ venteId: vente_id, entrepriseId: entreprise_id })
+            .catch((error) => console.error('Notification paiement client:', error.message));
         res.status(201).json({
             success: true,
             message: `Paiement de ${montantNumber} USD enregistre (${normalizedPaymentMode})`,
@@ -304,6 +307,8 @@ export const stripeWebhook = async (req, res) => {
             [session.id || paymentSession.stripe_session_id, session.payment_intent || paymentSession.stripe_payment_intent, JSON.stringify(event), internalReference]
         );
         await connection.commit();
+        notifyClientInvoiceBalance({ venteId: paymentSession.vente_id, entrepriseId: paymentSession.entreprise_id })
+            .catch((error) => console.error('Notification paiement Stripe client:', error.message));
         res.json({ received: true });
     } catch (error) {
         await connection.rollback();
@@ -354,6 +359,10 @@ export const createClientMobilePayment = async (req, res) => {
             await connection.query(`INSERT INTO paiement (id_paiement,vente_id,montant,mode_paiement,reference_externe,telephone_payeur) VALUES (?,?,?,'mobile_money',?,?)`, [paymentId, venteId, montant, reference, telephone]);
         }
         await connection.commit();
+        if (providerResult?.confirmed) {
+            notifyClientInvoiceBalance({ venteId, entrepriseId: req.user.entreprise_id })
+                .catch((error) => console.error('Notification Mobile Money client:', error.message));
+        }
         res.status(201).json({ success: true, message: providerResult?.confirmed ? 'Paiement Mobile Money confirme automatiquement.' : 'Paiement Mobile Money recu et en cours de verification.', data: { id_demande: id, statut: initialStatus } });
     } catch (error) {
         await connection.rollback();
@@ -391,6 +400,10 @@ export const reviewMobilePayment = async (req, res) => {
         }
         await connection.query(`UPDATE demandes_paiement_mobile SET statut=?,date_traitement=NOW() WHERE id_demande=?`, [statut, request.id_demande]);
         await connection.commit();
+        if (statut === 'confirmee') {
+            notifyClientInvoiceBalance({ venteId: request.vente_id, entrepriseId: request.entreprise_id })
+                .catch((error) => console.error('Notification validation Mobile Money client:', error.message));
+        }
         res.json({ success: true, message: statut === 'confirmee' ? 'Paiement Mobile Money confirme et encaisse.' : 'Demande Mobile Money rejetee.' });
     } catch (error) { await connection.rollback(); res.status(400).json({ success: false, message: error.message }); }
     finally { connection.release(); }

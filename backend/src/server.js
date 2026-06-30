@@ -7,6 +7,10 @@ import { sendDebtReminderEmails, sendInactiveClientEmails, sendProspectFollowUpE
 dotenv.config();
 
 const PORT = process.env.PORT || 5000;
+const debtReminderIntervalMs = Math.max(
+    60 * 1000,
+    (Number.parseInt(process.env.DEBT_REMINDER_INTERVAL_MINUTES || '', 10) || 24 * 60) * 60 * 1000
+);
 
 const startServer = async () => {
     app.listen(PORT, () => {
@@ -26,7 +30,7 @@ const startServer = async () => {
         setInterval(() => sendProspectFollowUpEmails().catch((error) => console.error('Relance prospects:', error.message)), 60 * 60 * 1000).unref();
         setInterval(() => sendWeeklyClientRecommendations().catch((error) => console.error('Recommandations clients:', error.message)), 24 * 60 * 60 * 1000).unref();
         setInterval(() => sendInactiveClientEmails().catch((error) => console.error('Emails clients inactifs:', error.message)), 24 * 60 * 60 * 1000).unref();
-        setInterval(() => sendDebtReminderEmails().catch((error) => console.error('Rappels clients debiteurs:', error.message)), 24 * 60 * 60 * 1000).unref();
+        setInterval(() => sendDebtReminderEmails().catch((error) => console.error('Rappels clients debiteurs:', error.message)), debtReminderIntervalMs).unref();
     } catch (error) {
         console.error('Base de donnees indisponible au demarrage:', error.message);
         console.error('Le serveur reste en ligne. Verifiez DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME et DB_SSL sur Render.');

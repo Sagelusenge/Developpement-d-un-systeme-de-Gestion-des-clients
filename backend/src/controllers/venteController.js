@@ -1,5 +1,6 @@
 import pool from '../config/db.js';
 import { nextFactureId, nextId } from '../services/idService.js';
+import { notifyClientInvoiceBalance } from '../services/clientLoyaltyService.js';
 
 const toNumber = (value) => Number(value);
 const lineCostSql = 'COALESCE(NULLIF(lv.prix_achat_unitaire, 0), NULLIF(p.prix_achat, 0), 0)';
@@ -169,6 +170,8 @@ export const createVente = async (req, res) => {
         );
 
         await connection.commit();
+        notifyClientInvoiceBalance({ venteId: facture_id, entrepriseId: entreprise_id })
+            .catch((error) => console.error('Notification facture client:', error.message));
 
         res.status(201).json({
             success: true,
