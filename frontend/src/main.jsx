@@ -404,7 +404,7 @@ function printLayout({ title, badge, sections = [], table, note, paper = 'ticket
   if (!win) return;
   const identity = getPrintIdentity();
   const date = new Date().toLocaleDateString('fr-FR');
-  const line = generatedLine || `Document genere par ${identity.userLabel}`;
+  const line = generatedLine || `Document imprime par ${identity.userLabel}`;
   const sectionHtml = sections.map((section) => `
     <section class="info-card">
       <h2>${escapePrint(section.title)}</h2>
@@ -528,8 +528,8 @@ function printDocument(title, rows, options = {}) {
   const identity = getPrintIdentity();
   const lowerTitle = title.toLowerCase();
   const generatedLine = options.generatedLine
-    || (lowerTitle.includes('facture') ? `Facture generee par ${identity.userLabel}`
-      : `Document genere par ${identity.userLabel}`);
+    || (lowerTitle.includes('facture') ? `Facture imprimee par ${identity.userLabel}`
+      : `Document imprime par ${identity.userLabel}`);
   printLayout({
     title,
     badge: badgeRow?.[1],
@@ -705,7 +705,7 @@ function PublicContact() {
     } catch (error) { setStatus({ loading: false, message: error.message, ok: false }); }
   };
   return (
-    <><section className="public-page-hero contact-hero"><span className="eyebrow">Contact</span><h1>Parlons de votre projet.</h1><p>Une question sur nos produits, une commande ou votre espace client ? Ecrivez-nous.</p></section><section className="contact-layout"><aside><span className="section-kicker">Nous trouver</span><h2>Au coeur de Goma</h2><div className="contact-card"><MapPin size={27} /><div><strong>Adresse</strong><p>Avenue du Commerce<br />Quartier Murara, Commune de Karisimbi<br />Goma, Nord-Kivu</p></div></div><div className="contact-note"><ShieldCheck size={23} /><p>Les messages envoyes ici arrivent directement dans l’espace du manager.</p></div></aside><div className="contact-form-card"><h2>Envoyer un message</h2><p>Remplissez le formulaire et notre equipe prendra connaissance de votre demande.</p><form onSubmit={submit}><div className="form-row"><Input label="Nom complet" value={form.nom} onChange={(nom) => setForm({ ...form, nom })} required /><Input label="Adresse email" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} required /></div><Input label="Sujet" value={form.sujet} onChange={(sujet) => setForm({ ...form, sujet })} required /><label>Votre message<textarea value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} required /></label>{status.message && <p className={status.ok ? 'contact-success' : 'contact-error'}>{status.message}</p>}<button className="public-primary" disabled={status.loading}>{status.loading ? 'Envoi...' : 'Envoyer le message'} <Send size={18} /></button></form></div></section></>
+    <><section className="public-page-hero contact-hero"><span className="eyebrow">Contact</span><h1>Parlons de votre projet.</h1><p>Une question sur nos produits, une commande ou votre espace client ? Ecrivez-nous.</p></section><section className="contact-layout"><aside><span className="section-kicker">Nous trouver</span><h2>Au coeur de Goma</h2><div className="contact-card"><MapPin size={27} /><div><strong>Adresse</strong><p>Avenue du Commerce<br />Quartier Murara, Commune de Karisimbi<br />Goma, Nord-Kivu</p></div></div><div className="contact-note"><ShieldCheck size={23} /><p>Notre equipe consulte chaque demande et vous repond dans les meilleurs delais.</p></div></aside><div className="contact-form-card"><h2>Envoyer un message</h2><p>Remplissez le formulaire et notre equipe prendra connaissance de votre demande.</p><form onSubmit={submit}><div className="form-row"><Input label="Nom complet" value={form.nom} onChange={(nom) => setForm({ ...form, nom })} required /><Input label="Adresse email" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} required /></div><Input label="Sujet" value={form.sujet} onChange={(sujet) => setForm({ ...form, sujet })} required /><label>Votre message<textarea value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} required /></label>{status.message && <p className={status.ok ? 'contact-success' : 'contact-error'}>{status.message}</p>}<button className="public-primary" disabled={status.loading}>{status.loading ? 'Envoi...' : 'Envoyer le message'} <Send size={18} /></button></form></div></section></>
   );
 }
 
@@ -1725,7 +1725,6 @@ function ParametresEntreprise({ api, notify, onCompanyUpdated }) {
         <div className="company-preview-cover">
           <span className="section-kicker light">Apercu</span>
           <strong>Fiche entreprise</strong>
-          <small>Visible dans l'application et les documents</small>
         </div>
         <div className="company-preview-card">
           <div className="company-logo-preview">
@@ -3780,14 +3779,6 @@ function Categories({ api, notify, data, submit, searchQuery = '', user }) {
 function ClientDashboard({ data, setPage, user }) {
   const commandes = data.extra.commandes || [];
   const stats = data.extra.clientDashboard?.stats || {};
-  const reclamations = data.extra.reclamations;
-  const openComplaintStatuses = ['ouverte', 'en_cours'];
-  const reclamationsOuvertes = Array.isArray(reclamations)
-    ? reclamations.filter((item) => openComplaintStatuses.includes(String(item.statut || '').toLowerCase())).length
-    : Number(stats.reclamations_ouvertes || 0);
-  const totalReclamations = Array.isArray(reclamations)
-    ? reclamations.length
-    : Number(stats.total_reclamations || stats.reclamations_total || 0);
   return (
     <div className="client-space">
       <section className="client-hero">
@@ -3797,7 +3788,7 @@ function ClientDashboard({ data, setPage, user }) {
       <section className="client-kpis">
         <article><ShoppingCart /><span>Commandes</span><strong>{stats.total_commandes || 0}</strong></article>
         <article><FileText /><span>Achats cumules</span><strong>{moneySmart(stats.total_achats)}</strong></article>
-        <article><HelpCircle /><span>Reclamations ouvertes</span><strong>{reclamationsOuvertes}</strong><small>{totalReclamations} au total</small></article>
+        <article><CreditCard /><span>Dette du client</span><strong>{moneySmart(stats.total_restant)}</strong><small>Reste a payer</small></article>
       </section>
       <section className="panel">
         <div className="panel-heading"><h3>Dernieres commandes</h3><button className="link-button" type="button" onClick={() => setPage('commandes')}>Voir tout</button></div>
@@ -4115,6 +4106,44 @@ function Input({ label, value, onChange, type = 'text', required = false, ...pro
 
 function PhotoInput({ label, value, onChange, api, folder = 'products', notify }) {
   const [uploading, setUploading] = useState(false);
+  const prepareImageDataUrl = (file) => new Promise((resolve, reject) => {
+    if (folder !== 'companies') {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result || '');
+      reader.onerror = () => reject(new Error('Lecture de l’image impossible.'));
+      reader.readAsDataURL(file);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const image = new Image();
+      image.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxSide = 900;
+        const ratio = Math.min(1, maxSide / Math.max(image.width, image.height));
+        canvas.width = Math.max(1, Math.round(image.width * ratio));
+        canvas.height = Math.max(1, Math.round(image.height * ratio));
+        const context = canvas.getContext('2d');
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        const data = context.getImageData(0, 0, canvas.width, canvas.height);
+        for (let index = 0; index < data.data.length; index += 4) {
+          const red = data.data[index];
+          const green = data.data[index + 1];
+          const blue = data.data[index + 2];
+          if (red > 235 && green > 235 && blue > 235 && Math.max(red, green, blue) - Math.min(red, green, blue) < 18) {
+            data.data[index + 3] = 0;
+          }
+        }
+        context.putImageData(data, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      image.onerror = () => reject(new Error('Image illisible.'));
+      image.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error('Lecture de l’image impossible.'));
+    reader.readAsDataURL(file);
+  });
+
   const loadFile = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -4126,9 +4155,8 @@ function PhotoInput({ label, value, onChange, api, folder = 'products', notify }
       notify?.('Image trop lourde. Taille maximum: 3 Mo.');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const dataUrl = reader.result || '';
+    try {
+      const dataUrl = await prepareImageDataUrl(file);
       if (!api) {
         onChange(dataUrl);
         return;
@@ -4140,22 +4168,24 @@ function PhotoInput({ label, value, onChange, api, folder = 'products', notify }
           body: JSON.stringify({ folder, data_url: dataUrl, file_name: file.name })
         });
         onChange(response.data?.url || '');
-        notify?.('Photo chargee avec succes.');
+        notify?.(folder === 'companies' ? 'Logo PNG charge avec succes.' : 'Photo chargee avec succes.');
       } catch (error) {
         notify?.(error.message || "Impossible de charger la photo.");
       } finally {
         setUploading(false);
         event.target.value = '';
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      notify?.(error.message || "Impossible de preparer l'image.");
+      event.target.value = '';
+    }
   };
 
   return (
     <label>{label}
       <div className="photo-input">
         <input type="url" value={value || ''} onChange={(e) => onChange(e.target.value)} placeholder="Coller le lien de la photo" />
-        <input type="file" accept="image/*" onChange={loadFile} disabled={uploading} />
+        <input type="file" accept={folder === 'companies' ? 'image/png,image/jpeg,image/webp' : 'image/*'} onChange={loadFile} disabled={uploading} />
         {uploading && <small>Chargement de la photo...</small>}
         {value && (
           <div className="photo-preview">
