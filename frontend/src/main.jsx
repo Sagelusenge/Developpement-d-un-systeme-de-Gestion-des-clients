@@ -684,11 +684,11 @@ function PublicServices({ goTo }) {
     [Package, 'Quincaillerie generale', 'Des outils, equipements et consommables destines aux professionnels, artisans et particuliers.'],
     [ShoppingCart, 'Commande en ligne', 'Depuis votre espace client, consultez les produits disponibles, envoyez une commande et suivez son traitement.'],
     [FileText, 'Factures et suivi des achats', 'Retrouvez vos achats, vos factures et votre situation de paiement dans un espace personnel securise.'],
-    [HelpCircle, 'Reclamations et service client', 'Signalez un probleme depuis votre compte et suivez directement la reponse du manager.'],
+    [HelpCircle, 'Reclamations et service client', 'Signalez un probleme depuis votre compte et suivez la reponse de notre equipe.'],
     [Users, 'Conseil et accompagnement', 'Notre equipe vous oriente vers les produits adaptes à votre projet et à votre budget.']
   ];
   return (
-    <><section className="public-page-hero services-hero"><span className="eyebrow">Nos services</span><h1>Plus que des produits,<br />un accompagnement.</h1><p>Une offre complete qui relie le magasin, le suivi commercial et votre espace client.</p></section><section className="services-grid">{services.map(([Icon, title, text], index) => <article key={title}><b>{String(index + 1).padStart(2, '0')}</b><Icon size={32} /><h2>{title}</h2><p>{text}</p></article>)}</section><section className="digital-service"><div><span className="section-kicker light">Votre espace client</span><h2>Vos commandes vous suivent partout.</h2><p>Commandez, consultez vos factures et echangez avec le manager depuis une interface simple et securisee.</p><button className="public-primary" onClick={() => goTo('/connexion')}>Acceder à mon espace <ArrowRight size={18} /></button></div><div className="digital-mock" aria-label="Apercu du tableau de bord client"><div className="preview-browser"><i /><i /><i /><span>espace.quincaillerie-centrale.cd</span></div><div className="preview-layout"><aside><div className="preview-logo"><img src={LOGO_URL} alt="" /><b>QC</b></div><span className="active"><Grid2X2 size={14} /></span><span><ShoppingCart size={14} /></span><span><FileText size={14} /></span><span><MessageCircle size={14} /></span></aside><main className="preview-dashboard"><header><div><small>ESPACE CLIENT</small><strong>Bonjour, Sage</strong></div><span>SL</span></header><div className="preview-kpis"><article><small>Commandes</small><strong>12</strong><em>+2 ce mois</em></article><article><small>Achats cumules</small><strong>1 896 USD</strong><em>Situation à jour</em></article><article><small>Reclamations</small><strong>0</strong><em>Tout est regle</em></article></div><section className="preview-activity"><div><small>Activite des commandes</small><strong>Suivi en temps reel</strong></div><div className="preview-bars"><i style={{ height: '36%' }} /><i style={{ height: '52%' }} /><i style={{ height: '43%' }} /><i style={{ height: '72%' }} /><i style={{ height: '61%' }} /><i style={{ height: '88%' }} /></div></section><section className="preview-orders"><header><strong>Dernieres commandes</strong><small>Voir tout</small></header><div><span>CMD-000012</span><b>En preparation</b><em>348 USD</em></div><div><span>CMD-000011</span><b className="confirmed">Confirmee</b><em>580 USD</em></div></section></main></div></div></section><section className="public-cta"><span>Besoin d'un renseignement ?</span><h2>Notre equipe vous repond.</h2><button className="public-primary" onClick={() => goTo('/contact')}>Nous contacter <Send size={18} /></button></section></>
+    <><section className="public-page-hero services-hero"><span className="eyebrow">Nos services</span><h1>Plus que des produits,<br />un accompagnement.</h1><p>Une offre complete qui relie le magasin, le suivi commercial et votre espace client.</p></section><section className="services-grid">{services.map(([Icon, title, text], index) => <article key={title}><b>{String(index + 1).padStart(2, '0')}</b><Icon size={32} /><h2>{title}</h2><p>{text}</p></article>)}</section><section className="digital-service"><div><span className="section-kicker light">Votre espace client</span><h2>Vos commandes vous suivent partout.</h2><p>Commandez, consultez vos factures et echangez avec notre equipe depuis une interface simple et securisee.</p><button className="public-primary" onClick={() => goTo('/connexion')}>Acceder à mon espace <ArrowRight size={18} /></button></div><div className="digital-mock" aria-label="Apercu du tableau de bord client"><div className="preview-browser"><i /><i /><i /><span>espace.quincaillerie-centrale.cd</span></div><div className="preview-layout"><aside><div className="preview-logo"><img src={LOGO_URL} alt="" /><b>QC</b></div><span className="active"><Grid2X2 size={14} /></span><span><ShoppingCart size={14} /></span><span><FileText size={14} /></span><span><MessageCircle size={14} /></span></aside><main className="preview-dashboard"><header><div><small>ESPACE CLIENT</small><strong>Bonjour, Sage</strong></div><span>SL</span></header><div className="preview-kpis"><article><small>Commandes</small><strong>12</strong><em>+2 ce mois</em></article><article><small>Achats cumules</small><strong>1 896 USD</strong><em>Situation à jour</em></article><article><small>Dette client</small><strong>0 USD</strong><em>Reste a payer</em></article></div><section className="preview-activity"><div><small>Activite des commandes</small><strong>Suivi en temps reel</strong></div><div className="preview-bars"><i style={{ height: '36%' }} /><i style={{ height: '52%' }} /><i style={{ height: '43%' }} /><i style={{ height: '72%' }} /><i style={{ height: '61%' }} /><i style={{ height: '88%' }} /></div></section><section className="preview-orders"><header><strong>Dernieres commandes</strong><small>Voir tout</small></header><div><span>CMD-000012</span><b>En preparation</b><em>348 USD</em></div><div><span>CMD-000011</span><b className="confirmed">Confirmee</b><em>580 USD</em></div></section></main></div></div></section><section className="public-cta"><span>Besoin d'un renseignement ?</span><h2>Notre equipe vous repond.</h2><button className="public-primary" onClick={() => goTo('/contact')}>Nous contacter <Send size={18} /></button></section></>
   );
 }
 
@@ -746,7 +746,7 @@ function PublicRegistration({ goTo, onComplete }) {
   };
   return (
     <section className="registration-page">
-      <div className="registration-aside"><span className="eyebrow">ESPACE CLIENT</span><h1>Votre quincaillerie,<br />à portee de main.</h1><p>Un compte personnel pour commander, suivre vos achats, consulter vos factures et contacter directement notre equipe.</p><div className="registration-benefits"><div><ShieldCheck /><span><strong>Compte securise</strong><small>Votre adresse email est verifiee</small></span></div><div><ShoppingCart /><span><strong>Commandes simplifiees</strong><small>Suivez chaque etape en ligne</small></span></div><div><HelpCircle /><span><strong>Assistance directe</strong><small>Vos reclamations arrivent au manager</small></span></div></div></div>
+      <div className="registration-aside"><span className="eyebrow">ESPACE CLIENT</span><h1>Votre quincaillerie,<br />à portee de main.</h1><p>Un compte personnel pour commander, suivre vos achats, consulter vos factures et contacter notre equipe.</p><div className="registration-benefits"><div><ShieldCheck /><span><strong>Compte securise</strong><small>Votre adresse email est verifiee</small></span></div><div><ShoppingCart /><span><strong>Commandes simplifiees</strong><small>Suivez chaque etape en ligne</small></span></div><div><HelpCircle /><span><strong>Assistance client</strong><small>Votre demande est suivie par notre equipe</small></span></div></div></div>
       <div className="registration-card">
         {step === 'form' ? <><span className="registration-step">ETAPE 1 SUR 2</span><h2>Creer mon compte</h2><p>Renseignez vos informations personnelles. Un code sera envoye à votre adresse email.</p><form onSubmit={requestRegistration}><div className="form-row"><Input label="Nom" value={form.nom} onChange={(nom) => setForm({ ...form, nom })} required /><Input label="Postnom" value={form.postnom} onChange={(postnom) => setForm({ ...form, postnom })} /></div><Input label="Numero de telephone" value={form.telephone} onChange={(telephone) => setForm({ ...form, telephone })} placeholder="Ex. +243..." required /><Input label="Adresse email" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} placeholder="votrenom@gmail.com" required /><div className="form-row"><Input label="Mot de passe" type="password" value={form.password} onChange={(password) => setForm({ ...form, password })} required /><Input label="Confirmer" type="password" value={form.confirm} onChange={(confirm) => setForm({ ...form, confirm })} required /></div><small className="password-hint">8 caracteres minimum, avec majuscule, minuscule et chiffre.</small><label className="terms-check"><input type="checkbox" checked={form.accepted} onChange={(event) => setForm({ ...form, accepted: event.target.checked })} /><span>J'accepte la creation de mon espace client et le traitement de mes informations pour la gestion de mes commandes.</span></label>{status.message && <p className={status.ok ? 'contact-success' : 'contact-error'}>{status.message}</p>}<button className="public-primary registration-submit" disabled={status.loading}>{status.loading ? 'Envoi du code...' : 'Continuer et verifier mon email'} <ArrowRight size={18} /></button></form></> : <><span className="registration-step">ETAPE 2 SUR 2</span><div className="verify-icon"><Mail size={30} /></div><h2>Consultez votre messagerie</h2><p>Nous avons envoye un code professionnel à 6 chiffres à <strong>{form.email}</strong>. Il reste valable pendant 15 minutes.</p><form onSubmit={verify}><label className="verification-label">Code de confirmation<input className="verification-code" inputMode="numeric" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="000000" required /></label>{status.message && <p className={status.ok ? 'contact-success' : 'contact-error'}>{status.message}</p>}<button className="public-primary registration-submit" disabled={status.loading || code.length !== 6}>{status.loading ? 'Verification...' : 'Confirmer mon adresse'} <ShieldCheck size={18} /></button><div className="verify-actions"><button type="button" onClick={resend} disabled={status.loading}>Renvoyer le code</button><button type="button" onClick={() => { setStep('form'); setCode(''); }}>Modifier l'adresse</button></div></form></>}
         <p className="registration-login">Vous avez deja un compte ? <button type="button" onClick={() => goTo('/connexion')}>Se connecter</button></p>
@@ -1055,8 +1055,8 @@ function App() {
         : ['Rapports', 'Factures, creances, stock et meilleurs clients.'],
     commandes: ['Commandes', user?.role === 'client' ? 'Passez et suivez vos commandes.' : 'Suivi et traitement des commandes clients.'],
     achats: ['Mes achats', 'Factures et paiements de votre compte.'],
-    reclamations: ['Reclamations', user?.role === 'client' ? 'Ecrivez directement au manager.' : 'Demandes envoyees par les clients.'],
-    chat: [user?.role === 'client' ? 'Assistance' : 'Chat clients', user?.role === 'client' ? 'Obtenez une reponse automatique ou echangez avec le manager.' : 'Repondez aux questions transferees par l’assistant.'],
+    reclamations: ['Reclamations', user?.role === 'client' ? 'Expliquez votre demande a notre equipe.' : 'Demandes envoyees par les clients.'],
+    chat: [user?.role === 'client' ? 'Assistance' : 'Chat clients', user?.role === 'client' ? 'Obtenez une aide claire ou echangez avec notre equipe.' : 'Suivez les demandes clients et repondez simplement.'],
     commentaires: ['Commentaires du site', 'Messages envoyes depuis la page Contact.'],
     parametres: ["Parametres de l'entreprise", 'Personnalisez le nom, le logo et les informations de votre entreprise.'],
   };
@@ -1472,8 +1472,8 @@ function HelpModal({ page, role, onClose }) {
       ['Mon espace', 'Voir votre resume client, vos commandes recentes et vos raccourcis utiles.'],
       ['Commandes', 'Choisir les produits disponibles, ajouter au panier et envoyer une commande.'],
       ['Mes achats', 'Consulter vos factures, montants payes et restes a payer.'],
-      ['Reclamations', 'Envoyer une reclamation au manager avec les references de commande ou facture.'],
-      ['Assistance', 'Discuter avec le bot ou le manager pour obtenir une aide sur prix, paiement ou suivi.']
+      ['Reclamations', 'Envoyer une reclamation avec les references de commande ou facture.'],
+      ['Assistance', 'Demander une aide sur les prix, paiements ou suivis de commande.']
     ],
     magasinier: [common.dashboard, common.produits, common.categories, common.fournisseurs, common.rapportsStock],
     vendeur: [common.dashboard, common.clients, common.ventes, common.paiements, common.rapportsCaisse],
@@ -3813,7 +3813,7 @@ function Commandes({ api, notify, data, submit, user, searchQuery = '' }) {
     if (!cartItems.length) return notify('Ajoutez au moins un produit au panier.');
     submit(async () => {
       await api('/commandes', { method: 'POST', body: JSON.stringify({ note_client: note, articles: cartItems.map((product) => ({ produit_id: product.id_produit, quantite: cart[product.id_produit] })) }) });
-      setCart({}); setNote(''); notify('Commande envoyee au manager.');
+      setCart({}); setNote(''); notify('Commande envoyee a notre equipe.');
     });
   };
   const updateStatus = (item, statut) => submit(async () => {
@@ -3950,7 +3950,7 @@ function Reclamations({ api, notify, data, submit, user, searchQuery = '' }) {
   const openCount = rows.filter((item) => ['ouverte', 'en_cours'].includes(String(item.statut || '').toLowerCase())).length;
   const send = () => submit(async () => {
     await api('/reclamations', { method: 'POST', body: JSON.stringify(form) });
-    setForm({ sujet: '', message: '', commande_id: '' }); notify('Reclamation envoyee directement au manager.');
+    setForm({ sujet: '', message: '', commande_id: '' }); notify('Reclamation envoyee a notre equipe.');
   });
   const save = () => submit(async () => {
     await api(`/reclamations/${editing.id_reclamation}`, { method: 'PUT', body: JSON.stringify(editing) });
@@ -3958,7 +3958,7 @@ function Reclamations({ api, notify, data, submit, user, searchQuery = '' }) {
   });
   return (
     <div className="grid">
-      {user?.role === 'client' && <section className="panel complaint-form"><div className="panel-heading"><div><h3>Nouvelle reclamation</h3><p>Votre message sera visible par le manager.</p></div></div><Form onSubmit={send}><Input label="Sujet" value={form.sujet} onChange={(sujet) => setForm({ ...form, sujet })} required /><Select label="Commande concernee (optionnel)" value={form.commande_id} onChange={(commande_id) => setForm({ ...form, commande_id })} required={false} options={[["", "Aucune commande"], ...(data.extra.commandes || []).map((item) => [item.id_commande, item.id_commande])]} /><label>Message<textarea value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} required /></label><button className="btn modal-submit">Envoyer au manager <ArrowRight size={18} /></button></Form></section>}
+      {user?.role === 'client' && <section className="panel complaint-form"><div className="panel-heading"><div><h3>Nouvelle reclamation</h3><p>Notre equipe prendra connaissance de votre demande.</p></div></div><Form onSubmit={send}><Input label="Sujet" value={form.sujet} onChange={(sujet) => setForm({ ...form, sujet })} required /><Select label="Commande concernee (optionnel)" value={form.commande_id} onChange={(commande_id) => setForm({ ...form, commande_id })} required={false} options={[["", "Aucune commande"], ...(data.extra.commandes || []).map((item) => [item.id_commande, item.id_commande])]} /><label>Message<textarea value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} required /></label><button className="btn modal-submit">Envoyer la reclamation <ArrowRight size={18} /></button></Form></section>}
       <section className="panel"><div className="panel-heading"><div><h3>{user?.role === 'client' ? 'Mes reclamations' : 'Reclamations clientes'}</h3><p>{openCount} ouverte(s) ou en cours · {rows.length} au total</p></div></div><Table headers={['Reference', ...(user?.role === 'manager' ? ['Client'] : []), 'Sujet', 'Message', 'Reponse', 'Statut', ...(user?.role === 'manager' ? ['Action'] : [])]} rows={rows.map((item) => [item.id_reclamation, ...(user?.role === 'manager' ? [`${item.client_nom} ${item.client_postnom || ''}`] : []), item.sujet, item.message, item.reponse || 'En attente', <Badge>{item.statut}</Badge>, ...(user?.role === 'manager' ? [<button className="btn small" type="button" onClick={() => setEditing(item)}>Traiter</button>] : [])])} /></section>
       {editing && <Modal title={`Traiter ${editing.id_reclamation}`} onClose={() => setEditing(null)}><Form onSubmit={save}><Select label="Statut" value={editing.statut} onChange={(statut) => setEditing({ ...editing, statut })} options={[['ouverte', 'Ouverte'], ['en_cours', 'En cours'], ['resolue', 'Resolue'], ['cloturee', 'Cloturee']]} /><label>Reponse au client<textarea value={editing.reponse || ''} onChange={(event) => setEditing({ ...editing, reponse: event.target.value })} /></label><button className="btn modal-submit">Enregistrer la reponse</button></Form></Modal>}
     </div>
@@ -4009,7 +4009,7 @@ function ChatPage({ api, notify, data, user, searchQuery = '' }) {
       const result = await api('/chat/messages', { method: 'POST', body: JSON.stringify({ conversation_id: selected?.id_conversation || undefined, message: text }) });
       setSelectedId(result.conversation_id || selected?.id_conversation || '');
       await refreshChats();
-      if (result.escalated) notify('Question transmise au manager. Vous serez notifie de sa reponse.');
+      if (result.escalated) notify('Notre equipe prendra le relais. Vous serez informe quand une reponse sera disponible.');
     } catch (error) {
       setLiveChats((items) => items.map((chat) => ({ ...chat, messages: (chat.messages || []).filter((item) => item.id_message !== tempMessage.id_message) })));
       setMessage(text);
@@ -4028,7 +4028,7 @@ function ChatPage({ api, notify, data, user, searchQuery = '' }) {
   ];
   const analyze = async () => {
     setAnalysisLoading(true);
-    try { const result = await api('/chat/manager-analysis'); setAiAnalysis(result.data?.analysis || 'Analyse indisponible.'); }
+    try { const result = await api('/chat/manager-analysis'); setAiAnalysis(result.data?.analysis || 'Synthese indisponible.'); }
     catch (error) { notify(error.message); }
     finally { setAnalysisLoading(false); }
   };
@@ -4037,9 +4037,9 @@ function ChatPage({ api, notify, data, user, searchQuery = '' }) {
       ? user?.role === 'client'
       : item.sender_type === 'manager' && user?.role === 'manager';
     const roleLabel = item.sender_type === 'bot'
-      ? 'Bot'
+      ? 'Service client'
       : item.sender_type === 'manager'
-        ? 'Manager'
+        ? 'Equipe'
         : (user?.role === 'client' ? 'Vous' : 'Client');
     const initials = item.sender_type === 'bot'
       ? 'QC'
@@ -4061,12 +4061,12 @@ function ChatPage({ api, notify, data, user, searchQuery = '' }) {
     );
   };
   return (
-    <><div className="chat-page-tools">{user?.role === 'manager' && <button className="btn secondary small" type="button" onClick={analyze} disabled={analysisLoading}><BarChart3 size={17} /> {analysisLoading ? 'Analyse...' : 'Avis IA au manager'}</button>}</div><div className={`chat-shell ${user?.role === 'client' ? 'client-chat-shell' : ''}`}>
+    <><div className="chat-page-tools">{user?.role === 'manager' && <button className="btn secondary small" type="button" onClick={analyze} disabled={analysisLoading}><BarChart3 size={17} /> {analysisLoading ? 'Preparation...' : 'Synthese des conversations'}</button>}</div><div className={`chat-shell ${user?.role === 'client' ? 'client-chat-shell' : ''}`}>
       {user?.role === 'manager' && <aside className="chat-list"><div className="chat-list-head"><MessageCircle size={21} /><strong>Conversations</strong></div>{chats.length ? chats.map((chat) => <button key={chat.id_conversation} className={selected?.id_conversation === chat.id_conversation ? 'active' : ''} type="button" onClick={() => setSelectedId(chat.id_conversation)}><span>{getInitials(chat.client_nom)}</span><div><strong>{chat.client_nom} {chat.client_postnom || ''}</strong><small>{chat.dernier_message || 'Nouvelle conversation'}</small></div><Badge>{chat.statut}</Badge></button>) : <p className="empty compact">Aucune conversation</p>}</aside>}
       <section className="chat-window">
-        <header><div className="chat-avatar"><MessageCircle size={22} /></div><div><strong>{user?.role === 'client' ? 'Assistant Quincaillerie Centrale' : selected ? `${selected.client_nom} ${selected.client_postnom || ''}` : 'Selectionnez un client'}</strong><span>{selected?.statut === 'en_attente_manager' ? 'Reponse humaine demandee' : 'Assistant automatique disponible'}</span></div></header>
+        <header><div className="chat-avatar"><MessageCircle size={22} /></div><div><strong>{user?.role === 'client' ? 'Service client Quincaillerie Centrale' : selected ? `${selected.client_nom} ${selected.client_postnom || ''}` : 'Selectionnez un client'}</strong><span>{selected?.statut === 'en_attente_manager' ? 'En attente de reponse' : 'Service client disponible'}</span></div></header>
         <div className="chat-messages" ref={messagesRef}>
-          {!selected && user?.role === 'client' && <div className="chat-welcome"><MessageCircle size={34} /><h3>Comment pouvons-nous vous aider ?</h3><p>L’assistant consulte vos references de commande et de facture, puis repond aux questions sur les prix, paiements, produits et reclamations. S’il ne dispose pas d’une information fiable, le manager est prevenu immediatement par notification et par email.</p></div>}
+          {!selected && user?.role === 'client' && <div className="chat-welcome"><MessageCircle size={34} /><h3>Comment pouvons-nous vous aider ?</h3><p>Posez votre question sur les prix, paiements, produits ou commandes. Si une verification est necessaire, notre equipe prendra le relais.</p></div>}
           {(selected?.messages || []).map(renderChatMessage)}
         </div>
         {user?.role === 'client' && <div className="chat-suggestions chat-suggestions-bottom">
@@ -4074,7 +4074,7 @@ function ChatPage({ api, notify, data, user, searchQuery = '' }) {
         </div>}
         {(user?.role === 'client' || selected) && <Form onSubmit={send}><div className="chat-composer"><textarea value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Ecrivez votre question..." maxLength={2000} /><button className="btn" disabled={!message.trim()}><Send size={19} /> Envoyer</button></div></Form>}
       </section>
-    </div>{aiAnalysis && <Modal title="Analyse IA de l'activite" onClose={() => setAiAnalysis('')}><div className="ai-analysis"><p>{aiAnalysis}</p><small>Cette analyse aide a la decision; les donnees comptables et le jugement du manager restent prioritaires.</small></div></Modal>}</>
+    </div>{aiAnalysis && <Modal title="Synthese de l'activite" onClose={() => setAiAnalysis('')}><div className="ai-analysis"><p>{aiAnalysis}</p><small>Cette synthese aide a mieux suivre les conversations clients.</small></div></Modal>}</>
   );
 }
 
