@@ -1660,7 +1660,7 @@ function Page({ page, api, notify, lang, user, searchQuery, setPage, onCompanyUp
 
   const props = { api, notify, data, submit, lang, user, searchQuery, setPage };
   if (page === 'dashboard' && user?.role === 'client') return <ClientDashboard data={data} setPage={setPage} user={user} />;
-  if (page === 'dashboard') return <Dashboard data={data} searchQuery={searchQuery} setPage={setPage} user={user} />;
+  if (page === 'dashboard') return <Dashboard api={api} notify={notify} data={data} searchQuery={searchQuery} setPage={setPage} user={user} />;
   if (page === 'clients') return <Clients {...props} />;
   if (page === 'produits') return <Produits {...props} />;
   if (page === 'fournisseurs') return <Fournisseurs {...props} />;
@@ -1780,15 +1780,46 @@ function ParametresEntreprise({ api, notify, onCompanyUpdated }) {
   );
 }
 
-function Dashboard({ data, searchQuery = '', setPage, user }) {
+function Dashboard({ api, notify, data, searchQuery = '', setPage, user }) {
   const [selectedPaymentMode, setSelectedPaymentMode] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const stats = data.extra.stats || {};
+  const [selectedMonthKey, setSelectedMonthKey] = useState('');
+  const [periodStats, setPeriodStats] = useState(null);
+  const [periodLoading, setPeriodLoading] = useState(false);
   const ventes = data.extra.ventesMensuelles || [];
   const alertes = data.extra.alertes || [];
   const topClients = (data.extra.top || []).slice(0, 3);
   const topProducts = data.extra.produitsPlusVendus || [];
   const resultatRows = data.extra.resultatMensuel || [];
+  const activeStats = periodStats || stats;
+  const activeMonthKey = selectedMonthKey || activeStats.periode_key || '';
+  const formatMonthPeriod = (key) => {
+    if (!/^\d{4}-\d{2}$/.test(String(key || ''))) return activeStats.periode_label || 'mois en cours';
+    const [year, month] = key.split('-').map(Number);
+    return new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+      .format(new Date(Date.UTC(year, month - 1, 1)));
+  };
+  const activeMonthLabel = formatMonthPeriod(activeMonthKey);
+  const periodCaption = activeStats.periode_mois_en_cours
+    ? `Mois en cours · ${activeMonthLabel}`
+    : `Mois de ${activeMonthLabel}`;
+  const kpiPeriod = activeStats.periode_mois_en_cours ? 'mois en cours' : activeMonthLabel;
+  const selectDashboardMonth = async (monthKey) => {
+    if (!monthKey || periodLoading) return;
+    const previousKey = activeMonthKey;
+    setSelectedMonthKey(monthKey);
+    setPeriodLoading(true);
+    try {
+      const response = await api(`/dashboard/stats?mois=${encodeURIComponent(monthKey)}`);
+      setPeriodStats(response.data || {});
+    } catch (error) {
+      setSelectedMonthKey(previousKey);
+      notify?.(error.message || 'Impossible de charger les montants de ce mois.');
+    } finally {
+      setPeriodLoading(false);
+    }
+  };
   const dashboardTerm = searchQuery.trim().toLowerCase();
   const factures = (data.ventes || [])
     .filter((v) => !dashboardTerm || `${v.numero_facture} ${v.client_nom || ''}`.toLowerCase().includes(dashboardTerm))
@@ -1833,12 +1864,12 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
   const canPayments = ['manager', 'vendeur'].includes(role);
   const stockTotal = (data.produits || []).reduce((sum, produit) => sum + Number(produit.quantite_stock || 0), 0);
   const stockAlerts = alertes.length || (data.produits || []).filter((produit) => produit.statut_stock && produit.statut_stock !== 'OK').length;
-  const monthlyCash = Number(stats.argent_recu_mois ?? paymentTotal);
+  const monthlyCash = Number(activeStats.argent_recu_mois ?? paymentTotal);
   const dashboardKpis = [
-    canSales && { icon: CreditCard, tone: 'orange', label: 'Total vendu ce mois', value: moneySmart(stats.ca_mois_en_cours), page: 'ventes' },
-    canPayments && { icon: WalletCards, tone: 'green', label: 'Argent deja recu', value: moneySmart(monthlyCash), page: 'paiements' },
-    canSales && { icon: Coins, tone: 'blue', label: "Cout d'achat des ventes", value: moneySmart(stats.cout_achat_mois), page: 'rapports' },
-    canSales && { icon: BarChart3, tone: Number(stats.resultat_mois || 0) >= 0 ? 'green' : 'danger', label: Number(stats.resultat_mois || 0) >= 0 ? 'Benefice du mois' : 'Perte du mois', value: moneySmart(stats.resultat_mois), page: 'rapports', negative: Number(stats.resultat_mois || 0) < 0 },
+    canSales && { icon: CreditCard, tone: 'orange', label: `Total vendu · ${kpiPeriod}`, value: moneySmart(activeStats.ca_mois_en_cours), page: 'ventes' },
+    canPayments && { icon: WalletCards, tone: 'green', label: `Argent recu · ${kpiPeriod}`, value: moneySmart(monthlyCash), page: 'paiements' },
+    canSales && { icon: Coins, tone: 'blue', label: `Cout d'achat · ${kpiPeriod}`, value: moneySmart(activeStats.cout_achat_mois), page: 'rapports' },
+    canSales && { icon: BarChart3, tone: Number(activeStats.resultat_mois || 0) >= 0 ? 'green' : 'danger', label: `${Number(activeStats.resultat_mois || 0) >= 0 ? 'Benefice' : 'Perte'} · ${kpiPeriod}`, value: moneySmart(activeStats.resultat_mois), page: 'rapports', negative: Number(activeStats.resultat_mois || 0) < 0 },
     canClients && { icon: Users, tone: 'blue', label: 'Total Clients', value: stats.total_clients || data.clients.length || 0, page: 'clients' },
     canStock && { icon: Package, tone: 'blue', label: 'Produits suivis', value: data.produits.length || 0, page: 'produits' },
     canStock && { icon: Box, tone: 'orange', label: 'Stock total', value: stockTotal, page: 'produits' },
@@ -1859,7 +1890,7 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
           {canSales && (
             <div className="panel manager-chart-panel">
               <div className="panel-heading">
-                <h3>Ventes des 6 derniers mois</h3>
+                <div><h3>Ventes des 6 derniers mois</h3><p className="dashboard-period-caption">{periodLoading ? 'Chargement des montants...' : periodCaption}</p></div>
                 <div className="chart-legend">
                   <span><i className="sales" /> Activites reelles</span>
                 </div>
@@ -1872,12 +1903,19 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
                   <span />
                 </div>
                 <div className="activity-axis">
-                  {chartMonths.map((row) => {
-                    const month = String(row.mois || '').slice(0, 3);
+                  {chartMonths.map((row, index) => {
+                    const month = String(row.mois || '');
                     const value = Number(row.total || 0);
                     const height = value > 0 ? Math.max(24, (value / maxVente) * 210) : 8;
                     return (
-                      <button className="activity-month" key={month} type="button" title={`Activite ${month}: ${money(value)}`}>
+                      <button
+                        className={`activity-month ${activeMonthKey && row.mois_key === activeMonthKey ? 'active' : ''}`}
+                        key={row.mois_key || `${month}-${index}`}
+                        type="button"
+                        title={`Afficher les montants de ${formatMonthPeriod(row.mois_key)} : ${money(value)}`}
+                        aria-pressed={row.mois_key === activeMonthKey}
+                        onClick={() => selectDashboardMonth(row.mois_key)}
+                      >
                         <strong>{value > 0 ? formatUsdCompact(value).replace('USD ', '') : '-'}</strong>
                         <div className="activity-track">
                           <i style={{ height }} />
@@ -1921,15 +1959,15 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
       {canSales && (
         <div className="panel result-panel">
           <div className="panel-heading">
-            <h3>Resultat mensuel</h3>
-            <span className={`panel-pill ${Number(stats.resultat_mois || 0) >= 0 ? 'ok' : 'danger'}`}>
-              {Number(stats.resultat_mois || 0) >= 0 ? 'Benefice du mois' : 'Perte du mois'} <AnimatedNumber value={stats.resultat_mois} formatter={moneySmart} />
+            <div><h3>Resultat mensuel</h3><p className="dashboard-period-caption">{periodCaption}</p></div>
+            <span className={`panel-pill ${Number(activeStats.resultat_mois || 0) >= 0 ? 'ok' : 'danger'}`}>
+              {Number(activeStats.resultat_mois || 0) >= 0 ? 'Benefice' : 'Perte'} <AnimatedNumber value={activeStats.resultat_mois} formatter={moneySmart} />
             </span>
           </div>
           <div className="result-summary-grid">
-            <article><span>Ventes HT</span><strong><AnimatedNumber value={stats.ventes_ht_mois} formatter={moneySmart} /></strong></article>
-            <article><span>Cout achat</span><strong><AnimatedNumber value={stats.cout_achat_mois} formatter={moneySmart} /></strong></article>
-            <article><span>Benefice</span><strong className={Number(stats.resultat_mois || 0) >= 0 ? 'profit' : 'loss'}><AnimatedNumber value={stats.resultat_mois} formatter={moneySmart} /></strong></article>
+            <article><span>Ventes HT</span><strong><AnimatedNumber value={activeStats.ventes_ht_mois} formatter={moneySmart} /></strong></article>
+            <article><span>Cout achat</span><strong><AnimatedNumber value={activeStats.cout_achat_mois} formatter={moneySmart} /></strong></article>
+            <article><span>Benefice</span><strong className={Number(activeStats.resultat_mois || 0) >= 0 ? 'profit' : 'loss'}><AnimatedNumber value={activeStats.resultat_mois} formatter={moneySmart} /></strong></article>
           </div>
           <div className="result-bars">
             {(resultatRows.length ? resultatRows : chartMonths.map((row) => ({ mois: row.mois, resultat: 0, ventes_ht: 0, cout_achat: 0 }))).map((row) => {
@@ -1938,7 +1976,7 @@ function Dashboard({ data, searchQuery = '', setPage, user }) {
               const value = Number(row.resultat || 0);
               const width = Math.max(4, Math.abs(value) / maxResult * 100);
               return (
-                <button className={`result-bar ${value < 0 ? 'loss' : 'profit'}`} key={row.mois} type="button" title={`${row.mois}: ${moneySmart(value)}`}>
+                <button className={`result-bar ${value < 0 ? 'loss' : 'profit'} ${activeMonthKey && row.mois_key === activeMonthKey ? 'active' : ''}`} key={row.mois_key || row.mois} type="button" title={`Afficher ${formatMonthPeriod(row.mois_key)} : ${moneySmart(value)}`} aria-pressed={row.mois_key === activeMonthKey} onClick={() => selectDashboardMonth(row.mois_key)}>
                   <span className="result-month">{row.mois}</span>
                   <span className="result-bar-track"><i className="result-bar-fill" style={{ width: `${width}%` }} /></span>
                   <strong>{moneySmart(value)}</strong>

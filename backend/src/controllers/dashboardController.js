@@ -23,8 +23,29 @@ const lastMonths = (count = 6) => {
     });
 };
 
+const monthPeriod = (requestedMonth) => {
+    const now = new Date();
+    const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const key = /^\d{4}-(0[1-9]|1[0-2])$/.test(String(requestedMonth || ''))
+        ? String(requestedMonth)
+        : currentKey;
+    const [year, month] = key.split('-').map(Number);
+    const nextDate = new Date(Date.UTC(year, month, 1));
+    const previousDate = new Date(Date.UTC(year, month - 2, 1));
+    const dateKey = (date) => `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+    return {
+        key,
+        label: `${monthLabels[month - 1]} ${year}`,
+        start: `${key}-01`,
+        nextStart: `${dateKey(nextDate)}-01`,
+        previousStart: `${dateKey(previousDate)}-01`,
+        isCurrent: key === currentKey
+    };
+};
+
 export const getStats = async (req, res) => {
     const entreprise_id = req.user.entreprise_id;
+    const period = monthPeriod(req.query.mois);
 
     try {
         const [[stats]] = await pool.query(
@@ -33,34 +54,34 @@ export const getStats = async (req, res) => {
                 (SELECT COUNT(*) FROM produits WHERE entreprise_id = ? AND quantite_stock <= seuil_alerte) AS alertes_stock,
                 (SELECT IFNULL(SUM(montant_ttc), 0) FROM ventes
                  WHERE entreprise_id = ?
-                   AND MONTH(date_vente) = MONTH(CURDATE())
-                   AND YEAR(date_vente) = YEAR(CURDATE())) AS ca_mois_en_cours,
+                   AND date_vente >= ?
+                   AND date_vente < ?) AS ca_mois_en_cours,
                 (SELECT IFNULL(SUM(lv.quantite * lv.prix_unitaire_ht), 0)
                  FROM lignes_ventes lv
                  JOIN ventes v ON v.id_ventes = lv.vente_id
                  WHERE v.entreprise_id = ?
-                   AND MONTH(v.date_vente) = MONTH(CURDATE())
-                   AND YEAR(v.date_vente) = YEAR(CURDATE())) AS ventes_ht_mois,
+                   AND v.date_vente >= ?
+                   AND v.date_vente < ?) AS ventes_ht_mois,
                 (SELECT IFNULL(SUM(lv.quantite * ${lineCostSql}), 0)
                  FROM lignes_ventes lv
                  JOIN ventes v ON v.id_ventes = lv.vente_id
                  JOIN produits p ON p.id_produit = lv.produit_id
                  WHERE v.entreprise_id = ?
-                   AND MONTH(v.date_vente) = MONTH(CURDATE())
-                   AND YEAR(v.date_vente) = YEAR(CURDATE())) AS cout_achat_mois,
+                   AND v.date_vente >= ?
+                   AND v.date_vente < ?) AS cout_achat_mois,
                 (SELECT IFNULL(SUM(lv.quantite * (lv.prix_unitaire_ht - ${lineCostSql})), 0)
                  FROM lignes_ventes lv
                  JOIN ventes v ON v.id_ventes = lv.vente_id
                  JOIN produits p ON p.id_produit = lv.produit_id
                  WHERE v.entreprise_id = ?
-                   AND MONTH(v.date_vente) = MONTH(CURDATE())
-                   AND YEAR(v.date_vente) = YEAR(CURDATE())) AS resultat_mois,
+                   AND v.date_vente >= ?
+                   AND v.date_vente < ?) AS resultat_mois,
                 (SELECT IFNULL(SUM(p.montant), 0)
                  FROM paiement p
                  JOIN ventes v ON v.id_ventes = p.vente_id
                  WHERE v.entreprise_id = ?
-                   AND MONTH(p.date_paiement) = MONTH(CURDATE())
-                   AND YEAR(p.date_paiement) = YEAR(CURDATE())) AS argent_recu_mois,
+                   AND p.date_paiement >= ?
+                   AND p.date_paiement < ?) AS argent_recu_mois,
                 (SELECT IFNULL(SUM(t.montant_ttc - t.montant_paye), 0)
                  FROM (
                     SELECT v.id_ventes,
@@ -72,7 +93,17 @@ export const getStats = async (req, res) => {
                     GROUP BY v.id_ventes, v.montant_ttc
                  ) t) AS total_creances,
                 (SELECT IFNULL(SUM(quantite_stock * IFNULL(prix_achat, 0)), 0) FROM produits WHERE entreprise_id = ?) AS total_valeur_stock`,
-                [entreprise_id, entreprise_id, entreprise_id, entreprise_id, entreprise_id, entreprise_id, entreprise_id, entreprise_id, entreprise_id]
+                [
+                    entreprise_id,
+                    entreprise_id,
+                    entreprise_id, period.start, period.nextStart,
+                    entreprise_id, period.start, period.nextStart,
+                    entreprise_id, period.start, period.nextStart,
+                    entreprise_id, period.start, period.nextStart,
+                    entreprise_id, period.start, period.nextStart,
+                    entreprise_id,
+                    entreprise_id
+                ]
                 );
 
         const [[comparaison]] = await pool.query(
@@ -81,17 +112,26 @@ export const getStats = async (req, res) => {
                 (SELECT COUNT(*) FROM client WHERE entreprise_id = ?) AS clients_precedents,
                 (SELECT IFNULL(SUM(montant_ttc), 0) FROM ventes
                  WHERE entreprise_id = ?
-                   AND date_vente >= DATE_FORMAT(CURDATE(), '%Y-%m-01')) AS ca_actuel,
+                   AND date_vente >= ?
+                   AND date_vente < ?) AS ca_actuel,
                 (SELECT IFNULL(SUM(montant_ttc), 0) FROM ventes
                  WHERE entreprise_id = ?
-                   AND date_vente >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01')
-                   AND date_vente < DATE_FORMAT(CURDATE(), '%Y-%m-01')) AS ca_precedent`,
-            [entreprise_id, entreprise_id, entreprise_id, entreprise_id]
+                   AND date_vente >= ?
+                   AND date_vente < ?) AS ca_precedent`,
+            [
+                entreprise_id,
+                entreprise_id,
+                entreprise_id, period.start, period.nextStart,
+                entreprise_id, period.previousStart, period.start
+            ]
         );
 
         stats.clients_variation_pct = percentChange(comparaison.clients_actuels, comparaison.clients_precedents);
         stats.ca_variation_pct = percentChange(comparaison.ca_actuel, comparaison.ca_precedent);
         stats.creances_variation_pct = Number(stats.total_creances || 0) > 0 ? -2.4 : 0;
+        stats.periode_key = period.key;
+        stats.periode_label = period.label;
+        stats.periode_mois_en_cours = period.isCurrent;
 
         res.json({ success: true, data: stats });
     } catch (error) {
@@ -117,7 +157,7 @@ export const getVentesMensuelles = async (req, res) => {
 
         const data = lastMonths(6).map(({ key, label }) => {
             const found = rows.find((row) => row.mois_key === key);
-            return { mois: label, total: found ? parseFloat(found.total) : 0 };
+            return { mois_key: key, mois: label, total: found ? parseFloat(found.total) : 0 };
         });
 
         res.json({ success: true, data });
@@ -192,6 +232,7 @@ export const getResultatMensuel = async (req, res) => {
         const data = lastMonths(6).map(({ key, label }) => {
             const found = rows.find((row) => row.mois_key === key);
             return {
+                mois_key: key,
                 mois: label,
                 ventes_ht: Number(found?.ventes_ht || 0),
                 cout_achat: Number(found?.cout_achat || 0),

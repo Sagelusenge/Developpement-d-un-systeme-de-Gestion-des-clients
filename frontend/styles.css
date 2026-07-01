@@ -2451,6 +2451,24 @@ button.kpi-card {
   border-color: #002761;
 }
 
+.activity-month.active .activity-track {
+  border-color: #ff9f0a;
+  box-shadow: 0 0 0 4px rgba(255, 159, 10, 0.16);
+}
+
+.activity-month.active strong,
+.activity-month.active span {
+  color: #9a5d00;
+  font-weight: 900;
+}
+
+.dashboard-period-caption {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  margin: 5px 0 0;
+}
+
 .activity-month strong {
   color: #002761;
   font-size: 13px;
@@ -5776,6 +5794,12 @@ button:disabled {
 .result-bar:hover {
   border-color: #9db5dc;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.result-bar.active {
+  background: #fff8eb;
+  border-color: #ffae2b;
+  box-shadow: 0 0 0 3px rgba(255, 174, 43, 0.14);
 }
 
 .result-month {
