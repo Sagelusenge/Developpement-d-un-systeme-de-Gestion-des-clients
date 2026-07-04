@@ -1,5 +1,16 @@
 import pool from '../config/db.js';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import { getMailErrorMessage, sendClientPasswordSetupEmail } from '../services/mailService.js';
+
+const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
+const createResetCode = () => String(crypto.randomInt(100000, 1000000));
+const hashResetCode = (email, code) => crypto
+    .createHash('sha256')
+    .update(`${normalizeEmail(email)}:${String(code || '').trim()}:${process.env.JWT_SECRET || 'crm-pme-reset'}`)
+    .digest('hex');
+const getFrontendUrl = () => String(process.env.FRONTEND_URL || 'http://127.0.0.1:5174').split(',')[0].trim().replace(/\/$/, '');
+const resetPasswordUrl = ({ email, code }) => `${getFrontendUrl()}/connexion?reset=1&email=${encodeURIComponent(normalizeEmail(email))}&code=${encodeURIComponent(code)}`;
 
 const nextClientId = async (connection) => {
     await connection.query(
@@ -85,11 +96,15 @@ export const createClient = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Le nom du client est requis' });
     }
 
+    if (mot_de_passe && String(mot_de_passe).length < 6) {
+        return res.status(400).json({ success: false, message: 'Le mot de passe initial doit contenir au moins 6 caracteres' });
+    }
+
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
         const idClient = await nextClientId(connection);
-        const normalizedEmail = String(email || '').trim().toLowerCase() || null;
+        const normalizedEmail = normalizeEmail(email) || null;
         if (normalizedEmail) {
             const [existing] = await connection.query(`SELECT id_client FROM client WHERE LOWER(email) = ? LIMIT 1`, [normalizedEmail]);
             if (existing.length) throw new Error('Cet email client est deja utilise.');
@@ -102,6 +117,16 @@ export const createClient = async (req, res) => {
             [idClient, nom, postnom || null, telephone || null, normalizedEmail, passwordHash, entreprise_id]
         );
 
+        let resetCode = null;
+        if (normalizedEmail) {
+            resetCode = createResetCode();
+            await connection.query(
+                `INSERT INTO client_password_reset_codes (client_id, email, code_hash, expires_at)
+                 VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 15 MINUTE))`,
+                [idClient, normalizedEmail, hashResetCode(normalizedEmail, resetCode)]
+            );
+        }
+
         const [newClient] = await connection.query(
             `SELECT id_client, nom, postnom, telephone, email, actif, entreprise_id FROM client
              WHERE entreprise_id = ?
@@ -112,10 +137,37 @@ export const createClient = async (req, res) => {
         );
 
         await connection.commit();
+
+        let emailSent = false;
+        let emailMessage = normalizedEmail ? '' : 'Adresse email non renseignee.';
+        if (normalizedEmail && resetCode) {
+            try {
+                const delivery = await sendClientPasswordSetupEmail({
+                    to: normalizedEmail,
+                    name: nom,
+                    code: resetCode,
+                    resetUrl: resetPasswordUrl({ email: normalizedEmail, code: resetCode })
+                });
+                emailSent = !delivery?.skipped;
+                emailMessage = delivery?.message || '';
+            } catch (error) {
+                emailMessage = getMailErrorMessage(error);
+                console.error('Erreur email acces client:', error.message);
+            }
+        }
+
         res.status(201).json({
             success: true,
-            message: 'Client cree avec succes',
-            data: newClient[0]
+            message: !normalizedEmail
+                ? 'Client cree avec succes, sans email de connexion.'
+                : emailSent
+                    ? 'Client cree et lien de reinitialisation envoye par email.'
+                    : `Client cree, mais le lien de reinitialisation n'a pas pu etre envoye. ${emailMessage}`,
+            data: {
+                ...newClient[0],
+                email_sent: emailSent,
+                email_message: emailMessage
+            }
         });
     } catch (error) {
         await connection.rollback();

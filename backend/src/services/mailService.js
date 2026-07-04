@@ -107,6 +107,25 @@ export const sendClientWelcomeEmail = ({ to, name }) => sendMail({
     })
 });
 
+export const sendClientPasswordSetupEmail = ({ to, name, resetUrl, code }) => sendMail({
+    to,
+    subject: `Definissez votre mot de passe | ${APP_NAME}`,
+    text: `Bonjour ${name || 'cher client'},\n\nVotre compte client a ete cree. Cliquez sur ce lien pour definir votre mot de passe : ${resetUrl}\n\nCe lien expire dans 15 minutes. Code de secours : ${code}.\n\nL'equipe ${APP_NAME}`,
+    html: brandedEmail({
+        eyebrow: 'CREATION DE VOTRE ESPACE CLIENT',
+        title: 'Definissez votre mot de passe',
+        greeting: `Bonjour ${name || 'cher client'}`,
+        intro: 'Votre compte client vient d’etre cree par notre equipe. Cliquez sur le bouton ci-dessous pour choisir votre mot de passe personnel.',
+        content: `
+          <div style="margin:24px 0;text-align:center">
+            <a href="${escapeHtml(resetUrl)}" style="background:#0b5ea8;border-radius:8px;color:#ffffff;display:inline-block;font-size:15px;font-weight:700;padding:14px 24px;text-decoration:none">Definir mon mot de passe</a>
+          </div>
+          ${codeBlock(code, 'Code de secours')}
+        `,
+        notice: 'Ce lien et ce code expirent dans 15 minutes. Si vous n’etes pas concerne par cette creation de compte, ignorez ce message.'
+    })
+});
+
 const productListHtml = (products = []) => `
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #dce4ee;border-radius:10px;border-collapse:separate;overflow:hidden">
     ${products.map((product) => {

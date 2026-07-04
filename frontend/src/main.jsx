@@ -2428,7 +2428,11 @@ function Clients({ api, notify, data, submit, searchQuery = '' }) {
       </div>
       {creating && (
         <Modal title="Nouveau client" onClose={closeCreate}>
-          <Form autoComplete="off" onSubmit={() => submit(async () => { await api('/clients', { method: 'POST', body: JSON.stringify(form) }); closeCreate(); notify('Client cree'); })}>
+          <Form autoComplete="off" onSubmit={() => submit(async () => {
+            const response = await api('/clients', { method: 'POST', body: JSON.stringify(form) });
+            closeCreate();
+            notify(response.message || 'Client cree');
+          })}>
             <div className="form-row">
               <Input label="Nom" name="new_client_name" autoComplete="off" value={form.nom} onChange={(nom) => setForm({ ...form, nom })} required />
               <Input label="Postnom" name="new_client_postname" autoComplete="off" value={form.postnom} onChange={(postnom) => setForm({ ...form, postnom })} />
@@ -2436,8 +2440,9 @@ function Clients({ api, notify, data, submit, searchQuery = '' }) {
             <Input label="Telephone" name="new_client_phone" autoComplete="off" value={form.telephone} onChange={(telephone) => setForm({ ...form, telephone })} />
             <div className="form-row">
               <Input label="Email de connexion client" name="new_client_email" autoComplete="off" data-lpignore="true" data-1p-ignore="true" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} />
-              <Input label="Mot de passe initial" name="new_client_password" autoComplete="new-password" data-lpignore="true" data-1p-ignore="true" type="password" value={form.mot_de_passe} onChange={(mot_de_passe) => setForm({ ...form, mot_de_passe })} />
+              <Input label="Mot de passe initial" name="new_client_password" autoComplete="new-password" data-lpignore="true" data-1p-ignore="true" type="password" minLength="6" value={form.mot_de_passe} onChange={(mot_de_passe) => setForm({ ...form, mot_de_passe })} />
             </div>
+            <p className="form-help">Si une adresse email est renseignée, le client recevra un bouton pour définir son mot de passe. Le lien restera valable 15 minutes.</p>
             <button className="btn modal-submit">Enregistrer <ArrowRight size={20} /></button>
           </Form>
         </Modal>
